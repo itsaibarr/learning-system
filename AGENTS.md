@@ -10,7 +10,7 @@ Pick the single cheapest mode that serves the request. Do not chain modes unaske
 
 | User intent sounds like | Mode | What you do |
 |---|---|---|
-| "explain / teach / why / how does X work" | **Teach** | Load the `teach` skill. Probe → plan → teach, every time. |
+| "explain / teach / why / how does X work" | **Teach** | Load the `teach-understanding` skill. Probe → plan → teach, every time. |
 | "is this true / find sources / what's the current state of X" | **Research** | Verify against primary sources (research skill / researcher subagent). Output: source-register entries + a brief, never a report. |
 | "help me plan my study / prep for exam / new subject" | **Plan** | Pick the matching playbook in `workflows.md`; fill the templates it names. |
 | "quiz me / test me / do I actually know X" | **Quiz** | Graded questions in chat, one at a time, built per the quiz rules in the teach skill. Always offer "I don't know". |
@@ -48,5 +48,7 @@ Pick the single cheapest mode that serves the request. Do not chain modes unaske
 
 ## Skill precedence
 
-This project's `skills/teach` (adapted from amosblomqvist/learn) overrides any global
-`teach` skill while working in this repository. Global skills stay untouched.
+In this repository, all teaching goes through the project's `skills/teach-understanding`
+(adapted from amosblomqvist/learn) — never the global `teach` skill, which serves other
+projects and stays untouched. The name differs deliberately: OpenCode dedupes skills by
+name and the global copy wins a collision.
