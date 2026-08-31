@@ -3,15 +3,16 @@
 
 Usage: python3 scripts/anki_push.py [--dry-run]
 
-Only batches with `status: approved` are pushed. Pushed batches move to
-anki/pushed.md (date-stamped); draft batches stay in the queue untouched.
-Requires Anki running with the AnkiConnect addon (localhost:8765).
+Only batches with `status: approved` are pushed. A batch whose cards ALL get
+added moves to anki/pushed.md; a batch with any rejected/duplicate card stays
+in the queue so nothing is silently lost. Requires Anki running with the
+AnkiConnect addon (localhost:8765).
 """
 
+import argparse
+import html
 import json
 import re
-import sys
-import urllib.error
 import urllib.request
 from datetime import date
 from pathlib import Path
@@ -22,10 +23,13 @@ QUEUE = REPO / "anki" / "queue.md"
 PUSHED = REPO / "anki" / "pushed.md"
 
 BATCH_RE = re.compile(r"^## Batch:\s*(?P<name>[^|]+?)\s*\|\s*deck:\s*(?P<deck>[^|]+?)\s*\|\s*status:\s*(?P<status>\w+)\s*$")
+FIELDS = {"A:": "back", "Tags:": "tags", "Src:": "src"}
 
 
 def parse_queue(text):
-    """Parse queue markdown into batches of cards. Raises ValueError on malformed input."""
+    """Parse queue markdown into batches of cards, each batch carrying its
+    [start, end) line span. Raises ValueError on malformed input."""
+    lines = text.splitlines()
     batches = []
     card = None
 
@@ -35,49 +39,64 @@ def parse_queue(text):
             return
         if card["type"] == "basic" and not card.get("back"):
             raise ValueError(f"Basic card missing 'A:' line: {card.get('front', '?')!r}")
+        if card["type"] == "cloze" and "{{c" not in card["text"]:
+            raise ValueError(f"Cloze card has no {{{{cN::...}}}} deletion: {card['text']!r}")
         batches[-1]["cards"].append(card)
         card = None
 
-    for line in text.splitlines():
+    for i, line in enumerate(lines):
         stripped = line.strip()
         if stripped.startswith("## Batch"):
             close_card()
             m = BATCH_RE.match(stripped)
             if not m:
                 raise ValueError(f"Malformed batch header (need name | deck | status): {stripped!r}")
-            batches.append({**m.groupdict(), "cards": []})
-        elif stripped.startswith("Q:"):
+            if batches:
+                batches[-1]["end"] = i
+            batches.append({**m.groupdict(), "cards": [], "start": i, "end": len(lines)})
+        elif stripped.startswith("Q:") or stripped.startswith("Text:"):
             close_card()
             if not batches:
                 raise ValueError("Card found before any batch header")
-            card = {"type": "basic", "front": stripped[2:].strip(), "tags": [], "src": ""}
-        elif stripped.startswith("Text:"):
-            close_card()
-            if not batches:
-                raise ValueError("Card found before any batch header")
-            card = {"type": "cloze", "text": stripped[5:].strip(), "tags": [], "src": ""}
-        elif card is not None and stripped.startswith("A:"):
-            card["back"] = stripped[2:].strip()
-        elif card is not None and stripped.startswith("Tags:"):
-            card["tags"] = stripped[5:].split()
-        elif card is not None and stripped.startswith("Src:"):
-            card["src"] = stripped[4:].strip()
-        elif not stripped:
-            close_card()
+            if stripped.startswith("Q:"):
+                card = {"type": "basic", "front": stripped.removeprefix("Q:").strip(), "tags": [], "src": ""}
+            else:
+                card = {"type": "cloze", "text": stripped.removeprefix("Text:").strip(), "tags": [], "src": ""}
+        elif card is not None:
+            if not stripped:
+                close_card()
+            else:
+                for prefix, key in FIELDS.items():
+                    if stripped.startswith(prefix):
+                        value = stripped.removeprefix(prefix).strip()
+                        card[key] = value.split() if key == "tags" else value
+                        break
+                else:
+                    raise ValueError(
+                        f"Unrecognized line inside a card block (fields are single-line; "
+                        f"end a card with a blank line): {stripped!r}")
     close_card()
     return batches
+
+
+def to_anki_html(text):
+    """Escape for Anki's HTML fields and convert $/$$ math to MathJax delimiters."""
+    text = html.escape(text, quote=False)
+    text = re.sub(r"\$\$(.+?)\$\$", r"\\[\1\\]", text, flags=re.S)
+    return re.sub(r"\$(.+?)\$", r"\\(\1\\)", text)
 
 
 def build_notes(batch):
     """Turn a parsed batch into AnkiConnect addNotes payloads."""
     notes = []
     for card in batch["cards"]:
-        src = f"<br><br>Source: {card['src']}" if card["src"] else ""
+        src = f"Source: {to_anki_html(card['src'])}" if card["src"] else ""
         if card["type"] == "basic":
-            fields = {"Front": card["front"], "Back": card["back"] + src}
+            back = to_anki_html(card["back"]) + (f"<br><br>{src}" if src else "")
+            fields = {"Front": to_anki_html(card["front"]), "Back": back}
             model = "Basic"
         else:
-            fields = {"Text": card["text"], "Back Extra": src.removeprefix("<br><br>")}
+            fields = {"Text": to_anki_html(card["text"]), "Back Extra": src}
             model = "Cloze"
         notes.append({
             "deckName": batch["deck"],
@@ -94,47 +113,62 @@ def anki(action, **params):
     try:
         with urllib.request.urlopen(urllib.request.Request(ANKI_URL, payload), timeout=10) as resp:
             result = json.load(resp)
-    except (urllib.error.URLError, OSError) as e:
-        sys.exit(f"Cannot reach AnkiConnect at {ANKI_URL} — is Anki running with the AnkiConnect addon? ({e})")
+    except OSError as e:
+        raise RuntimeError(f"Cannot reach AnkiConnect at {ANKI_URL} — is Anki running with the AnkiConnect addon? ({e})")
     if result.get("error"):
-        sys.exit(f"AnkiConnect error on {action}: {result['error']}")
+        raise RuntimeError(f"AnkiConnect error on {action}: {result['error']}")
     return result["result"]
 
 
 def main():
-    dry_run = "--dry-run" in sys.argv
-    batches = parse_queue(QUEUE.read_text())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dry-run", action="store_true", help="parse and report without pushing or rewriting")
+    args = parser.parse_args()
+
+    text = QUEUE.read_text()
+    batches = parse_queue(text)
     approved = [b for b in batches if b["status"] == "approved"]
     if not approved:
         print("No approved batches in anki/queue.md — nothing to push.")
         return
 
+    done, failure = [], None
     for batch in approved:
+        if not batch["cards"]:
+            failure = f"Batch {batch['name']!r} is approved but has no cards — fix the queue."
+            break
         notes = build_notes(batch)
         print(f"Batch {batch['name']!r} → deck {batch['deck']!r}: {len(notes)} cards"
-              + (" (dry run)" if dry_run else ""))
-        if dry_run:
+              + (" (dry run)" if args.dry_run else ""))
+        if args.dry_run:
             continue
-        anki("createDeck", deck=batch["deck"])
-        ids = anki("addNotes", notes=notes)
-        skipped = ids.count(None)
-        print(f"  added {len(ids) - skipped}, skipped {skipped} duplicates")
+        try:
+            anki("createDeck", deck=batch["deck"])
+            ids = anki("addNotes", notes=notes)
+        except RuntimeError as e:
+            failure = str(e)
+            break
+        rejected = ids.count(None)
+        if rejected:
+            print(f"  {rejected} card(s) NOT added (duplicate or rejected by Anki) — "
+                  f"batch stays in the queue; fix or remove those cards and re-push.")
+        else:
+            print(f"  added {len(ids)} cards")
+            done.append(batch)
 
-    if dry_run:
-        return
+    # Move fully-pushed batches out of the queue by their parsed line spans.
+    if done and not args.dry_run:
+        lines = text.splitlines()
+        moved_idx = {i for b in done for i in range(b["start"], b["end"])}
+        moved = [lines[i] for i in sorted(moved_idx)]
+        remaining = [l for i, l in enumerate(lines) if i not in moved_idx]
+        with PUSHED.open("a") as f:
+            f.write(f"\n<!-- pushed {date.today().isoformat()} -->\n" + "\n".join(moved) + "\n")
+        QUEUE.write_text("\n".join(remaining).rstrip() + "\n")
+        print(f"Moved {len(done)} batch(es) to anki/pushed.md.")
 
-    # Move approved batches out of the queue into pushed.md.
-    remaining, moved, current = [], [], None
-    for line in QUEUE.read_text().splitlines():
-        m = BATCH_RE.match(line.strip())
-        if m:
-            current = m.group("status")
-        (moved if current == "approved" else remaining).append(line)
-    stamp = f"\n<!-- pushed {date.today().isoformat()} -->\n"
-    with PUSHED.open("a") as f:
-        f.write(stamp + "\n".join(moved) + "\n")
-    QUEUE.write_text("\n".join(remaining).rstrip() + "\n")
-    print(f"Moved {len(approved)} batch(es) to anki/pushed.md.")
+    if failure:
+        raise SystemExit(f"Stopped: {failure}\nAlready-pushed batches were moved; the rest of the queue is untouched.")
 
 
 if __name__ == "__main__":

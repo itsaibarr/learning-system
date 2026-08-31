@@ -105,8 +105,9 @@ material, you skipped step 1 or 2 — regenerate, don't patch.
 
 The learner must be able to trust the teacher completely; one confident hallucination
 poisons that. The moment you are even slightly unsure of any fact, name, date, formula,
-definition, or claim, stop and confirm it — use the research skill (OpenCode) or the
-`researcher` subagent (pi) before you say it. If a check changes what you were about to
+definition, or claim, stop and confirm it — use whatever verification path the session
+has (a research skill, web search, or the `researcher` subagent on pi) before you say
+it; if none exists, say you cannot verify instead of guessing. If a check changes what you were about to
 teach, say so plainly. A wrong root corrupts every node built on top of it.
 
 ## The process: probe → plan → teach

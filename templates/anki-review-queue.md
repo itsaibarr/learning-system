@@ -26,4 +26,7 @@ Src: <...>
 ```
 
 A card block starts at `Q:` (basic) or `Text:` (cloze) and ends at the next blank line.
+Every field is a single line — the script errors on wrapped/continuation lines rather
+than silently truncating. `status` is lowercase. Write math as `$...$`/`$$...$$`; the
+script converts it to Anki's MathJax delimiters and HTML-escapes card text on push.
 Change `status: draft` → `status: approved` by hand after reviewing — that is the gate.

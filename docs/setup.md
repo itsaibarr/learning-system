@@ -15,6 +15,8 @@ Both frameworks load the same canonical `skills/` directory:
 
 - **OpenCode** — `opencode.json` (committed) points `skills.paths` at `skills/`.
   Verify: `opencode debug skill | grep teach-understanding` → must resolve to this repo.
+  The teach skill's fact-verification step needs some research capability in the
+  session (a global research skill or web search) — on a fresh machine, check one exists.
   Note: the project skill is named `teach-understanding`, not `teach` — OpenCode
   dedupes by name and a global `teach` would win the collision.
 - **pi** — `.pi/skills` (committed symlink) exposes the same files; `.pi/agents/`

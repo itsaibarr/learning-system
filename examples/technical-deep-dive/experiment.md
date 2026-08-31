@@ -1,7 +1,6 @@
 # Experiment: does position in context change retrieval quality?
 
-Decision-log row: 2026-08-31 — test "Lost in the Middle" on a current model myself
-rather than trusting a 2023 result. Revisit when: switching primary model.
+Decision-log rows: see `decision-log.md` in this folder.
 
 **Objective question:** If the same fact sits at the start, middle, or end of a long
 prompt, does answer accuracy change?

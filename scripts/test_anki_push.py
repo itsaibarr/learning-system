@@ -2,7 +2,7 @@
 
 import unittest
 
-from anki_push import parse_queue, build_notes
+from anki_push import parse_queue, build_notes, to_anki_html
 
 QUEUE = """# Anki queue
 
@@ -49,6 +49,14 @@ class ParseQueueTest(unittest.TestCase):
         self.assertEqual(cloze["type"], "cloze")
         self.assertIn("{{c1::at}}", cloze["text"])
 
+    def test_records_line_spans_covering_each_batch(self):
+        lines = QUEUE.splitlines()
+        first, second = parse_queue(QUEUE)
+        self.assertTrue(lines[first["start"]].startswith("## Batch: kinematics-1"))
+        self.assertEqual(first["end"], second["start"])
+        self.assertTrue(lines[second["start"]].startswith("## Batch: drafts"))
+        self.assertEqual(second["end"], len(lines))
+
     def test_rejects_basic_card_missing_answer(self):
         broken = "## Batch: b | deck: D | status: approved\n\nQ: front only\nTags: t\nSrc: x\n"
         with self.assertRaises(ValueError):
@@ -58,6 +66,31 @@ class ParseQueueTest(unittest.TestCase):
         broken = "## Batch: b | status: approved\n\nQ: q\nA: a\n"
         with self.assertRaises(ValueError):
             parse_queue(broken)
+
+    def test_rejects_cloze_without_cloze_deletion(self):
+        broken = "## Batch: b | deck: D | status: approved\n\nText: no braces here\nTags: t\nSrc: x\n"
+        with self.assertRaises(ValueError):
+            parse_queue(broken)
+
+    def test_rejects_unrecognized_line_inside_card_block(self):
+        # A wrapped/continuation line would otherwise be silently dropped from the card.
+        broken = ("## Batch: b | deck: D | status: approved\n\n"
+                  "Q: derive it\nA: start from v = u + at,\n   then integrate over t\nTags: t\n")
+        with self.assertRaises(ValueError):
+            parse_queue(broken)
+
+
+class AnkiHtmlTest(unittest.TestCase):
+    def test_escapes_html_special_characters(self):
+        self.assertEqual(to_anki_html("v < 0 and a > 0"), "v &lt; 0 and a &gt; 0")
+
+    def test_converts_dollar_math_to_anki_mathjax_delimiters(self):
+        self.assertEqual(to_anki_html(r"speed is $9.8\ \mathrm{m/s^2}$"),
+                         r"speed is \(9.8\ \mathrm{m/s^2}\)")
+        self.assertEqual(to_anki_html("$$E = mc^2$$"), r"\[E = mc^2\]")
+
+    def test_preserves_cloze_markers(self):
+        self.assertEqual(to_anki_html("$s = {{c1::ut}}$"), r"\(s = {{c1::ut}}\)")
 
 
 class BuildNotesTest(unittest.TestCase):
@@ -75,6 +108,7 @@ class BuildNotesTest(unittest.TestCase):
         self.assertFalse(basic["options"]["allowDuplicate"])
         self.assertEqual(cloze["modelName"], "Cloze")
         self.assertIn("{{c1::at}}", cloze["fields"]["Text"])
+        self.assertIn(r"\(v = u + {{c1::at}}\)", cloze["fields"]["Text"])
         self.assertIn("[[Concepts/suvat]]", cloze["fields"]["Back Extra"])
 
 

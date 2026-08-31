@@ -26,3 +26,19 @@ Src: [[Concepts/projectile-signs]]
 Text: $s = ut + {{c1::\frac{1}{2}at^2}}$, valid only for {{c2::constant acceleration}}
 Tags: kinematics suvat example
 Src: [[Concepts/suvat]]
+
+## Batch: example-context-windows | deck: Tech::LLM | status: draft
+
+Q: What makes self-attention's compute cost grow with the square of sequence length?
+A: Every token attends to every other token — the comparison is pairwise
+Tags: context-windows example
+Src: [[Concepts/attention-cost]]
+
+Text: During generation, re-computing past tokens' keys and values is avoided by the {{c1::KV cache}}
+Tags: context-windows example
+Src: [[Concepts/attention-cost]]
+
+Q: In a long prompt, where should critical facts and instructions go for best retrieval?
+A: At the start or end — middle positions retrieve worst ("lost in the middle")
+Tags: context-windows example
+Src: examples/technical-deep-dive/experiment.md

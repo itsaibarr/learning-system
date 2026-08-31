@@ -23,8 +23,8 @@ When in doubt, don't — a missing visual is cheaper than a false one.
 
 Precise geometry (coordinate figures, vectors, plots) is out of scope for mermaid —
 use LaTeX where it can carry the idea, or describe it in prose. If geometric figures
-become a recurring need, that's the trigger to reintroduce an SVG path (see decision
-log) — not before.
+become a recurring need, that's the trigger to reintroduce an SVG path (see the
+repo-root `decision-log.md` row on the removed maker pipeline) — not before.
 
 ## One idea, fewest elements
 
