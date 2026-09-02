@@ -47,12 +47,19 @@ graph TD
 | U1 reality supplies the target | solid | Derived unaided 2026-09-02 (Q3), then ratified |
 | U2 scored in its output space | untouched | — |
 | U3 future underdetermined | untouched | — |
-| U4 no language channel ⟹ measure behaviour | solid | Taught 2026-09-02 with the infant looking-time origin |
+| U4 no language channel ⟹ measure behaviour | seen once | Taught 2026-09-02 with the infant looking-time origin |
 | U5 constant encoder ⟹ zero error | untouched | — |
-| U6 absent ⟹ unfamiliar | solid | Replaced a weaker draft root that needed a caveat (VFX and cartoons do contain impossible events) |
-| D7 violation of expectation | solid | Taught 2026-09-02 (Q2 was a blank; answer given with the matched-pair protocol) |
-| U6 → D10 the confound | solid | Taught 2026-09-02. Quiz-checked: missed the control question (chose a linear probe), corrected with the discrimination criterion |
-| D2, D3, D4, D5, D6, D9, G | untouched | — |
+| U6 absent ⟹ unfamiliar | seen once | Replaced a weaker draft root that needed a caveat (VFX and cartoons do contain impossible events) |
+| D7 violation of expectation | seen once | Taught 2026-09-02 (Q2 was a blank; answer given with the matched-pair protocol) |
+| U6 → D10 the confound | seen once | Taught 2026-09-02. Quiz-checked: missed the control question (chose a linear probe), corrected with the discrimination criterion |
+| D9 benchmark taxonomy | seen once | Taught 2026-09-02; one correct answer (Q6) |
+| D2, D3, D4, D5, D6 mechanism spine | delivered, unchecked | Expository block 2026-09-02; no retrieval yet |
+| G | untouched | — |
+
+Status vocabulary: **solid** = retrieved correctly on a later occasion, not just answered when
+first taught. **seen once** = taught and answered correctly at the time. **delivered, unchecked**
+= exposition given, no retrieval attempted. Downgraded four nodes from solid to seen once on
+2026-09-02 — a single same-session answer is not evidence of durable knowledge.
 
 ## Demoted candidates
 

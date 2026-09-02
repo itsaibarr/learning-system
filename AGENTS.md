@@ -27,6 +27,21 @@ Pick the single cheapest mode that serves the request. Do not chain modes unaske
   other; they link instead.
 - Convert relative dates to absolute when writing anything durable.
 
+## Teaching format — learner preference (overrides the skill's default rhythm)
+
+This learner wants **theory first, quizzes after**. Teach a coherent block as continuous
+exposition with no interruptions, then put a batch of questions at the end of the block.
+
+- Do NOT interleave one graded question per node. The probe→plan→teach *sequence* stands;
+  the per-node quiz-check does not.
+- Do NOT deliver content as the post-mortem of a quiz question — that reads as being tested,
+  not taught.
+- Keep the probe short. Bracket the edge with a few questions, then teach; do not re-probe
+  mid-block.
+- Exposition is the default register here, not the fallback. Socratic moves are welcome
+  *inside* a block as rhetorical steps ("so what's the maximum discard?"), answered
+  immediately in the same breath — not as questions that stop and wait.
+
 ## Machine mode — check this first
 
 Two machines, two layouts. Decide once per session and stay in it:
