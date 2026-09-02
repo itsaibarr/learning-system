@@ -14,3 +14,7 @@ Rules:
   probe their extent before marking fixed.
 - A row is closed only after a later retrieval succeeds (quiz, practice, or Anki).
 - Recurring root causes get surfaced in the weekly review.
+| 2026-09-02 | *Taught by me, then corrected:* presented V-JEPA's 98% IntPhys result as solid support for physical understanding | teaching error | Took a headline number without its protocol — it is the dev split, a max over six context settings, and 68.06% under the absolute metric | Recomputed from Meta's released per-video CSVs; note rewritten with the protocol attached and the max-aggregation inflation of the untrained control shown | no |
+| 2026-09-02 | *Taught by me, then corrected:* framed the LLM critique around autoregressive error compounding | teaching error | The sharper root is normalization — a distribution needs a normalizer over every output; softmax over 10⁵ tokens is cheap, an integral over video is not. The objection is to generative prediction in a continuous space, not to autoregression | Root replaced in map.md | no |
+| 2026-09-02 | *Taught by me, then corrected:* presented VICReg as the anti-collapse mechanism behind the deployed models | teaching error | I-JEPA and V-JEPA use stop-gradient plus EMA asymmetry, not VICReg's explicit statistics; and VICReg has no non-collapse theorem | Corrected in session; the honest state (BYOL's mechanism still unexplained, BatchNorm explanation falsified at 73.9% with GroupNorm) recorded in verified-numbers.md | no |
+

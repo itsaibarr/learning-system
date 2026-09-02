@@ -1,52 +1,79 @@
 # Concept: what the physics-violation evidence actually shows
 
-**In one sentence:** V-JEPA's headline 98% on IntPhys was largely low-level cues — its own
-successor benchmark drops it to 57.5% against 96.4% human — but a *competence profile* survives
-that a pure novelty detector cannot produce: single-object properties yes, object interactions
-at chance.
+> Rewritten 2026-09-02 after recomputation from Meta's released per-video CSVs. The first draft
+> of this note took the headline 98% at face value. It does not survive its own protocol.
+
+**In one sentence:** Representation-space surprise is a real but readout-dependent signal that
+survives the field's best low-level control on its easiest synthetic benchmark, and does not
+survive photorealism, real lab video, absolute calibration, or several individual physical
+principles — which is what a good anomaly detector looks like, not physical understanding.
 
 **Hangs off:** [surprise-is-not-understanding.md](surprise-is-not-understanding.md) — the confound
-says a spike may track unfamiliarity rather than impossibility. Selective failure is the
-discriminating test, because novelty is uniform across violation types and competence is not.
+says a spike may track unfamiliarity rather than impossibility.
 
-**The click:** the argument does not resolve to yes or no. It resolves to a **profile**, and the
-profile is the finding.
+**The click:** a likelihood-shaped score **has no modal category**. It can represent *"rarely
+happens."* It cannot represent *"cannot happen."* That is not a measurement problem to be
+engineered away; it is the shape of the instrument.
 
-## The evidence, both directions
+## The headline, and what the protocol does to it
 
-| Result | Number | What it does to the claim |
+| | Value |
+| --- | --- |
+| V-JEPA ViT-H, IntPhys, **relative** (rank the odd one out in a matched quadruplet) | **98.33%** — dev split, per-property *max* over six context lengths |
+| Same model, same items, **absolute** (single video, calibrated threshold) | **68.06%** |
+| Same model, absolute, GRASP / InfLevel-lab | ~52.0% / ~52.8% (untrained ≈ 50.0–50.7%) |
+| Untrained ViT-L control, 20 seeds | 51.44 ± 0.67 |
+
+Humans also lose 8–17 points moving relative → absolute, so absolute failure is *partly* a
+property of the protocol. The informative quantity is therefore the model-versus-human **gap
+profile**, never the raw drop.
+
+## The aggregation is doing argumentative work
+
+| | fixed context | after max-over-contexts |
 | --- | --- | --- |
-| V-JEPA on IntPhys | 98% (chance 50%) | supports — pixel-prediction models and multimodal LLMs sit near chance |
-| V-JEPA on GRASP / InfLevel-lab | 66% / 62% | supports, weakly |
-| Emerges at | ~115M params, as little as 128 h video | supports **architectural**, not scale |
-| Same paper, object interactions (solidity, collision) | **near chance** | the dissociation — this is the load-bearing row |
-| V-JEPA 2 on IntPhys 2 | **57.51%** vs 96.44% human | undercuts — ~43-point drop from IntPhys 1 |
-| V-JEPA 2 on Minimal Video Pairs | **44.5%** vs 92.9% human (chance 25%) | undercuts — below chance-adjusted midpoint |
+| V-JEPA-H, GRASP | 51.1–57.5% | 66.36% |
+| 20 untrained ViT-L controls, GRASP | 48.7–49.7% | **55.9%** |
 
-Evidence and counter-evidence come from **the same lab, released simultaneously** — Meta shipped
-IntPhys 2, MVP and CausalVQA alongside V-JEPA 2. That is unusual and worth saying plainly.
+The published "untrained networks" bar is itself partly a selection artifact. The defensible GRASP
+effect is roughly **8 points over control at fixed context**, not the ~10.5 the headline implies.
+Any single-number claim needs a held-out context-selection protocol first.
 
-## What follows
+## Per-property: present, absent, and inverted
 
-1. **The 98% was mostly low-level cues.** A benchmark built to be harder should cost a few points,
-   not 43. The drop is the measurement of how much of IntPhys 1 was solvable without physics.
-2. **The dissociation survives the drop.** Permanence, continuity, shape and colour constancy are
-   learned; solidity and collision are not. Both classes are equally absent from training video, so
-   novelty predicts *uniform* sensitivity and does not get one.
-3. **So the defensible claim is narrow:** something structured is present, it is thin, it covers
-   single objects and not their interactions, and it is nowhere near human.
-
-**Watch out:** "detecting impossibility" and "acting competently" are different capacities, and a
-result about one is routinely cited about the other. Keep them apart.
-
-**Re-analysable:** Meta released the raw per-model surprise tensors plus a notebook that regenerates
-every figure — the profile can be re-cut without re-running anything.
-
-| Claim | Evidence | Confidence |
+| Principle | V-JEPA | Untrained control |
 | --- | --- | --- |
-| V-JEPA 98/66/62 on IntPhys/GRASP/InfLevel-lab, baselines near chance | Garrido et al., arXiv:2502.11831 | high |
-| Near-chance on solidity and collision in that same paper | same | high |
-| V-JEPA 2: 57.51% IntPhys 2, 44.5% MVP, against 96.44% / 92.9% human | Meta companion benchmarks, arXiv:2506.09849 and 2506.09987 | high — but model scores cluster in the low-to-mid 50s and sources disagree on which model leads |
+| InfLevel object permanence | 72.1 | 52.5 |
+| InfLevel **gravity** | 50.4 ± 0.4 | 51.0 ± 1.5 |
+| InfLevel **solidity** | 51.4 ± 1.3 | 51.9 ± 1.7 |
+| GRASP colour constancy | 58.1 | **63.9** — below random init |
+| GRASP "Unchangeableness", long contexts | **0.00–5.47%** | — |
 
-Links: numbers [../verified-numbers.md](../verified-numbers.md) · source
-[../sources/lecun-eth-2026.md](../sources/lecun-eth-2026.md) · map [../map.md](../map.md)
+That last row is the most interesting result in the whole literature and nobody has explained it:
+the model is **reliably more surprised by the physically legal video**. A consistent sign error,
+not noise — and the max-over-contexts aggregation conceals it inside a 58–65% category bar.
+
+## What genuinely survives — the matched ablation
+
+The strongest evidence for LeCun is not the headline. It is a controlled comparison holding
+architecture, data (HowTo100M) and evaluation fixed, changing **only the prediction space**:
+
+```
+  predict in pixel space            IntPhys 58.89%     (VideoMAEv2-g, independent 1B model: 59.44%)
+  predict in representation space   IntPhys 91.67%
+```
+
+And unlike the headline it is *more* robust at fixed context (≈51–56% vs ≈86–91%) than under
+max-selection. This is the empirical core of "predict in representation space, not pixels."
+
+Cheap, too: ~129 hours of unique video already gives 75.6%; 1% of HowTo100M gives 94.4%; a 115M
+ViT-B gives 90.6%. But the curve is **flat above 1%** (94.4 / 95.0 / 92.2 / 93.9 / 91.7) — which
+cuts both ways: if a 115M model on five days of video saturates the benchmark, the benchmark may
+be what is being measured.
+
+**Watch out:** InfLevel forbids training, fine-tuning *and linear probing* by design, on the
+stated grounds that a probe confounds physical understanding with feature extraction. That is the
+benchmark's authors independently reaching the conclusion about probes reached here on 2026-09-02.
+
+Links: [../paper-evidence-map.md](../paper-evidence-map.md) · [../benchmarks.md](../benchmarks.md)
+· [../verified-numbers.md](../verified-numbers.md) · map [../map.md](../map.md)
