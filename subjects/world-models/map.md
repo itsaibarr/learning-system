@@ -49,9 +49,10 @@ graph TD
 | U3 future underdetermined | untouched | — |
 | U4 no language channel ⟹ measure behaviour | solid | Taught 2026-09-02 with the infant looking-time origin |
 | U5 constant encoder ⟹ zero error | untouched | — |
-| U6 absent ⟹ unfamiliar | stated 2026-09-02 | Replaced a weaker draft root that needed a caveat (VFX and cartoons do contain impossible events) |
+| U6 absent ⟹ unfamiliar | solid | Replaced a weaker draft root that needed a caveat (VFX and cartoons do contain impossible events) |
 | D7 violation of expectation | solid | Taught 2026-09-02 (Q2 was a blank; answer given with the matched-pair protocol) |
-| D2, D3, D4, D5, D6, D9, D10, G | untouched | — |
+| U6 → D10 the confound | solid | Taught 2026-09-02. Quiz-checked: missed the control question (chose a linear probe), corrected with the discrimination criterion |
+| D2, D3, D4, D5, D6, D9, G | untouched | — |
 
 ## Demoted candidates
 
