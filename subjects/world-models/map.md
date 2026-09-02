@@ -53,13 +53,31 @@ graph TD
 | D7 violation of expectation | seen once | Taught 2026-09-02 (Q2 was a blank; answer given with the matched-pair protocol) |
 | U6 → D10 the confound | seen once | Taught 2026-09-02. Quiz-checked: missed the control question (chose a linear probe), corrected with the discrimination criterion |
 | D9 benchmark taxonomy | seen once | Taught 2026-09-02; one correct answer (Q6) |
-| D2, D3, D4, D5, D6 mechanism spine | delivered, unchecked | Expository block 2026-09-02; no retrieval yet |
+| D2, D3, D4, D5, D6 mechanism spine | delivered, then corrected | Expository block 2026-09-02; five corrections issued after verification (see Corrected roots). No retrieval yet |
+| physics-violation evidence | delivered, unchecked | Verified numbers 2026-09-02; the dissociation and the IntPhys 1→2 collapse |
 | G | untouched | — |
 
 Status vocabulary: **solid** = retrieved correctly on a later occasion, not just answered when
 first taught. **seen once** = taught and answered correctly at the time. **delivered, unchecked**
 = exposition given, no retrieval attempted. Downgraded four nodes from solid to seen once on
 2026-09-02 — a single same-session answer is not evidence of durable knowledge.
+
+## Corrected roots — 2026-09-02, after the verification pass
+
+Three roots I taught were serviceable but not the sharpest available. The verification pass
+produced better ones; these replace them, and the teaching order changes accordingly.
+
+| Was | Now | Why the new one is better |
+| --- | --- | --- |
+| U2 "a predictor is scored in its output space" | **normalization is global** — a probability distribution needs a normalizer summed over *every* possible output | Explains the text/video asymmetry exactly: a softmax over ~10⁵ tokens *is* the normalizer; over video it is an integral over a continuum. Shows the objection is to generative prediction in a continuous space, **not to autoregression**. |
+| U5 "a constant encoder has zero error" | **d(a,a) = 0 is the floor, so if *both* arguments are trainable, both-constant is the global minimum** | Generates the insight the old root missed: in MAE the right-hand side is raw pixels, which are *not* trainable, so **pixel targets are collapse-proof for free**. Collapse is the price of the JEPA move, not a quirk. |
+| (absent) | **a loss computed on f(y) cannot see what f discarded** | One root generating *both* halves of the case: the JEPA move (encoder may legally discard leaf motion) and the text-bandwidth argument (language already discarded the physics before the model saw anything). |
+
+Two further roots worth carrying: **fixed vs elastic compute** (a fixed network spends compute set
+by its shape; an optimizer spends what you let it) generates the System-1/System-2 framing and why
+planning is optimization; and **world model = a function from (state, imagined action) to next
+state, built to be searched over** — a stipulative definition, which is why "Sora renders realistic
+video, therefore it has a world model" is a category error inside this vocabulary.
 
 ## Demoted candidates
 
