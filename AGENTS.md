@@ -27,6 +27,19 @@ Pick the single cheapest mode that serves the request. Do not chain modes unaske
   other; they link instead.
 - Convert relative dates to absolute when writing anything durable.
 
+## Machine mode — check this first
+
+Two machines, two layouts. Decide once per session and stay in it:
+
+- **Vault mode** (the usual Mac): the Obsidian vault exists — follow the Obsidian rules below.
+- **Plain mode** (the iMac, or any machine without the vault): notes live in
+  `subjects/<subject>/` inside this repo and **math is Unicode, never `$...$`**.
+  Full rules and the symbol crib: `docs/plain-mode.md`. Everything else in this file —
+  routing, durable-context rules, Anki rules, skill precedence — is unchanged.
+
+Detect it: if `~/Documents/Obsidian Vault` is absent, you are in plain mode. Say which
+mode you are in before writing the first durable file.
+
 ## Obsidian rules (vault: `~/Documents/Obsidian Vault`)
 
 - `Maps/` — one learning map per subject (mermaid dependency graph + status).

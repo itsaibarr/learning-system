@@ -10,3 +10,6 @@ Append-only. One row per decision that a future session must not re-litigate.
 | 2026-08-31 | cmux is the terminal; tmux exists solely as the pi-interactive-subagents substrate | User decision at the audit gate | dropping the pi subagents stack |
 | 2026-08-31 | Anki cards enter decks only via anki/queue.md + human approval + scripts/anki_push.py | Prevents unverified AI card floods; user rule | never |
 | 2026-08-31 | Queue card fields are single-line; the push script errors on continuation lines rather than supporting wrapping | Silent truncation was the alternative; loud failure beats a multi-line grammar | a real need for long-form card backs |
+| 2026-09-02 | Plain mode added: on machines without the Obsidian vault, vault notes land in `subjects/<subject>/` in this repo | The iMac has no Obsidian; the alternative was losing durable notes entirely on that machine | the vault is available everywhere |
+| 2026-09-02 | In plain mode math is written in Unicode (`sₓ`, `‖·‖²`, `−`, `Σ`) with display math in fenced code blocks; `$...$` is banned outside `anki/queue.md` | Plain markdown viewers render `$...$` as literal dollar signs; Anki keeps LaTeX because the push script converts it | a plain-mode viewer with LaTeX rendering becomes the norm |
+

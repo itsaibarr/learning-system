@@ -10,7 +10,7 @@ Works from **OpenCode** (primary) and **pi** — both load the same canonical sk
 
 | Information | Lives in |
 |---|---|
-| Long-term knowledge: maps, concept notes, source notes | Obsidian vault |
+| Long-term knowledge: maps, concept notes, source notes | Obsidian vault (or `subjects/` in plain mode) |
 | Spaced repetition and active recall | Anki (via a human-gated queue) |
 | Study plans, cycles, mistake logs, decisions, progress | This repository |
 | Temporary agent work | Session only — durable conclusions graduate out |
@@ -18,6 +18,8 @@ Works from **OpenCode** (primary) and **pi** — both load the same canonical sk
 ## Start here
 
 - `docs/setup.md` — one-time wiring (frameworks, tmux subagents, AnkiConnect, vault).
+- `docs/plain-mode.md` — the layout for machines with no Obsidian vault (notes in
+  `subjects/`, Unicode math instead of LaTeX).
 - `docs/operating-guide.md` — what a learning session looks like end to end.
 - `workflows.md` — the five playbooks (learn from zero, exam prep, book/course,
   build-to-learn, weekly review).
