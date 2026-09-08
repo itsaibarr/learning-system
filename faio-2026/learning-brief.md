@@ -11,6 +11,7 @@ Created: 2026-09-08 · Status: active
 | Constraints | School until ~15:35 on weekdays; blocks end by 19:30; fixed Daryn blocks Sep 14–15; mocks Sun 2026-09-13 10:00–14:00 and Fri 2026-09-18 16:30–20:30; team of 3 with unknown teammate skills |
 | Map | [[Maps/FAIO-2026]] |
 | Active cycle | faio-2026/study-cycle.md |
+| Quiz surface | vault `Reviews/` — questions as checkbox notes; see decision-log 2026-09-08 |
 
 ## Strand floors and ceilings
 
@@ -31,4 +32,3 @@ probe writes a bracketed floor/ceiling into it.
 ## Open gaps
 - Teammates' names and current skills — blocks role assignment (B tabular/text, C CV/signal)
 - LLM and pretrained-model rules for the online round — organisers say "announced in the participants' chat"; internet and documentation are confirmed allowed (organiser email 2026-09-08)
-- Kaggle competitions not joined: `kazakh-letters`, `missing-fundamental-puzzle`, `lost-in-the-museum-v2` all return 403 until the rules are accepted in a browser. Auth itself works (user `aibarerzhuman`, token in `~/.kaggle/access_token`). Blocks cycle rows 11–12 (finals transfer, Sep 16–17), nothing before that
