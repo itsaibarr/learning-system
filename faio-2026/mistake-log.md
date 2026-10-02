@@ -9,6 +9,7 @@ including the embarrassing ones; those are the highest-value rows.
 
 | Date | What I got wrong | Kind | Root cause | Fixed by | Card? |
 | --- | --- | --- | --- | --- | --- |
+| 2026-09-11 | Q-S2: coin 2 flips, at-least-one head → answered C `(1/2)²` (the none-case) instead of `1-(1/2)²` | misconception | Computed "none" then stopped; skipped the `1 −` flip | S2 re-teach + Q-S2b re-quiz | draft after re-quiz passes |
 | | | | | | |
 
 Rules:

@@ -1,6 +1,6 @@
 # Learning Brief: FAIO 2026 (Fizmat AI Olympiad)
 
-Created: 2026-09-08 · Status: active
+Created: 2026-09-08 · Status: done (qualifier 2026-09-20 over; archived 2026-10-03)
 
 | Field | Value |
 | --- | --- |
