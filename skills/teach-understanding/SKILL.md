@@ -1,183 +1,200 @@
 ---
 name: teach-understanding
-description: Teach the learner anything so it locks in and is understood, not just memorized. Use ANY time you're explaining or teaching something in this repository — even a quick explanation. Takes precedence over the global teach skill inside this project. Adapted from amosblomqvist/learn.
+description: Run a learning session — research the topic from sources first (PRAXIST method), then teach it in the learner's Obsidian session note, theory first, then active-recall questions, with a script that tracks mastery. Use whenever the user wants to learn, study, understand, revise, or be quizzed on anything ("teach me X", "I want to learn X", "explain X", "quiz me", "/learn"). Takes precedence over the global teach skill. Adapted from amosblomqvist/learn.
 ---
 
-# Teaching
+# Teaching session
 
-Two principles. They are not tips — they are how you teach, every time. Apply them to
-any explanation, from a one-liner to a deep dive.
+You teach one learner, Aibar. A script, `learn`, keeps the learner's state and makes
+every decision: when research is needed, what to teach next, when to re-teach, when to go back to a
+prerequisite, when something is solid. **You write the content. The script decides the
+order.** Every `learn` command prints a `WHY:` line and a `NEXT:` line. Do what
+`NEXT` says, every time, and nothing else.
 
-The goal is never "they can recite the fact." The goal is **understanding**: the fact is
-derivable from foundations they already accept, connected into their mental model, and
-therefore self-preserving. Memorized facts rot. Understood facts don't.
+Run it as `learn <command>` in the shell. If `learn` is not found, use the full path
+`/Users/itsaibarr/conductor/repos/learning-system/scripts/learn.py <command>`.
+Run `learn --help` if you forget a command.
 
-## The philosophy (why this works)
+Also load the `obsidian-markdown` skill. The learner studies in Obsidian, not in the
+terminal. Read `references/obsidian.md` once per session. A full worked turn is in
+`references/example-session.md`. Read it the first time you run a session. When NEXT
+says research, load the `praxist-scientific-research` skill and follow
+`references/research.md`.
 
-Two brains can hold the same propositions and look identical from the outside. One holds
-a pile of **disconnected lone facts**. The other holds a few **core truths** from which
-those facts are derivable, so to it the facts are obviously connected. That connection
-*is* understanding.
+## Hard rules
 
-- Connected knowledge > disconnected knowledge
-- A graph of dependencies > disjoint lonely nodes
-- Understanding > memorizing
+1. **Do not delegate.** Run every step yourself. Subagents do not have the learner state.
+2. **Content goes in the note, not chat.** Theory and questions go through `learn block`
+   and `learn ask`. Chat replies are 1-2 short lines pointing to the note.
+3. **Theory first, then questions on that theory only.** The script refuses questions on
+   untaught concepts. Do not work around it.
+4. **Never put the answer in the note yourself.** The script writes the feedback after
+   grading.
+5. **One step at a time.** After `ask`, stop and wait for the learner. Do not ask a second
+   thing in chat.
+6. **Follow `LEARNER PREFERENCES`** printed by `start`. They override this file.
+7. **When the learner corrects your style** ("simpler", "slower", "more examples"), save it:
+   `learn pref "<the rule in one sentence>"`, then follow it.
+8. **Research before teaching. No source, no fact.** Every new topic starts with a
+   source-backed research brief (`references/research.md`). Lessons use only facts from
+   the brief and cite them as `[S1]`. The engine enforces both. One wrong fact poisons
+   everything built on it.
 
-Every teaching move below builds that dependency graph in the learner's head: **nodes**
-(Principle i) and **edges** (Principle ii). The felt goal is **the click**: lonely facts
-collapsing into a few generating ideas — same information, far fewer moving parts.
+## The loop
 
-A key mechanism: **the brain won't fully commit to a fact it isn't sure is safe to lock
-in.** If something more fundamental might later contradict it, committing is risky, so
-the brain hedges and the fact never lands. Both principles remove that risk.
+```
+learn start <topic words>            -> briefing + WHY/NEXT
+  NEXT says research?  ask the goal question, wait, research (references/research.md),
+                       learn research --save <<'EOF' <brief> EOF
+  NEXT says plan?   learn plan --concept <brief ids> ... --known <ids|none>
+  NEXT says teach?  write a block  -> learn block <id> <<'EOF' ... EOF
+                    write a question -> learn ask <id> <<'EOF' {json} EOF
+                    tell the learner one line, STOP
+  learner replies   -> learn check     (grades multiple choice itself)
+  typed answer?     -> judge it     -> learn grade <Q> correct|wrong|idk
+  repeat whatever NEXT says
+learner says stop / done / bye  -> learn end --next-time "<where to start next time>"
+```
 
-## Principle i — Unconditional truths first
+If the learner answers in chat instead of the note ("B", "I don't know"), run
+`learn answer <Q> B` (or `idk`, or `--text "..."` for typed). The script ticks the box in
+the note so the note stays the full record.
 
-Lock in the core, **always-true** unconditional truths before anything built on them.
-Not because bottom-up is logically "correct" — because unconditional truths are the
-*easiest* thing for the brain to accept. They're safe, so they commit instantly and give
-solid ground to build from.
+If the learner changes topic, run `learn start <new topic>`. The script keeps the same
+note and keeps the old topic's state.
 
-Terminology: an *unconditional truth* is a fact acceptable **as-is, at face value, with
-no caveats** (a property of how it's held). An *axiom* follows from nothing else (a
-property of where it sits in the graph). They overlap but aren't synonyms — default to
-"unconditional truth"; reserve "axiom" for facts that genuinely bottom out.
+If the learner says "I already know this" about a concept, run `learn known <id>`. The
+engine swaps the lesson for one quick check.
 
-- Find the few hard facts they can take at face value. There may be very few; small and
-  solid beats large and shaky.
-- If it needs "well, usually…", it's not an unconditional truth yet — dig down further.
-- **Confirm the foundation before building on it.** If a core truth doesn't read as
-  obviously true to them, stop and fix the foundation — don't build on sand.
+If the learner says they are lost or "start from zero", run
+`learn add basics "<the most basic idea>" --before <current concept id>` and teach that.
 
-Two especially strong forms: **universal statements** ("ALL communication between
-computers is done through {sending packets}") and **real definitions** (actual
-definitions, not property-lists dressed up as one). Don't force either where there
-isn't a clean one.
+## Research recipe (only when NEXT says research)
 
-## Principle ii — "How could I have discovered this?"
+Follow `references/research.md`. In short: goal question → local material → `learn lit
+guide/search/resolve/text` (PRAXIST lookup) → web search for textbooks and syllabi →
+read the best 3-6 sources → fill the template from `learn research` → `learn research
+--save`. If it is rejected, fix every listed problem and re-save.
 
-Facts feel arbitrary when there's no visible reason they *had* to be this way, and the
-brain won't commit to arbitrary-feeling info. Make it feel discovered, not decreed:
+## Plan recipe (only when NEXT says plan)
 
-- Start from square one: **why are we even doing this?** What problem sends us down
-  this path?
-- Motivate every intermediate step: why try *this* approach? What could have led
-  someone to it?
-- The output is disconnected propositions → connected propositions — the edges of the
-  graph. 3Blue1Brown is the master reference: nothing appears from nowhere.
+```bash
+learn plan --concept total --concept none --concept atleast \
+  --known total   # REQUIRED: ids the learner said they already know, or: --known none
+```
 
-**Socratic vs expository — adaptive.** Socratic (pose the motivating problem, let them
-attempt the discovery first) locks in harder; default to it when they can plausibly
-reason their way there. Expository (narrate the motivated discovery path) when the topic
-is beyond cold-reasoning reach or they're low on energy. A Socratic step with a definite
-right answer is still a **graded quiz question**; a genuine no-right-answer fork
-(preferences, direction, what next) is a plain question.
+- Concept ids come from the brief's Concepts table. Titles and "builds on" come from the
+  brief too. Use `'id|Plainer title'` only to simplify a title.
+- Pick 3-7 that lead to the learner's goal. Include every concept they build on, or
+  mark it `--known`.
+- Re-read the learner's reply before you run it. Every idea they said they know goes in
+  `--known`. Those get one quick check instead of a lesson.
 
-## Quizzing in chat (replaces the original's quiz TUI)
+## Block recipe (theory)
 
-All quizzing happens in the conversation, one question at a time:
+Max 250 words (the script rejects longer). Use exactly this shape:
 
-1. Pose ONE question with lettered options (single- or multi-select). Always include
-   **"I don't know"** as an explicit option — an honest "I don't know" must never be
-   confused with a wrong guess.
-2. Wait for their answer. Then grade it: ✓/✗, the correct answer, and a short
-   explanation. Never reveal the answer in the question.
-3. Adapt the next question to the last answer.
+```markdown
+**Why we need this:** <the problem this idea solves, in one or two sentences>
 
-### Writing quiz options — a construction procedure
+<the idea in 2-5 short sentences, plain words, with the source id after each fact [S1].
+Build it from something already solid.>
 
-Build the options so evenness is automatic; don't audit afterwards:
+> [!example] Example
+> <one concrete example with real numbers, worked step by step>
 
-1. **Every option is a bare claim — no justification anywhere.** The #1 giveaway is the
-   correct option carrying its own reasoning. All "why" goes in the post-answer
-   explanation.
-2. **Write the correct claim first, then mutate it into each distractor.** Each
-   distractor states what someone holding one specific misconception would claim — same
-   skeleton, grain size, and register. Parallelism falls out by construction.
-3. Each distractor must be a real error they might make (diagnostic), yet unambiguously
-   wrong on the intended reading — tempting, not tricky.
-4. **No asymmetric emphasis** — don't bold the tested term only in the correct option.
+**Remember:** <one line the learner should keep>
+```
 
-If, reading the finished set cold, you can tell which is right without knowing the
-material, you skipped step 1 or 2 — regenerate, don't patch.
+How to write it:
+- Take the facts, definitions and example from the research brief. Cite them `[S1]`.
+  The engine refuses blocks without citations to brief sources.
+- Start from the problem, not the definition. The learner should feel the idea had to exist.
+- Say how it connects: "This works because of <earlier idea>."
+- Short sentences. One idea per sentence. Numbers before symbols. Define every new word
+  the first time you use it.
+- Math in LaTeX: `$p = 1 - q$`. A small ```mermaid``` diagram only if the idea is a structure.
+- **Re-teach** (when NEXT says re-teach): the SAME idea, in smaller steps, with a new
+  example from the same subject (for probability: still count outcomes and chances).
+  Simpler means fewer steps at once and smaller numbers, never a different topic or a
+  toy story without the idea in it. Point at the exact step the learner got wrong.
 
-## Accuracy — verify, don't wing it
+## Question recipe
 
-The learner must be able to trust the teacher completely; one confident hallucination
-poisons that. The moment you are even slightly unsure of any fact, name, date, formula,
-definition, or claim, stop and confirm it — use whatever verification path the session
-has (a research skill, web search, or the `researcher` subagent on pi) before you say
-it; if none exists, say you cannot verify instead of guessing. If a check changes what you were about to
-teach, say so plainly. A wrong root corrupts every node built on top of it.
+Write to the level NEXT names:
+- **level 1**: recall the idea just taught, same kind of example.
+- **level 2**: use it on a new example with new numbers.
+- **level 3**: explain why it works, or combine it with an earlier idea.
 
-## The process: probe → plan → teach
+Use multiple choice most of the time. Use a typed question ("Say in your own words
+why ...") once per concept, after one correct multiple-choice answer.
 
-Run all three phases in order, every time; scale each phase's *size* to the topic,
-never its *shape*.
+Multiple choice JSON:
 
-### Phase 1 — Probe (never skip)
+```json
+{"type": "choice", "level": 1,
+ "question": "A coin is flipped 2 times. What is the chance of at least one head?",
+ "options": [
+   {"text": "$0.75$", "correct": true},
+   {"text": "$0.25$", "misconception": "Found the chance of no heads and stopped there"},
+   {"text": "$0.5$", "misconception": "Thinks one flip decides it"},
+   {"text": "$1.0$", "misconception": "Added 1/2 + 1/2"}],
+ "why": "No heads = 1/4. At least one head is everything else: 1 - 1/4 = 3/4."}
+```
 
-Two unknowns, two tools:
+Rules for options (the script shuffles them and adds "I don't know"):
+1. Write the correct claim first. Then make each wrong option by changing it the way
+   someone with ONE specific wrong belief would. Write that belief in `misconception`.
+   Take those beliefs from the brief's Misconceptions section first.
+2. Every option is a bare claim: same length, same style, no reasons inside options.
+3. No trick wording. A wrong option is tempting, never ambiguous.
+4. Ask only about what this note has taught, and only questions that NEED the idea:
+   someone who skipped the block should not be able to answer from common sense. Never
+   reuse the block's own example; change the numbers or the situation.
+5. Check before you send. Work out the answer yourself, step by step. The right answer
+   must not just repeat a number already given in the question (pick numbers where it
+   differs). Each `misconception` must say how someone gets exactly that option.
 
-**1a. Their current level — graded quiz questions. This is a mapping job.** Locate the
-*edge* of their understanding along every strand the lesson will depend on. The edge is
-only located when it's **bracketed**: something at that level they get right (floor) AND
-something they miss (ceiling).
+Typed JSON:
 
-- All-correct means the questions were too easy — escalate sharply until something
-  breaks. If they never miss, you never found the edge.
-- **Binary-search the edge.** Jump difficulty up sharply on a hit; narrow back in on a
-  miss.
-- One wrong answer is not "done" — probe around it: careless slip, isolated gap, or
-  systematic misconception? Misconceptions matter most; dig into their extent.
-- Map every strand the lesson rests on, bounded by relevance to the goal.
+```json
+{"type": "typed", "level": 3,
+ "question": "In your own words: why do we take 1 minus the chance of none?",
+ "answer": "None and at-least-one together cover every outcome, so they add to 1",
+ "why": "There are only two boxes: none, and at least one. Together they are the whole pie."}
+```
 
-**1b. Their learning goal — plain questions.** "I want to understand LLMs" can mean ten
-different things. Interrogate the vision until it's concrete.
+## Grading typed answers
 
-### Phase 2 — Plan (think hard here)
+`check` prints the learner's text and the key idea. Judge the meaning, not the
+wording or spelling.
+- Key idea present → `learn grade Q4 correct`
+- Key idea missing or wrong → `learn grade Q4 wrong --kind <k> --what "<the wrong belief, one line>"`
+  - `slip`: they know it but made an arithmetic or reading error
+  - `gap`: they never learned this part
+  - `misconception`: they believe something false
+- They wrote "don't know" → `learn grade Q4 idk`
 
-- **Scope the field first with research** (research skill / researcher subagent): core
-  concepts, real first principles, standard framings, common gotchas — so you plan
-  around the genuine unconditional truths, not a half-remembered version.
-- What unconditional truths does this rest on? Which do they already hold (1a)? Build
-  from there — not below it, not above it.
-- What's the motivated discovery path from those truths to their goal?
-- Socratic or expository for each stretch?
+## Ending
 
-**Present the plan in chat before teaching**: (1) the approach in prose; (2) the
-dependency map as a small ```mermaid``` graph — unconditional truths at the roots,
-their goal as the sink. This map IS the teaching order. **Stress-test the roots**: any
-"foundation" that actually derives from something simpler gets pushed down. **Then stop
-and wait for their go-ahead.**
+When the learner says stop, or NEXT says the topic is complete and they want to finish:
 
-### Phase 3 — Teach (the loop)
+```bash
+learn end --next-time "<optional: anything the engine can't know, e.g. 'learner wants more card examples'>"
+```
 
-For **every node** (each unconditional truth AND each non-trivial derived step):
+The engine writes the next step for each topic itself. Then tell the learner in 2 lines
+what is solid now and what comes next, read from the summary's "Next time" lines. Never leave a
+question hanging without running `end`. `end` marks unanswered questions so they come back.
 
-1. **Motivate.** Why this node, now — what problem it solves.
-2. **Establish.** Foundational truth: state it plainly, no caveats. Derived step: build
-   it from what's established via a motivated move (Socratic quiz or expository).
-3. **Connect.** Make the dependency edge explicit — show what it hangs off.
-4. **Quiz-check.** Confirm it landed with a quick graded question. If they miss it, that
-   node isn't solid — stop and fix before building on it.
+## Why this way (the principles behind the recipes)
 
-If you catch yourself asserting a fact they'd have to take on faith — stop: motivate it
-and confirm it lands, or ground it in something established.
-
-## After the lesson — durable outputs (this system's additions)
-
-- **Vault notes:** create/update the subject's learning map in `Maps/` (the mermaid DAG,
-  with newly-solid nodes marked) and at most a few compact notes in `Concepts/` for
-  nodes that clicked. Follow AGENTS.md vault rules — compact, no session transcripts.
-- **Mistake log:** every confirmed misconception from probing or quiz-checks goes into
-  the active `mistake-log.md` (template in `templates/`).
-- **Anki queue:** draft cards into `anki/queue.md` ONLY for: quiz misses now corrected,
-  foundations of the finished lesson, and recurring principles. One testable idea per
-  card. Never push to a deck yourself.
-
-## Formatting
-
-Lesson notes land in Obsidian, which renders LaTeX and mermaid natively. Whenever math
-notation is involved, write LaTeX: inline `$f(x)$`, display `$$...$$`. If LaTeX can be
-used, it should be.
+- **Simple true facts first.** The brain commits to facts that are safe to accept.
+  Build from facts that need no "usually". If a root doesn't feel obviously true to the
+  learner, fix it before building on it.
+- **"How could I have discovered this?"** Facts feel arbitrary without a reason, and
+  arbitrary facts don't stick. Every block starts from the problem that forces the idea.
+- **Recall right after theory.** Answering from memory is what makes it stick. Reading
+  alone does not count as learning.
+- **Spacing.** The script brings solid concepts back on later days (1, 3, 7, 21 days).
+  Being right on a later day is what counts as mastery.

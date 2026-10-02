@@ -7,16 +7,17 @@ durable outputs — anything not listed there dies with the session.
 
 Trigger: "I want to learn X" with no existing brief for X.
 
-1. Probe current level + interrogate the goal (teach-understanding skill, Phase 1).
-2. Fill `templates/learning-brief.md` → repo, under a new subject folder.
-3. Build the learning map (visualize skill) → vault `Maps/<subject>`.
-4. Select 2–4 sources → `source-register.md` in the subject folder.
-5. Loop per concept: teach one node (probe→plan→teach) → retrieval practice →
-   apply it (problem or micro-experiment).
-6. Draft cards for quiz misses + finished foundations → `anki/queue.md`.
-7. End of week → playbook 5.
+1. `/learn <subject>` in OpenCode. The engine asks for the goal, then `learn plan`
+   draws the 3-7 concept map into the session note.
+2. Loop per concept, all in the session note: theory block → recall question → graded
+   feedback → the engine picks the next step (more practice, re-teach, prerequisite,
+   or next concept).
+3. Next sessions: `/learn <subject>` again. Due reviews come first.
+4. Optional for big subjects: a learning brief and source register in the repo; cards
+   for corrected misconceptions → `anki/queue.md`.
+5. End of week → playbook 5.
 
-Durable: brief, source register, map, concept notes for clicked nodes, queue drafts.
+Durable: session notes, `state/learner.json`, the dashboard; brief/register if used.
 Exit: target outcome in the brief is demonstrated, not summarized.
 
 ## 2. Prepare for an exam
@@ -68,7 +69,8 @@ Trigger: end of study week, or a cycle ends.
 
 1. Fill `templates/weekly-review.md` → vault `Reviews/` (agent drafts, learner edits).
 2. Pull Anki stats (reviews done, lapses) — flag decks with >20% lapse rate.
-3. Sweep mistake logs: close rows with successful later retrieval; escalate recurrers.
+3. Open `Maps/Learner dashboard.md`: open mistakes, due reviews, concepts stuck at
+   `learning`. Sweep repo mistake logs for exam subjects the same way.
 4. Tick study-cycle progress; decide next week's ≤3 priorities.
 5. Cleanup: archive/delete low-value notes and stale queue drafts (list them in the review).
 6. User reviews `anki/queue.md`, flips batches to `approved`, runs

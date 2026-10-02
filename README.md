@@ -3,8 +3,13 @@
 A private, markdown-only learning system: an AI agent that teaches for understanding
 (not summaries), backed by Obsidian for durable knowledge and Anki for retrieval practice.
 
-Works from **OpenCode** (primary) and **pi** — both load the same canonical skills in
-`skills/`. There is exactly one script in the whole system (`scripts/anki_push.py`).
+Works from **OpenCode** (primary): `/learn <topic>` from any folder. `scripts/learn.py`
+(on PATH as `learn`) holds the learner state and the teaching rules; the agent writes
+the content and follows the engine's `NEXT:` lines. Every new topic is researched first
+(PRAXIST method, source-backed brief in vault `Sources/`); lessons cite that brief.
+
+Install on a machine: `bash scripts/install.sh` (idempotent). `scripts/anki_push.py` pushes
+approved cards.
 
 ## How it fits together
 
@@ -12,7 +17,9 @@ Works from **OpenCode** (primary) and **pi** — both load the same canonical sk
 |---|---|
 | Long-term knowledge: maps, concept notes, source notes | Obsidian vault |
 | Spaced repetition and active recall | Anki (via a human-gated queue) |
-| Study plans, cycles, mistake logs, decisions, progress | This repository |
+| Learner state: preferences, mastery, reviews, mistakes | `state/learner.json` (this repo) |
+| One note per learning session | Obsidian vault `Sessions/` |
+| Study plans, cycles, mistake logs, decisions | This repository |
 | Temporary agent work | Session only — durable conclusions graduate out |
 
 ## Start here
@@ -33,3 +40,9 @@ shared as-is in [How I Use AI to Learn Things](https://www.youtube.com/watch?v=k
 The original is a pi TUI configuration; this repo ports the pedagogy to a portable
 markdown core and adds the study-planning, Obsidian, and Anki layers around it.
 The upstream repo carries no license file; this adaptation is private and not redistributed.
+
+The research step uses [sapientinc/PRAXIST](https://github.com/sapientinc/PRAXIST):
+its `praxist-scientific-research` skill (installed unmodified from a clone) and its
+no-key literature lookup (`praxist` package, called by `learn lit`). PRAXIST is under the
+Fair Source License 1.0 (free below USD 1M annual revenue, internal use);
+`skills/teach-understanding/references/research.md` adapts its method for teaching.
