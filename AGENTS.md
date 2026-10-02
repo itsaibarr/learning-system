@@ -10,18 +10,21 @@ Pick the single cheapest mode that serves the request. Do not chain modes unaske
 
 | User intent sounds like | Mode | What you do |
 |---|---|---|
-| "explain / teach / why / how does X work" | **Teach** | Load the `teach-understanding` skill. Probe → plan → teach, every time. |
+| "explain / teach / why / how does X work / I want to learn X" | **Teach** | Run a session: `/learn <topic>` (or load `teach-understanding` and run `learn start <topic>`). New topics are researched first (`references/research.md`, PRAXIST method). Theory first, then recall. Follow every `NEXT:` line. |
 | "is this true / find sources / what's the current state of X" | **Research** | Verify against primary sources (research skill / researcher subagent). Output: source-register entries + a brief, never a report. |
 | "help me plan my study / prep for exam / new subject" | **Plan** | Pick the matching playbook in `workflows.md`; fill the templates it names. |
-| "quiz me / test me / do I actually know X" | **Quiz** | Graded questions in chat, one at a time, built per the quiz rules in the teach skill. Always offer "I don't know". |
+| "quiz me / test me / do I actually know X" | **Quiz** | Same session loop: `learn start <topic>`. Due reviews come first; questions go into the session note via `learn ask`. |
 | "review my answers / check my work / mark this" | **Review** | Grade, then log misconceptions in the active `mistake-log.md`. |
 | "make cards / add to Anki" | **Cards** | Draft into `anki/queue.md` per its rules. NEVER push to a deck yourself; the user runs `scripts/anki_push.py` after approving. |
 | "save this / note this down" | **Notes** | Create/update the one right note in the vault (see Obsidian rules below). |
 
 ## Durable-context rules
 
-- After a session, save only: brief-sized conclusions, mistake-log entries, drafted
-  cards, and study-cycle progress ticks. Everything else dies with the session.
+- Learner state lives in `state/learner.json`, owned by `scripts/learn.py`. Never edit
+  it by hand; change it through `learn` commands. `learn end` commits it.
+- The session note in vault `Sessions/` is the durable record of a teaching session.
+  Outside sessions, save only: brief-sized conclusions, drafted cards, and study-cycle
+  progress ticks.
 - No markdown research archives. If an artifact exceeds its template's size, cut it.
 - One artifact per fact. Vault notes, repo files, and Anki cards must not restate each
   other; they link instead.
@@ -33,6 +36,8 @@ Pick the single cheapest mode that serves the request. Do not chain modes unaske
 - `Concepts/` — compact concept notes; one testable idea cluster each.
 - `Sources/` — source notes; one per source, linked from the source register.
 - `Reviews/` — weekly reviews.
+- `Sessions/` — one note per learning session, written by `learn` (theory, questions,
+  answers, feedback, summary), plus `Sessions.base`. `Maps/Learner dashboard.md` is generated.
 - Never edit or delete a note you did not create this session without being asked.
   Additions and appends are fine; rewrites of the user's own words are not.
 - Math in LaTeX (`$...$`); diagrams as inline ```mermaid``` blocks — Obsidian renders both.

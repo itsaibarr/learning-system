@@ -23,6 +23,22 @@ Both frameworks load the same canonical `skills/` directory:
   holds the researcher subagent definition.
   - ☐ `pi` → `/login` with your provider (required before any pi use).
 
+## 2b. Global wiring for `/learn`: `bash scripts/install.sh`
+
+Idempotent. It sets up:
+- `~/.local/bin/learn` → `scripts/learn.py`.
+- `~/.config/opencode/commands/learn.md` → `opencode/commands/learn.md` (pinned to
+  `opencode/muse-spark-1.3-contributor-free`).
+- Skills in `~/.config/opencode/skills/`: `teach-understanding` → this repo;
+  kepano/obsidian-skills (`~/repos/obsidian-skills`): `obsidian-markdown`,
+  `obsidian-bases`, `obsidian-cli`, `json-canvas`; PRAXIST (`~/repos/PRAXIST`):
+  `praxist-scientific-research`.
+- `pip install praxist==0.5.0 httpx` for `learn lit` (no API keys).
+- The routing block `opencode/agents-block.md` appended to `~/.config/opencode/AGENTS.md`.
+- Obsidian CLI: Settings > General > Advanced > Command line interface (optional; the
+  engine writes files directly and uses the CLI to open notes).
+- Tests: `python3 -m unittest discover scripts`.
+
 ## 3. Terminal + subagents
 
 - **cmux** is the terminal app (`brew install --cask cmux`) — tabs host sessions.
@@ -45,6 +61,7 @@ Both frameworks load the same canonical `skills/` directory:
 
 ## 5. Obsidian
 
-Vault (`~/Documents/Obsidian Vault`) needs five folders: `Maps/`, `Concepts/`,
-`Sources/`, `Reviews/`, `Templates/` (templates copied from `templates/`). No
+Vault (`~/Documents/Obsidian Vault`) uses six folders: `Maps/`, `Concepts/`,
+`Sources/`, `Reviews/`, `Templates/` (templates copied from `templates/`), and
+`Sessions/` (created by `learn start`). No
 community plugins required — mermaid and LaTeX render natively.
