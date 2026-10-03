@@ -1,120 +1,257 @@
-# Visuals: a picture of how it works, for every idea
+# Visuals: Manim, the 3Blue1Brown way
 
-The learner understands pictures far better than text. Every theory block needs at
-least one visual (the engine refuses blocks without one). The visual shows HOW the
-thing works: parts, what moves between them, and the order of steps. Decoration,
-stock photos and AI-generated images don't count: they are not drawn for the
-explanation and their labels don't match the text.
+The learner understands pictures far better than text. Every theory block needs a
+**Manim** visual of how the idea works (the engine refuses blocks without one). Manim is
+the animation engine behind 3Blue1Brown: things move, formulas transform, the eye
+follows the idea. Stock photos and AI-generated images are never used.
 
-All tools here are free and local: matplotlib (pictures, plots, animations) and
-mermaid (structure), both rendered natively by Obsidian.
+Installed locally and free: Manim Community 0.21 in its own environment, plus TinyTeX
+for LaTeX (`MathTex`, `Tex`). `learn figure` finds both itself.
 
-## Pick the visual
+## Pick the template
 
-| The idea is about | Make | How |
+| The idea is about | Template | Command |
 | --- | --- | --- |
-| Physical things: particles, waves, objects, forces, motion | the things themselves, animated | Template 4, `learn figure` |
-| How a system works: parts and what flows between them | labelled diagram | Template 1, `learn figure` |
-| A process that changes over time, or steps of an algorithm | step animation (GIF) | Template 2, `learn figure` |
-| Numbers, a formula, a curve, a distribution, geometry | annotated plot | Template 3, `learn figure` |
-| Pure structure: a hierarchy, a decision, a sequence of messages | mermaid | ```mermaid``` block in the text |
+| Physical things moving: particles, waves, objects, forces | Physical | `learn figure <name>` |
+| A formula, an equation to solve, a derivation | Derivation | `learn figure <name>` |
+| A curve, a function, numbers changing | Graph | `learn figure <name>` |
+| Steps of a process or an algorithm | Process | `learn figure <name>` |
+| A system of parts and what flows between them | System | `learn figure <name> --still` |
 
-Mermaid types that render in this Obsidian: `flowchart`, `sequenceDiagram`,
-`stateDiagram-v2`, `mindmap`, `timeline`, `xychart-beta`, `quadrantChart`. The engine
-parses every mermaid block with Obsidian's own mermaid and rejects broken ones.
+`--still` renders the last frame as a PNG (for static diagrams and picture answers).
+Without it you get an MP4 that plays inside the note.
 
-## How to make a figure
+## How to make one
 
 1. Copy the closest template below. Change only the part under `--- edit`.
-2. Pipe it to the engine: `learn figure <short-name> <<'EOF' ... EOF`.
-3. If it is rejected, read the reason (crash, labels colliding, no file, too big), fix
-   that one thing, re-run with the same name.
-4. Paste the printed `EMBED:` line into the theory block, near the top.
+2. `learn figure <short-name> <<'EOF'` ... `EOF` (add `--still` for a picture).
+3. If it is rejected, read the reason, fix that one thing, re-run with the same name.
+   The engine checks, in this order: old-Manim code, the render itself (Python and
+   LaTeX errors, with LaTeX's own message), text that overlaps other text or is cut off
+   at the frame edge (checked after EVERY play/wait), length 2-90 s, size.
+4. Paste the printed `EMBED:` line into the theory block, right after "Why we need this".
 
-The script gets `OUT_PNG` and `OUT_GIF` paths. Save exactly one: a picture with
-`fig.savefig(OUT_PNG, dpi=110, bbox_inches="tight")`, an animation with
-`anim.save(OUT_GIF, writer=PillowWriter(fps=...), dpi=80)`.
+After 3 failed Manim attempts in a row the engine also accepts the matplotlib fallback
+at the end of this file. Use it only then.
 
-## Rules for a picture that teaches
+## Manim Community only (your training data has old code)
 
-- **Draw the thing, not a box with its name.** If the idea is physical (air molecules,
-  a wave, a robot arm, a ball, a force), draw those objects and how they move. Boxes
-  and arrows are for systems made of parts (a microphone pipeline, a training loop).
-  A box labelled "air: molecules wobble" explains less than 200 dots that wobble.
-- **Show the misconception being wrong.** If the brief lists a misconception, make the
-  picture show why it is wrong (Template 4 follows one molecule to show the air stays).
-- **Numbered marks.** Put ① ② ③ on the parts or steps, and use the same marks in the
-  text: "① sound pushes the air...". This is how the text walks through the picture.
-- **Few labels, big enough.** At most about 6 labels, font size 9 or more, plain words.
-- **One idea per picture.** If it needs more than 3-4 parts, split it into two figures
-  or an animation.
-- **Real numbers come from the research brief.** If a number is made up to show the
-  shape of the idea, label the figure "illustrative".
-- **Colour means something.** Same colour for the same kind of thing in every figure of
-  the session (blue = main object, orange = what changes, green = result, grey = context).
-- **Animations:** 3-8 frames, a title on every frame saying what changed, 0.5-1 frame
-  per second so the learner can read it. Call `fig.tight_layout()` in each frame.
+Write `from manim import *` and one `class Name(Scene)` with `construct(self)`.
+3Blue1Brown's own videos use ManimGL, a different library. Its code does not run here,
+and the engine rejects it before rendering:
 
-## Template 1: mechanism diagram (PNG)
+| Old (ManimGL / legacy) | Manim Community |
+| --- | --- |
+| `from manimlib import *` | `from manim import *` |
+| `ShowCreation(x)` | `Create(x)` |
+| `TextMobject("...")` | `Text("...")` or `Tex("...")` |
+| `TexMobject("...")` | `MathTex("...")` |
+| `GraphScene`, `self.setup_axes()`, `get_graph` | `axes = Axes(...)`, `axes.plot(f)` |
+| `CONFIG = {...}` | arguments in `construct()` |
+| `FadeInFrom(x, DOWN)` | `FadeIn(x, shift=DOWN)` |
+| `InteractiveScene`, `self.embed()` | `Scene`, remove it |
 
-```python
-# TEMPLATE 1: mechanism diagram. Parts as boxes, arrows for what flows, numbered steps.
-import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+## Rules for a scene that teaches
 
-fig, ax = plt.subplots(figsize=(10, 3.6))
-ax.set_xlim(0, 10); ax.set_ylim(0, 3.6); ax.axis("off")
-C = {"main": "#3b6fb6", "accent": "#e08a2e", "good": "#2e9d62", "muted": "#9aa5b1"}
+- **Draw the thing, not a box with its name.** Molecules, a wave, a robot arm, a vector:
+  draw them and move them. Boxes are only for systems of parts.
+- **Show the misconception being wrong.** If the brief lists one, make the scene
+  disprove it (Physical follows one molecule to show the air stays).
+- **One idea, 5-20 seconds.** End with `self.wait(1)` so the last frame can be read.
+- **Numbered captions.** One caption at the top, changed with
+  `Transform(caption, Text("2  ...").to_edge(UP))`; the block text uses the same numbers.
+- **Layout with relations, never raw coordinates for text:** `.to_edge(UP)`,
+  `.next_to(obj, DOWN, buff=0.3)`, `VGroup(...).arrange(RIGHT, buff=0.6)`.
+  `FadeOut` old text before new text takes its place.
+- **Colour means something:** BLUE = the main object, YELLOW = what to look at,
+  GREEN = the result, RED = the wrong idea or the thing to follow.
+- **Words in `Text`, maths in `MathTex`.** Use raw strings: `MathTex(r"\frac{1}{f}")`.
+  Units with `\,\mathrm{m/s}`. Font size 24 or more.
+- **Numbers come from the research brief.** If a number only shows the shape of the
+  idea, say "illustrative" in a caption.
+- **Motion from a formula** (`ValueTracker` + updaters), so it is physically right. Check
+  any marker you place ("the squeeze is here") against the formula, not by eye.
 
-def part(x, y, w, h, label, color):            # one component of the mechanism
-    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.04", fc="white", ec=color, lw=2))
-    ax.text(x + w / 2, y + h / 2, label, ha="center", va="center", fontsize=10)
-
-def flow(x1, y1, x2, y2, color):               # what moves from one part to the next
-    ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>", mutation_scale=16, color=color, lw=2))
-
-def step(x, y, n, text, color):                # numbered mark the text refers to
-    ax.text(x, y, f"{n} {text}", ha="center", fontsize=10, weight="bold", color=color)
-
-# --- edit below: the mechanism ---
-part(0.3, 1.2, 2.0, 1.0, "voice:\nair pressure waves", C["main"])
-part(4.0, 1.2, 2.0, 1.0, "microphone:\ndiaphragm moves", C["accent"])
-part(7.7, 1.2, 2.0, 1.0, "electrical signal:\nvoltage over time", C["good"])
-flow(2.35, 1.7, 3.95, 1.7, C["muted"])
-flow(6.05, 1.7, 7.65, 1.7, C["muted"])
-step(1.3, 2.6, "①", "sound pushes air", C["main"])
-step(5.0, 2.6, "②", "air pushes the diaphragm", C["accent"])
-step(8.7, 2.6, "③", "motion becomes voltage", C["good"])
-ax.text(5.0, 0.5, "illustrative: one sound wave at a time", ha="center", fontsize=8, color=C["muted"])
-fig.savefig(OUT_PNG, dpi=110, bbox_inches="tight")
-```
-
-## Template 2: step animation (GIF)
+## Template: Physical
 
 ```python
-# TEMPLATE 2: step animation. One frame per state; a caption says what changed.
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation, PillowWriter
+# TEMPLATE: the physical thing itself, moving (particles, waves, objects). Motion comes from a formula.
+from manim import *
 
-# --- edit below: the states of the process, one per frame (frequency in Hz, caption) ---
-states = [(1, "① 1 wave per second: low pitch"), (2, "② 2 waves per second: higher pitch"),
-          (4, "③ 4 waves per second: higher again"), (4, "③ same height = same loudness")]
-t = np.linspace(0, 1, 400)
-
-fig, ax = plt.subplots(figsize=(6, 3))
-def frame(k):
-    f, caption = states[k]
-    ax.clear()
-    ax.plot(t, np.sin(2 * np.pi * f * t), color="#3b6fb6", lw=2)
-    ax.set_ylim(-1.5, 1.5); ax.set_xlabel("time (s)"); ax.set_ylabel("air pressure")
-    ax.set_title(caption, fontsize=11, weight="bold")
-    fig.tight_layout()
-anim = FuncAnimation(fig, frame, frames=len(states))
-anim.save(OUT_GIF, writer=PillowWriter(fps=0.7), dpi=80)
+class Physical(Scene):
+    def construct(self):
+        # --- edit below: rest positions and the motion rule ---
+        xs, ys = np.linspace(-6, 6, 36), np.linspace(-1.6, 1.0, 6)
+        rest = [(x, y) for x in xs for y in ys]
+        k, A = 2 * PI / 4, 0.35                    # wavelength 4 units, wobble size
+        t = ValueTracker(0)
+        def pos(x, y):
+            return [x + A * np.sin(k * x - t.get_value()), y, 0]
+        dots = VGroup(*[Dot(pos(x, y), radius=0.05, color=BLUE) for x, y in rest])
+        watch = 6 * 17                              # one molecule to follow
+        dots[watch].set_color(RED).scale(1.8)
+        dots.add_updater(lambda g: [d.move_to(pos(x, y)) for d, (x, y) in zip(g, rest)])
+        # compressions sit where k*x - t = pi (mod 2*pi): mark them with arrows that move with the wave
+        def squeezes():
+            c0 = ((PI + t.get_value()) / k) % 4 - 6
+            return VGroup(*[Arrow([c - 0.4, 1.55, 0], [c + 0.4, 1.55, 0], buff=0, color=YELLOW)
+                            for c in np.arange(c0, 6, 4)])
+        arrows = always_redraw(squeezes)
+        rest_line = DashedLine([xs[17], -2.0, 0], [xs[17], 1.2, 0], color=RED)
+        note1 = Text("1  the squeeze travels", font_size=26, color=YELLOW).to_corner(UL)
+        note2 = Text("2  the red molecule only wobbles", font_size=26, color=RED).to_edge(DOWN)
+        self.add(dots, rest_line, arrows, note1, note2)
+        self.play(t.animate.set_value(4 * PI), run_time=6, rate_func=linear)
 ```
 
-## Template 3: annotated plot (PNG)
+## Template: Derivation
+
+```python
+# TEMPLATE: a formula built step by step (LaTeX). Matching pieces glide into place.
+from manim import *
+
+class Derivation(Scene):
+    def construct(self):
+        # --- edit below: the steps; one argument per piece, so equal pieces glide into place ---
+        steps = [
+            MathTex(r"v", r"=", r"f", r"\lambda"),
+            MathTex(r"\lambda", r"=", r"\frac{v}{f}"),
+            MathTex(r"\lambda", r"=", r"\frac{343\,\mathrm{m/s}}{343\,\mathrm{Hz}}"),
+            MathTex(r"\lambda", r"=", r"1\,\mathrm{m}"),
+        ]
+        why = ["1  speed = waves per second x length of one wave",
+               "2  divide both sides by f",
+               "3  put in the numbers",
+               "4  one wave is one metre long"]
+        for s in steps:
+            s.scale(1.4)
+        caption = Text(why[0], font_size=28).to_edge(UP)
+        self.play(Write(steps[0]), FadeIn(caption))
+        self.wait(1)
+        for i in range(1, len(steps)):
+            self.play(TransformMatchingTex(steps[i - 1], steps[i]),
+                      Transform(caption, Text(why[i], font_size=28).to_edge(UP)))
+            self.wait(1)
+        self.play(Circumscribe(steps[-1], color=YELLOW))
+        self.wait(1)
+```
+
+## Template: Graph
+
+```python
+# TEMPLATE: a curve with what matters marked (LaTeX labels). Draw it, then point at the features.
+from manim import *
+
+class Graph(Scene):
+    def construct(self):
+        # --- edit below: the function and its features (values from the research brief) ---
+        A, f = 1.0, 2
+        axes = Axes(x_range=[0, 1, 0.25], y_range=[-1.5, 1.5, 0.5], x_length=9, y_length=4.2,
+                    y_axis_config={"include_numbers": True, "font_size": 24}).shift(0.4 * DOWN)
+        labels = axes.get_axis_labels(Tex("time (s)", font_size=28), Tex("pressure", font_size=28))
+        wave = axes.plot(lambda t: A * np.sin(2 * PI * f * t), color=BLUE)
+        title = MathTex(r"p(t) = A \sin(2\pi f t)", font_size=40).to_edge(UP)
+        self.play(Write(title), Create(axes), Write(labels))
+        self.play(Create(wave), run_time=2)
+        amp = DoubleArrow(axes.c2p(0.125, 0), axes.c2p(0.125, A), buff=0, color=YELLOW)
+        amp_t = MathTex(r"A", color=YELLOW).next_to(amp, LEFT, buff=0.15)
+        per = DoubleArrow(axes.c2p(0.125, 1.25), axes.c2p(0.625, 1.25), buff=0, color=GREEN)  # peak to peak
+        per_t = MathTex(r"T = \tfrac{1}{f} = 0.5\,\mathrm{s}", color=GREEN, font_size=34).next_to(per, UP, buff=0.1)
+        self.play(GrowFromCenter(amp), Write(amp_t))
+        self.play(GrowFromCenter(per), Write(per_t))
+        self.wait(1.5)
+```
+
+## Template: Process
+
+```python
+# TEMPLATE: a process step by step. Something travels through stages; each stage lights up while the caption explains it.
+from manim import *
+
+class Process(Scene):
+    def construct(self):
+        # --- edit below: the stages and what happens at each ---
+        stages = ["sound", "microphone", "converter", "numbers"]
+        says = ["1  sound reaches the microphone",
+                "2  the diaphragm turns it into a voltage",
+                "3  the converter measures the voltage 16,000 times a second",
+                "4  the computer now holds a list of numbers"]
+        boxes = VGroup(*[VGroup(RoundedRectangle(corner_radius=0.15, width=2.6, height=1.1, color=GREY),
+                                Text(n, font_size=26)) for n in stages]).arrange(RIGHT, buff=0.7)
+        links = VGroup(*[Arrow(a.get_right(), b.get_left(), buff=0.08, color=GREY)
+                         for a, b in zip(boxes[:-1], boxes[1:])])
+        token = Dot(boxes[0].get_center() + 0.9 * DOWN, color=YELLOW, radius=0.14)
+        caption = Text(says[0], font_size=28).to_edge(UP)
+        self.play(FadeIn(boxes), FadeIn(links), Write(caption), FadeIn(token))
+        for i, box in enumerate(boxes):
+            if i:
+                self.play(token.animate.move_to(box.get_center() + 0.9 * DOWN),
+                          Transform(caption, Text(says[i], font_size=28).to_edge(UP)))
+            self.play(box[0].animate.set_color(YELLOW), run_time=0.5)
+            self.play(Indicate(box[1], color=YELLOW))
+            self.play(box[0].animate.set_color(GREEN), run_time=0.4)
+        self.wait(1)
+```
+
+## Template: System (render with --still)
+
+```python
+# TEMPLATE: system of parts (use --still for a picture). Parts, what flows between them, numbered steps.
+from manim import *
+
+class SystemDiagram(Scene):
+    def construct(self):
+        # --- edit below: the parts, left to right ---
+        names = ["voice:\nair pressure", "microphone:\ndiaphragm moves", "signal:\nvoltage over time"]
+        steps = ["1  sound pushes air", "2  air pushes diaphragm", "3  motion becomes voltage"]
+        colors = [BLUE, YELLOW, GREEN]
+        parts = VGroup(*[
+            VGroup(RoundedRectangle(corner_radius=0.2, width=3.4, height=1.6, color=c),
+                   Text(n, font_size=26, line_spacing=0.8))
+            for n, c in zip(names, colors)
+        ]).arrange(RIGHT, buff=1.0)
+        arrows = VGroup(*[Arrow(a.get_right(), b.get_left(), buff=0.1, color=GREY)
+                          for a, b in zip(parts[:-1], parts[1:])])
+        labels = VGroup(*[Text(s, font_size=24, color=c).next_to(p, UP, buff=0.35)
+                          for s, c, p in zip(steps, colors, parts)])
+        title = Text("How a microphone hears you", font_size=36).to_edge(UP)
+        self.add(title, parts, arrows, labels)
+```
+
+## Questions about a picture
+
+A question can show a figure above its options. Make a NEW figure for the question (not
+the one from the theory), so the learner has to read it:
+
+```json
+{"type": "choice", "level": 2,
+ "figure": "![[Attachments/learn/sound-basics/q-wave.mp4]]",
+ "question": "In the animation, which wave has the higher pitch?",
+ "options": [{"text": "The lower one, it has more waves per second", "correct": true},
+             {"text": "The upper one, it is taller", "misconception": "Confuses height (loudness) with pitch"}],
+ "why": "Pitch is frequency: more waves per second. Height is amplitude, which is loudness."}
+```
+
+Pictures can also BE the options (they render inside the checkboxes). Render one small
+still per option with `--still`, same axes and scale, and use the embed with a width:
+
+```json
+{"type": "choice", "level": 2,
+ "question": "Which picture shows the louder sound?",
+ "options": [{"text": "![[Attachments/learn/sound-basics/opt-tall.png|220]]", "correct": true},
+             {"text": "![[Attachments/learn/sound-basics/opt-dense.png|220]]",
+              "misconception": "Thinks more waves per second means louder"}],
+ "why": "Loudness is amplitude, the height of the wave. More waves per second is pitch."}
+```
+
+## Re-teach visuals
+
+When NEXT says re-teach, animate the step the learner got wrong, alone and slower: one
+object, one change, one caption. Not the same scene again.
+
+## Fallback only: matplotlib (after 3 failed Manim attempts in a row)
+
+The script gets `OUT_PNG` / `OUT_GIF` and must save exactly one.
 
 ```python
 # TEMPLATE 3: annotated plot. Draw the real curve, then point at what matters.
@@ -135,72 +272,3 @@ ax.text(1.375, 1.75, "② one period = 0.5 s", ha="center", color="#2e9d62", fon
 ax.text(1.0, -1.55, "③ frequency = 1 / period = 2 waves per second (pitch)", ha="center", fontsize=9, weight="bold")
 fig.savefig(OUT_PNG, dpi=110, bbox_inches="tight")
 ```
-
-## Template 4: the physical thing, animated (GIF)
-
-Every moving object is computed from its rest position plus a formula, so the motion is
-physically right. Check any marker you place (like "the squeeze is here") against the
-formula, not by eye.
-
-```python
-# TEMPLATE 4: the physical thing itself, animated (particles, waves, objects, forces).
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation, PillowWriter
-
-# --- edit below: the objects and how each one moves over time ---
-rng = np.random.default_rng(1)
-x0 = np.repeat(np.linspace(0.3, 9.7, 40), 6)            # rest positions of air molecules
-y = np.tile(np.linspace(0.4, 2.6, 6), 40) + rng.uniform(-0.08, 0.08, 240)
-k, w, A = 2 * np.pi / 3.0, 2 * np.pi / 8, 0.35            # wavelength 3, 8 frames per cycle, wobble size
-watch = 6 * 20                                           # one molecule to follow
-frames = 16
-
-fig, ax = plt.subplots(figsize=(7, 3.2))
-def frame(n):
-    ax.clear(); ax.set_xlim(0, 10); ax.set_ylim(-0.2, 3.6); ax.axis("off")
-    x = x0 + A * np.sin(k * x0 - w * n)                  # each molecule wobbles around its rest spot
-    ax.scatter(x, y, s=10, color="#3b6fb6")
-    ax.scatter(x[watch], y[watch], s=60, color="#c0392b", zorder=3)
-    ax.axvline(x0[watch], color="#c0392b", lw=0.8, ls="--")
-    crest = (np.pi + w * n) / k % 3.0                     # densest air: where k*x - w*t = pi (compression)
-    for c in np.arange(crest, 10, 3.0):
-        ax.annotate("", xy=(c + 0.35, 3.05), xytext=(c - 0.35, 3.05), arrowprops=dict(arrowstyle="-|>", color="#e08a2e", lw=2))
-    ax.text(0.2, 3.35, "① orange: the squeeze moves right", fontsize=9, color="#e08a2e", weight="bold")
-    ax.text(5.6, 3.35, "② red molecule only wobbles", fontsize=9, color="#c0392b", weight="bold")
-    fig.tight_layout()
-anim = FuncAnimation(fig, frame, frames=frames)
-anim.save(OUT_GIF, writer=PillowWriter(fps=3), dpi=80)
-```
-
-## Questions about a picture
-
-A question can show a figure above its options. Make a NEW figure for the question
-(not the one from the theory), so the learner has to read it:
-
-```json
-{"type": "choice", "level": 2,
- "figure": "![[Attachments/learn/sound-basics/q-wave.png]]",
- "question": "In the picture, which wave has the higher pitch?",
- "options": [{"text": "B, it has more waves per second", "correct": true},
-             {"text": "A, it is taller", "misconception": "Confuses height (loudness) with pitch"}],
- "why": "Pitch is frequency: more waves per second. Height is amplitude, which is loudness."}
-```
-
-Pictures can also BE the options (they render inside the checkboxes). Make one small
-figure per option (`figsize=(3, 2)`), same axes and scale, and put each embed with a
-width as the option text:
-
-```json
-{"type": "choice", "level": 2,
- "question": "Which picture shows the louder sound?",
- "options": [{"text": "![[Attachments/learn/sound-basics/opt-tall.png|220]]", "correct": true},
-             {"text": "![[Attachments/learn/sound-basics/opt-dense.png|220]]",
-              "misconception": "Thinks more waves per second means louder"}],
- "why": "Loudness is amplitude, the height of the wave. More waves per second is pitch."}
-```
-
-## Re-teach visuals
-
-When NEXT says re-teach, draw the step the learner got wrong, bigger and alone: one
-part, one arrow, one mark. Not the same picture again.

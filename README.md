@@ -7,9 +7,9 @@ Works from **OpenCode** (primary): `/learn <topic>` from any folder. `scripts/le
 (on PATH as `learn`) holds the learner state and the teaching rules; the agent writes
 the content and follows the engine's `NEXT:` lines. Every new topic is researched first
 (PRAXIST method, source-backed brief in vault `Sources/`); lessons cite that brief.
-Every idea is taught with a picture of how it works: diagrams, step animations and
-plots drawn locally with matplotlib (`learn figure`) or mermaid, checked before the
-learner sees them, plus a live progress map (canvas) per topic.
+Every idea is taught with a Manim animation of how it works, 3Blue1Brown style, with
+LaTeX formulas (`learn figure`, rendered locally with Manim Community + TinyTeX and
+checked before the learner sees it), plus a live progress map (canvas) per topic.
 
 Install on a machine: `bash scripts/install.sh` (idempotent). `scripts/anki_push.py` pushes
 approved cards.

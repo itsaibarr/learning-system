@@ -78,25 +78,32 @@ NEXT: Write the theory block for 'All chances add up to 1' from the research bri
 
 ```bash
 learn figure all-chances <<'EOF'
-import matplotlib.pyplot as plt
-fig, ax = plt.subplots(figsize=(6, 2.6))
-faces = ["1", "2", "3", "4", "5", "6"]
-ax.bar(faces, [1/6] * 6, color="#3b6fb6")
-ax.set_ylim(0, 0.32); ax.set_ylabel("chance"); ax.set_xlabel("die face")
-ax.text(2.5, 0.26, "① each face: 1/6     ② all six together: 6 × 1/6 = 1", ha="center", fontsize=10, weight="bold")
-fig.savefig(OUT_PNG, dpi=110, bbox_inches="tight")
+from manim import *
+
+class AllChances(Scene):
+    def construct(self):
+        faces = VGroup(*[VGroup(Square(1.1, color=BLUE), Text(str(i), font_size=36)) for i in range(1, 7)])
+        faces.arrange(RIGHT, buff=0.25)
+        sixths = VGroup(*[MathTex(r"\tfrac{1}{6}", font_size=40).next_to(f, DOWN) for f in faces])
+        caption = Text("1  each face has chance 1/6", font_size=30).to_edge(UP)
+        self.play(Write(caption), FadeIn(faces))
+        self.play(LaggedStart(*[Write(x) for x in sixths], lag_ratio=0.2))
+        total = MathTex(r"6 \times \tfrac{1}{6} = 1", font_size=48, color=GREEN).next_to(sixths, DOWN, buff=0.7)
+        self.play(Transform(caption, Text("2  all six together make one whole", font_size=30).to_edge(UP)),
+                  TransformFromCopy(sixths, total))
+        self.wait(1.5)
 EOF
 ```
 ```
-Figure saved: Attachments/learn/probability-basics/all-chances.png
-EMBED: ![[Attachments/learn/probability-basics/all-chances.png]]
+Figure saved: Attachments/learn/probability-basics/all-chances.mp4 (manim)
+EMBED: ![[Attachments/learn/probability-basics/all-chances.mp4]]
 ```
 
 ```bash
 learn block total <<'EOF'
 **Why we need this:** To find a chance, we first need to know what "all of it" is.
 
-![[Attachments/learn/probability-basics/all-chances.png]]
+![[Attachments/learn/probability-basics/all-chances.mp4]]
 
 Something can turn out in a few ways. ① Each way has its own chance. ② The chances of
 all the ways add up to 1. One whole [S1].

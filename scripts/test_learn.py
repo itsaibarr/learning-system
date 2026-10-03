@@ -69,7 +69,7 @@ class Base(unittest.TestCase):
         root = Path(self.tmp.name)
         learn.STATE = root / "state" / "learner.json"
         learn.VAULT = root / "vault"
-        os.environ.update(LEARN_NO_CLI="1", LEARN_NO_GIT="1", LEARN_TODAY="2026-10-03")
+        os.environ.update(LEARN_NO_CLI="1", LEARN_NO_GIT="1", LEARN_TODAY="2026-10-03", LEARN_REQUIRE_MANIM="0")
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -271,7 +271,7 @@ class TestVisuals(Base):
     def test_block_needs_a_visual(self):
         self.start_planned()
         out = self.run_cmd("block", "total", stdin="Plain text only [S1].", ok=False)
-        self.assertIn("needs a visual", out)
+        self.assertIn("needs a Manim visual", out)
 
     def test_figure_png_lands_in_vault_and_embeds(self):
         self.start_planned()
@@ -336,13 +336,15 @@ class TestVisuals(Base):
         bad = dict(CHOICE, figure="![[nope.png]]")
         self.assertIn('"figure" must be', self.run_cmd("ask", "total", stdin=json.dumps(bad), ok=False))
 
+    @unittest.skipUnless(learn.MANIM.exists(), "Manim not installed (scripts/install.sh)")
     def test_every_template_in_visuals_guide_renders(self):
         guide = Path(__file__).resolve().parent.parent / "skills/teach-understanding/references/visuals.md"
         templates = re.findall(r"```python\n(.*?)```", guide.read_text(), re.S)
-        self.assertGreaterEqual(len(templates), 4)
+        self.assertGreaterEqual(sum("from manim import" in t for t in templates), 5)
         self.start_planned()
         for n, code in enumerate(templates, 1):
-            out = self.run_cmd("figure", f"template-{n}", stdin=code)
+            args = ["--still"] if "--still" in code.splitlines()[0] else []
+            out = self.run_cmd("figure", f"template-{n}", *args, stdin=code)
             self.assertIn("EMBED:", out, f"template {n} failed")
 
     def test_new_default_preferences_reach_existing_learners(self):
@@ -351,6 +353,76 @@ class TestVisuals(Base):
         st["profile"]["preferences"] = st["profile"]["preferences"][:2]
         learn.STATE.write_text(json.dumps(st))
         self.assertIn("Visual learner", self.run_cmd("start", "Probability", "basics"))
+
+
+MANIM_OK = """
+from manim import *
+class Ok(Scene):
+    def construct(self):
+        self.play(Write(Text("pressure wave", font_size=32).to_edge(UP)))
+        self.wait(1.5)
+"""
+MANIM_OVERLAP = """
+from manim import *
+class Bad(Scene):
+    def construct(self):
+        self.play(Write(Text("pressure wave")), Write(Text("air stays").shift(0.1 * RIGHT)))
+        self.wait(1.5)
+"""
+MPL_OK = "import matplotlib.pyplot as plt\nfig, ax = plt.subplots()\nax.plot([0, 1])\nfig.savefig(OUT_PNG, dpi=40)\n"
+
+
+class TestManim(Base):
+    def setUp(self):
+        super().setUp()
+        os.environ["LEARN_REQUIRE_MANIM"] = "1"
+
+    def test_old_manimgl_code_is_rejected_before_rendering(self):
+        self.start_planned()
+        out = self.run_cmd("figure", "x", stdin="from manimlib import *\nclass A(Scene):\n    def construct(self):\n"
+                                                  "        self.play(ShowCreation(Circle()))\n", ok=False)
+        self.assertIn("ShowCreation -> Create", out)
+        self.assertEqual(self.state()["session"]["manim_failures"], 1)
+
+    def test_matplotlib_is_locked_until_three_manim_failures(self):
+        self.start_planned()
+        self.assertIn("matplotlib unlocks only after 3", self.run_cmd("figure", "m", stdin=MPL_OK, ok=False))
+        for _ in range(3):
+            self.run_cmd("figure", "x", stdin="from manimlib import *\n", ok=False)
+        self.assertIn("(matplotlib)", self.run_cmd("figure", "m", stdin=MPL_OK))
+
+    def test_block_requires_a_manim_figure(self):
+        self.start_planned()
+        out = self.run_cmd("block", "total", stdin="x [S1]" + VIS, ok=False)
+        self.assertIn("needs a Manim visual", out)
+
+    @unittest.skipUnless(learn.MANIM.exists(), "Manim not installed")
+    def test_manim_video_and_still_render_and_unlock_the_block(self):
+        self.start_planned()
+        self.run_cmd("figure", "x", stdin="from manimlib import *\n", ok=False)
+        out = self.run_cmd("figure", "wave", stdin=MANIM_OK)
+        self.assertIn("wave.mp4 (manim)", out)
+        self.assertEqual(self.state()["session"]["manim_failures"], 0)
+        self.assertIn("still.png (manim)", self.run_cmd("figure", "still", "--still", stdin=MANIM_OK))
+        embed = re.search(r"EMBED: (!\[\[.+\]\])", out).group(1)
+        self.run_cmd("block", "total", stdin=f"{embed}\n\nThe push travels [S1].")
+        self.assertIn(embed, self.note())
+
+    @unittest.skipUnless(learn.MANIM.exists(), "Manim not installed")
+    def test_overlapping_text_is_caught_during_the_animation(self):
+        self.start_planned()
+        out = self.run_cmd("figure", "bad", stdin=MANIM_OVERLAP, ok=False)
+        self.assertIn("'pressure wave' overlaps 'air stays'", out)
+
+    def test_old_visual_preference_is_replaced(self):
+        self.start_planned()
+        st = self.state()
+        old = next(iter(learn.SUPERSEDED_PREFS))
+        st["profile"]["preferences"].append(old)
+        learn.STATE.write_text(json.dumps(st))
+        out = self.run_cmd("start", "Probability", "basics")
+        self.assertNotIn(old, out)
+        self.assertEqual(out.count("Visual learner"), 1)
 
 
 class TestExistingKnowledge(Base):

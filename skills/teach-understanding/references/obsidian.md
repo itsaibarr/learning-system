@@ -20,6 +20,7 @@ writes the files directly and uses the CLI only to open the note and show a pop-
 | Show structure (steps, dependencies, a flow) | mermaid | a ```mermaid``` block, ≤7 nodes |
 | Link to an older idea | wikilink | `[[Sessions/2026-10-03 Topic#2. Idea]]` |
 | Pull an old explanation into this note | embed | `![[Note#Heading]]` |
+| Show how something works | Manim video or still | `![[Attachments/learn/<topic>/<name>.mp4]]` from `learn figure` (plays inline) |
 | Let the learner answer | checkboxes / typed line | written by `learn ask`, never by hand |
 
 ## Written by `learn`, do not hand-edit
