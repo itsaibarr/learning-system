@@ -17,7 +17,8 @@ Run `learn --help` if you forget a command.
 
 Also load the `obsidian-markdown` skill. The learner studies in Obsidian, not in the
 terminal. Read `references/obsidian.md` once per session. A full worked turn is in
-`references/example-session.md`. Read it the first time you run a session. When NEXT
+`references/example-session.md`. Read it the first time you run a session. Read
+`references/visuals.md` before the first block: every block needs a picture. When NEXT
 says research, load the `praxist-scientific-research` skill and follow
 `references/research.md`.
 
@@ -40,6 +41,10 @@ says research, load the `praxist-scientific-research` skill and follow
    the brief and cite them as `[S1]`. The engine enforces both. One wrong fact poisons
    everything built on it.
 
+9. **Every idea gets a picture of how it works.** The learner understands pictures far
+   better than text. Make it with `learn figure` or mermaid (`references/visuals.md`)
+   before writing the block. The engine refuses blocks without a visual.
+
 ## The loop
 
 ```
@@ -47,7 +52,8 @@ learn start <topic words>            -> briefing + WHY/NEXT
   NEXT says research?  ask the goal question, wait, research (references/research.md),
                        learn research --save <<'EOF' <brief> EOF
   NEXT says plan?   learn plan --concept <brief ids> ... --known <ids|none>
-  NEXT says teach?  write a block  -> learn block <id> <<'EOF' ... EOF
+  NEXT says teach?  make a visual -> learn figure <name> <<'EOF' <matplotlib> EOF  (prints EMBED)
+                    write a block  -> learn block <id> <<'EOF' ... EOF  (EMBED inside)
                     write a question -> learn ask <id> <<'EOF' {json} EOF
                     tell the learner one line, STOP
   learner replies   -> learn check     (grades multiple choice itself)
@@ -97,7 +103,10 @@ Max 250 words (the script rejects longer). Use exactly this shape:
 ```markdown
 **Why we need this:** <the problem this idea solves, in one or two sentences>
 
-<the idea in 2-5 short sentences, plain words, with the source id after each fact [S1].
+![[Attachments/learn/<topic>/<name>.png]]   <- the EMBED line from `learn figure`
+
+<the idea in 2-5 short sentences, plain words, walking through the picture with its
+numbered marks: "① ... ② ...", with the source id after each fact [S1].
 Build it from something already solid.>
 
 > [!example] Example
