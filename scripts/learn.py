@@ -10,7 +10,8 @@ The rules live here, not in the prompt, so every model gets the same decisions.
   plan --concept id ... --known id,id|none   concepts come from the research brief
   known <concept>                  learner says they already know it -> quick check instead of teaching
   add <id> <title...> [--prereqs a,b] [--before c]
-  figure <name>                    matplotlib script on stdin -> checked PNG/GIF in the vault, prints the embed
+  figure <name> [--still]          Manim scene on stdin -> checked MP4 (or PNG with --still) in the vault, prints the embed
+                                   (matplotlib is the fallback, unlocked after 3 failed Manim attempts in a row)
   block <concept>                  theory markdown (with a visual) on stdin -> session note
   ask <concept>                    question JSON on stdin -> session note
   check                            read answers from the note; grades choice questions
@@ -21,7 +22,8 @@ The rules live here, not in the prompt, so every model gets the same decisions.
   end [--next-time T]              summary into the note, dashboard, commit
   status                           what the system believes the learner knows
 
-Env: LEARN_STATE, LEARN_VAULT, LEARN_TODAY (YYYY-MM-DD), LEARN_NO_CLI=1, LEARN_NO_GIT=1.
+Env: LEARN_STATE, LEARN_VAULT, LEARN_TODAY (YYYY-MM-DD), LEARN_NO_CLI=1, LEARN_NO_GIT=1,
+     LEARN_MANIM (manim binary), LEARN_TEX_BIN (TeX bin dir), LEARN_REQUIRE_MANIM=0 (accept any visual).
 """
 
 import argparse
@@ -54,6 +56,86 @@ SOURCES_DIR = "Sources"
 FIG_DIR = "Attachments/learn"
 FIG_MAX_BYTES = 3_000_000
 FIG_TIMEOUT = 90
+MANIM = Path(os.environ.get("LEARN_MANIM", Path.home() / ".local/share/learning-system/manim-venv/bin/manim"))
+TEX_BIN = Path(os.environ.get("LEARN_TEX_BIN", Path.home() / "Library/TinyTeX/bin/universal-darwin"))
+MANIM_TIMEOUT = 180
+VIDEO_MAX_BYTES = 15_000_000
+VIDEO_SECONDS = (2, 90)
+MANIM_FALLBACK_AFTER = 3
+# Old 3Blue1Brown manimlib / legacy names that free models reproduce from training data -> Manim Community fix.
+OLD_MANIM_API = [
+    (r"\bmanimlib\b", "use `from manim import *` (Manim Community), not manimlib/ManimGL"),
+    (r"\bShowCreation\b", "ShowCreation -> Create"),
+    (r"\bTextMobject\b", "TextMobject -> Text (plain text) or Tex (LaTeX text)"),
+    (r"\bTexMobject\b", "TexMobject -> MathTex"),
+    (r"\bOldTex(Text)?\b", "OldTex/OldTexText -> MathTex/Tex"),
+    (r"\bGraphScene\b", "GraphScene was removed: use a normal Scene with `axes = Axes(...)` and `axes.plot(...)`"),
+    (r"\bCONFIG\s*=\s*\{", "CONFIG dicts are gone: pass settings as arguments or set attributes in construct()"),
+    (r"\bget_graph\(", "get_graph -> axes.plot(...)"),
+    (r"\bFadeInFrom(Down|Large|Point)?\b", "FadeInFrom... -> FadeIn(mob, shift=DOWN) / FadeIn(mob, scale=...)"),
+    (r"\bscale_in_place\b", "scale_in_place -> scale"),
+    (r"\bInteractiveScene\b", "InteractiveScene is ManimGL: subclass Scene"),
+    (r"\bself\.embed\(", "self.embed() is ManimGL-only: remove it"),
+]
+# Wraps the agent's scene: after every play()/wait(), text that overlaps other text or leaves the frame is recorded.
+MANIM_HARNESS = r"""
+import json, os
+from manim import *
+from manim import Scene as _Base
+_ns = {"__name__": "figure"}
+exec(compile(open(os.environ["LEARN_FIG_SCRIPT"]).read(), "figure.py", "exec"), _ns)
+_found = [v for v in _ns.values() if isinstance(v, type) and issubclass(v, _Base) and v.__module__ == "figure"]
+if len(_found) != 1:
+    raise SystemExit(f"LEARN: define exactly one Scene class, found {len(_found)}")
+_TEXT = (Text, MarkupText, MathTex, Tex, SingleStringMathTex, Paragraph, DecimalNumber, Integer)
+_problems = []
+
+def _texts(mobs):
+    out = []
+    def walk(m):
+        if isinstance(m, _TEXT):
+            out.append(m)
+            return
+        for sub in m.submobjects:
+            walk(sub)
+    for m in mobs:
+        walk(m)
+    return out
+
+def _label(m):
+    return (getattr(m, "original_text", None) or getattr(m, "tex_string", None) or getattr(m, "text", None)
+            or type(m).__name__)[:30]
+
+def _visible(m):
+    return max((max(x.get_fill_opacity(), x.get_stroke_opacity()) for x in m.family_members_with_points()), default=0) > 0.05
+
+class LearnChecked(_found[0]):
+    def _learn_check(self):
+        W, H = config.frame_width / 2, config.frame_height / 2
+        ts = [t for t in _texts(self.mobjects) if _visible(t)]
+        boxes = [(t.get_left()[0], t.get_right()[0], t.get_bottom()[1], t.get_top()[1]) for t in ts]
+        when = f"at {self.renderer.time:.1f}s"
+        for t, (x0, x1, y0, y1) in zip(ts, boxes):
+            if x0 < -W - 0.05 or x1 > W + 0.05 or y0 < -H - 0.05 or y1 > H + 0.05:
+                _problems.append(f"{_label(t)!r} is cut off at the edge of the frame {when}")
+        pad = 0.04
+        for i in range(len(ts)):
+            for j in range(i):
+                a, b = boxes[i], boxes[j]
+                if a[0] + pad < b[1] - pad and b[0] + pad < a[1] - pad and a[2] + pad < b[3] - pad and b[2] + pad < a[3] - pad:
+                    _problems.append(f"{_label(ts[j])!r} overlaps {_label(ts[i])!r} {when}")
+    def play(self, *args, **kwargs):
+        super().play(*args, **kwargs)
+        self._learn_check()
+    def wait(self, *args, **kwargs):
+        super().wait(*args, **kwargs)
+        self._learn_check()
+    def construct(self):
+        super().construct()
+        self._learn_check()
+        seen = list(dict.fromkeys(_problems))
+        json.dump(seen, open(os.environ["LEARN_FIG_REPORT"], "w"))
+"""
 CANVAS_COLORS = {"claimed": "6", "learning": "3", "solid": "4", "mastered": "5"}  # new = no colour (grey)
 FIG_EMBED = re.compile(r"!\[\[(Attachments/learn/[^\]|]+)(?:\|[^\]]*)?\]\]")
 MERMAID = re.compile(r"```mermaid\n(.*?)```", re.S)
@@ -131,8 +213,13 @@ DEFAULT_PREFS = [
     "If the learner says they are lost, restart from the most basic idea, from zero.",
     "Always say why a step exists before showing how to do it.",
     "One note per session. Never send the learner to another file mid-session.",
-    "Visual learner: every idea gets a picture of how it works (diagram, animation or plot), plus normal text.",
+    "Visual learner: every idea gets a Manim animation of how it works (3Blue1Brown style), plus normal text.",
 ]
+
+
+SUPERSEDED_PREFS = {
+    "Visual learner: every idea gets a picture of how it works (diagram, animation or plot), plus normal text.",
+}
 
 
 class LearnError(Exception):
@@ -160,6 +247,7 @@ def load():
     if STATE.exists():
         s = json.loads(STATE.read_text())
         prefs = s["profile"]["preferences"]
+        prefs[:] = [p for p in prefs if p not in SUPERSEDED_PREFS]
         prefs += [p for p in DEFAULT_PREFS if p not in prefs]  # new defaults reach existing learners
         return s
     return {"version": 1, "profile": {"preferences": list(DEFAULT_PREFS)},
@@ -510,15 +598,15 @@ def instruction(s, st):
                 "--known is required: the ids the learner SAID they already know (they get a quick check instead "
                 "of teaching), or --known none. Never teach what they already know.")
     if a == "teach":
-        return (f"Make 1 visual of how '{title}' works (references/visuals.md: `learn figure <name>`; if the idea is "
-                f"physical, draw the things themselves moving, Template 4; a system of parts: Template 1; numbers: "
-                f"Template 3; structure: mermaid). Then write the theory block from the research "
+        return (f"Make 1 Manim visual of how '{title}' works: pick the closest template in references/visuals.md "
+                f"(things moving: physical; a system of parts: diagram with --still; a curve or numbers: graph; a "
+                f"formula: derivation; steps: process), adapt it, and run `learn figure <name>`. Then write the theory block from the research "
                 f"brief (cite sources as [S1]) with the visual embedded, using the block recipe in the skill, pipe it to "
                 f"`learn block {cid}`, then write 1 question at {lvl_txt} and pipe it to `learn ask {cid}`.")
     if a == "reteach":
         return (f"Re-teach '{title}': write a NEW block on the SAME idea with smaller steps, smaller numbers and a "
-                f"different example from the same subject (not a toy story without the idea), and a NEW visual that shows "
-                f"the step they got wrong (references/visuals.md). Name that step. Pipe it to `learn block {cid}`. Then 1 question at "
+                f"different example from the same subject (not a toy story without the idea), and a NEW Manim visual "
+                f"that shows the step they got wrong (references/visuals.md). Name that step. Pipe it to `learn block {cid}`. Then 1 question at "
                 f"level 1 via `learn ask {cid}`.")
     if a == "ask":
         return (f"Write 1 NEW question on '{title}' at {lvl_txt}. Do not repeat an earlier question; change the "
@@ -946,54 +1034,151 @@ def cmd_add(s, a):
     print_next(s, f"Added '{t['concepts'][cid]['title']}'.")
 
 
+def save_figure(s, name, out, kind):
+    sess = need_session(s)
+    rel = f"{FIG_DIR}/{sess['topic']}/{name}{out.suffix}"
+    dest = VAULT / rel
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(out.read_bytes())
+    s.setdefault("figures", {})[rel] = kind
+    print(f"Figure saved: {rel} ({kind})")
+    print(f"EMBED: ![[{rel}]]")
+    print("NEXT: Put the EMBED line in the theory block (or in a question's \"figure\" field), with text that "
+          "walks through it using the numbered marks, then run `learn block <concept>`.")
+
+
+def strip_ansi(text):
+    return re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", text)
+
+
+def render_manim(s, name, script, still, tmp):
+    sess = need_session(s)
+    old = [fix for pat, fix in OLD_MANIM_API if re.search(pat, script)]
+    if old:
+        raise LearnError("This is old 3Blue1Brown/ManimGL code. Rewrite it for Manim Community "
+                         "(references/visuals.md):\n- " + "\n- ".join(old))
+    if not MANIM.exists():
+        raise LearnError(f"Manim is not installed at {MANIM}. Run `scripts/install.sh`.")
+    (tmp / "figure.py").write_text(script)
+    (tmp / "harness.py").write_text(MANIM_HARNESS)
+    report = tmp / "report.json"
+    env = dict(os.environ, LEARN_FIG_SCRIPT=str(tmp / "figure.py"), LEARN_FIG_REPORT=str(report),
+               PATH=f"{TEX_BIN}{os.pathsep}{os.environ.get('PATH', '')}")
+    cmd = [str(MANIM), "-s" if still else "-qm", "--disable_caching", "--media_dir", str(tmp / "media"),
+           "-o", "out", str(tmp / "harness.py"), "LearnChecked"]
+    if still:
+        cmd.insert(2, "-qm")
+    try:
+        r = subprocess.run(cmd, cwd=tmp, env=env, capture_output=True, text=True, timeout=MANIM_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        raise LearnError(f"Manim ran longer than {MANIM_TIMEOUT}s. Shorten the scene (5-20 s of animation) or "
+                         "use fewer objects.")
+    log = strip_ansi(r.stdout + "\n" + r.stderr)
+    if r.returncode != 0:
+        lines = [l.rstrip() for l in log.splitlines() if l.strip() and not set(l.strip()) <= set("─│╭╮╰╯ ")]
+        latex = "LaTeX" in log or "latex" in log
+        tex_errs = [l.strip() for f in (tmp / "media").rglob("*.log") for l in f.read_text(errors="ignore").splitlines()
+                    if l.startswith("!") or l.startswith("l.")][:6]
+        hint = ("\nLaTeX said:\n" + "\n".join(tex_errs) if tex_errs else "") + (
+            "\nHint: a LaTeX error. Check the MathTex/Tex string: every { has a }, use raw strings r\"...\", "
+            "and put plain words in Text(), not MathTex()." if latex else "")
+        raise LearnError("Manim failed. Fix the scene and re-run:\n" + "\n".join(lines[-14:]) + hint)
+    problems = json.loads(report.read_text()) if report.exists() else []
+    if problems:
+        raise LearnError("Text in the animation is hard to read. Move it with .next_to(...)/.to_edge(...)/"
+                         "VGroup(...).arrange(...), shrink it, or FadeOut old text first. Then re-run:\n- "
+                         + "\n- ".join(problems[:8]))
+    found = list((tmp / "media").rglob("out.png" if still else "out.mp4"))
+    if not found:
+        raise LearnError("Manim produced no " + ("image" if still else "video") + ". Does construct() add or "
+                         "animate anything?")
+    out = found[0]
+    if out.stat().st_size > VIDEO_MAX_BYTES:
+        raise LearnError(f"The video is {out.stat().st_size // 1_000_000} MB; the limit is "
+                         f"{VIDEO_MAX_BYTES // 1_000_000} MB. Shorten it.")
+    if not still and shutil.which("ffprobe"):
+        d = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(out)],
+                           capture_output=True, text=True).stdout.strip()
+        try:
+            secs = float(d)
+        except ValueError:
+            secs = None
+        if secs is not None and not VIDEO_SECONDS[0] <= secs <= VIDEO_SECONDS[1]:
+            raise LearnError(f"The animation lasts {secs:.1f}s; keep it between {VIDEO_SECONDS[0]} and "
+                             f"{VIDEO_SECONDS[1]} s (add self.wait() or shorten run_time).")
+    return out
+
+
+def render_matplotlib(script, tmp):
+    (tmp / "figure.py").write_text(script)
+    (tmp / "harness.py").write_text(FIG_HARNESS)
+    png, gif = tmp / "out.png", tmp / "out.gif"
+    try:
+        r = subprocess.run([sys.executable, str(tmp / "harness.py"), str(png), str(gif), str(tmp / "figure.py")],
+                           cwd=tmp, capture_output=True, text=True, timeout=FIG_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        raise LearnError(f"Figure script ran longer than {FIG_TIMEOUT}s. Use fewer frames or less data.")
+    if r.returncode != 0:
+        tail = "\n".join(r.stderr.strip().splitlines()[-8:])
+        raise LearnError(f"Figure script failed. Fix it and re-run:\n{tail}")
+    check = next((l for l in r.stdout.splitlines() if l.startswith("LEARN-CHECK ")), None)
+    problems = json.loads(check[len("LEARN-CHECK "):]) if check else []
+    if problems:
+        raise LearnError("Labels collide (with each other or with a plotted line), so the picture would be hard to "
+                         "read. Move or shorten them and re-run:\n- " + "\n- ".join(problems[:8]))
+    made = [f for f in (png, gif) if f.exists()]
+    if len(made) != 1:
+        raise LearnError("The script must save exactly one file: `fig.savefig(OUT_PNG, dpi=110, "
+                         "bbox_inches=\"tight\")` for a picture, or `anim.save(OUT_GIF, writer=PillowWriter(fps=2))` "
+                         "for an animation.")
+    out = made[0]
+    if out.stat().st_size > FIG_MAX_BYTES:
+        raise LearnError(f"{out.suffix} is {out.stat().st_size // 1000} KB; the limit is {FIG_MAX_BYTES // 1000} KB. "
+                         "Lower dpi, size or frame count.")
+    if out.suffix == ".gif":
+        from PIL import Image
+        with Image.open(out) as im:
+            if getattr(im, "n_frames", 1) < 2:
+                raise LearnError("The GIF has one frame. Use a PNG for a still picture, or add frames.")
+    return out
+
+
+def manim_required():
+    return os.environ.get("LEARN_REQUIRE_MANIM", "1") != "0"
+
+
 def cmd_figure(s, a):
     import tempfile
     sess = need_session(s)
     name = slug(a.name)
     script = sys.stdin.read()
     if not script.strip():
-        raise LearnError("Empty figure script. Pipe a matplotlib script on stdin (templates: references/visuals.md).")
+        raise LearnError("Empty figure script. Pipe a Manim scene on stdin (templates: references/visuals.md).")
+    is_manim = bool(re.search(r"^\s*(from|import)\s+manim", script, re.M))
+    fails = sess.get("manim_failures", 0)
+    if not is_manim and manim_required() and fails < MANIM_FALLBACK_AFTER:
+        raise LearnError("Manim is the visual tool for this learner (3Blue1Brown style). Write a Manim Community "
+                         "scene: `from manim import *`, one `class X(Scene)` with construct() (templates: "
+                         f"references/visuals.md). matplotlib unlocks only after {MANIM_FALLBACK_AFTER} failed Manim "
+                         f"attempts in a row (now {fails}).")
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
-        (tmp / "figure.py").write_text(script)
-        (tmp / "harness.py").write_text(FIG_HARNESS)
-        png, gif = tmp / "out.png", tmp / "out.gif"
-        try:
-            r = subprocess.run([sys.executable, str(tmp / "harness.py"), str(png), str(gif), str(tmp / "figure.py")],
-                               cwd=tmp, capture_output=True, text=True, timeout=FIG_TIMEOUT)
-        except subprocess.TimeoutExpired:
-            raise LearnError(f"Figure script ran longer than {FIG_TIMEOUT}s. Use fewer frames or less data.")
-        if r.returncode != 0:
-            tail = "\n".join(r.stderr.strip().splitlines()[-8:])
-            raise LearnError(f"Figure script failed. Fix it and re-run:\n{tail}")
-        check = next((l for l in r.stdout.splitlines() if l.startswith("LEARN-CHECK ")), None)
-        problems = json.loads(check[len("LEARN-CHECK "):]) if check else []
-        if problems:
-            raise LearnError("Labels collide (with each other or with a plotted line), so the picture would be hard to read. Move or shorten them and re-run:\n- "
-                             + "\n- ".join(problems[:8]))
-        made = [f for f in (png, gif) if f.exists()]
-        if len(made) != 1:
-            raise LearnError("The script must save exactly one file: `fig.savefig(OUT_PNG, dpi=110, "
-                             "bbox_inches=\"tight\")` for a picture, or `anim.save(OUT_GIF, writer=PillowWriter(fps=2))` "
-                             "for an animation.")
-        out = made[0]
-        if out.stat().st_size > FIG_MAX_BYTES:
-            raise LearnError(f"{out.suffix} is {out.stat().st_size // 1000} KB; the limit is {FIG_MAX_BYTES // 1000} KB. "
-                             "Lower dpi, size or frame count.")
-        if out.suffix == ".gif":
-            from PIL import Image
-            with Image.open(out) as im:
-                if getattr(im, "n_frames", 1) < 2:
-                    raise LearnError("The GIF has one frame. Use a PNG for a still picture, or add frames.")
-        rel = f"{FIG_DIR}/{sess['topic']}/{name}{out.suffix}"
-        dest = VAULT / rel
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes(out.read_bytes())
-    sess.setdefault("figures", []).append(rel)
-    print(f"Figure saved: {rel}")
-    print(f"EMBED: ![[{rel}]]")
-    print("NEXT: Put the EMBED line in the theory block (or in a question's \"figure\" field), with text that "
-          "walks through it using the numbered marks, then run `learn block <concept>`.")
+        if is_manim:
+            try:
+                out = render_manim(s, name, script, a.still, tmp)
+            except LearnError:
+                sess["manim_failures"] = fails + 1
+                left = MANIM_FALLBACK_AFTER - sess["manim_failures"]
+                print(f"(Manim attempt failed {sess['manim_failures']} time(s) in a row"
+                      + (f"; matplotlib fallback unlocks after {left} more)" if left > 0 else
+                         "; matplotlib fallback is now unlocked if you need it)"))
+                save(s)
+                raise
+            sess["manim_failures"] = 0
+            save_figure(s, name, out, "manim")
+        else:
+            out = render_matplotlib(script, tmp)
+            save_figure(s, name, out, "matplotlib")
 
 
 def cmd_block(s, a):
@@ -1018,10 +1203,14 @@ def cmd_block(s, a):
     if missing:
         raise LearnError(f"Embedded figure not found: {', '.join(missing)}. Make it with `learn figure <name>` "
                          "and paste the embed line it prints.")
-    if not figs and not MERMAID.search(md):
-        raise LearnError("Every block needs a visual of how it works (learner preference). Make one with "
-                         "`learn figure <name>` (diagram, animation or plot; references/visuals.md) and paste the "
-                         "embed line, or add a ```mermaid``` diagram for structure. Then re-run `learn block`.")
+    kinds = s.get("figures", {})
+    has_manim = any(kinds.get(f) == "manim" for f in figs)
+    fallback = sess.get("manim_failures", 0) >= MANIM_FALLBACK_AFTER or not manim_required()
+    if not has_manim and not (fallback and (figs or MERMAID.search(md))):
+        raise LearnError("Every block needs a Manim visual of how it works (learner preference, 3Blue1Brown "
+                         "style). Make one with `learn figure <name>` (a Manim scene; references/visuals.md) and "
+                         "paste the EMBED line. Mermaid can be added for structure, but does not replace it. "
+                         "Then re-run `learn block`.")
     merr, unchecked = mermaid_problems(md)
     if merr:
         raise LearnError("Mermaid would not render in Obsidian. Fix it and re-run:\n- " + "\n- ".join(merr))
@@ -1327,7 +1516,7 @@ def main(argv=None):
     p = sub.add_parser("known"); p.add_argument("concept")
     p = sub.add_parser("add"); p.add_argument("id"); p.add_argument("title", nargs="+")
     p.add_argument("--prereqs"); p.add_argument("--before")
-    p = sub.add_parser("figure"); p.add_argument("name")
+    p = sub.add_parser("figure"); p.add_argument("name"); p.add_argument("--still", action="store_true")
     p = sub.add_parser("block"); p.add_argument("concept")
     p = sub.add_parser("ask"); p.add_argument("concept")
     sub.add_parser("check")

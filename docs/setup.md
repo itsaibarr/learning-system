@@ -34,6 +34,10 @@ Idempotent. It sets up:
   `obsidian-bases`, `obsidian-cli`, `json-canvas`; PRAXIST (`~/repos/PRAXIST`):
   `praxist-scientific-research`.
 - `pip install praxist==0.5.0 httpx` for `learn lit` (no API keys).
+- Visuals: Manim Community 0.21 in `~/.local/share/learning-system/manim-venv`, TinyTeX in
+  `~/Library/TinyTeX` with the LaTeX packages Manim needs, and `pkgconf` (Homebrew) so
+  pycairo can build. No admin rights; TinyTeX's optional PATH step is skipped because
+  `learn` passes the TeX path to Manim itself. Ends with a LaTeX smoke render.
 - The routing block `opencode/agents-block.md` appended to `~/.config/opencode/AGENTS.md`.
 - Obsidian CLI: Settings > General > Advanced > Command line interface (optional; the
   engine writes files directly and uses the CLI to open notes).

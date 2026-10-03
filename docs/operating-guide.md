@@ -16,9 +16,9 @@ the queue). A session is scratch space — only template-shaped conclusions surv
    brief to vault `Sources/<topic> research brief.md`. The engine won't let it plan or
    teach before the brief passes validation (3+ sources, at least one textbook, primary
    or review, definitions, misconceptions, examples). Every lesson cites the brief.
-2. You study in Obsidian. Each block opens with a picture of how the idea works (a
-   labelled diagram, a short animation or a plot, made by `learn figure`, or a mermaid
-   diagram), then the theory, then one question on it. Questions can show a picture, or
+2. You study in Obsidian. Each block opens with a Manim animation of how the idea works
+   (3Blue1Brown style, LaTeX formulas; plays inside the note), then the theory, then one
+   question on it. Questions can show a picture, or
    use small pictures as answer options. `Maps/<topic> map.canvas` (embedded in the
    note) colours each concept by progress.
    Tick a box (or type under **Your answer**), then send any message in OpenCode.
