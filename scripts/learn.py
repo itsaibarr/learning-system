@@ -10,7 +10,8 @@ The rules live here, not in the prompt, so every model gets the same decisions.
   plan --concept id ... --known id,id|none   concepts come from the research brief
   known <concept>                  learner says they already know it -> quick check instead of teaching
   add <id> <title...> [--prereqs a,b] [--before c]
-  block <concept>                  theory markdown on stdin -> session note
+  figure <name>                    matplotlib script on stdin -> checked PNG/GIF in the vault, prints the embed
+  block <concept>                  theory markdown (with a visual) on stdin -> session note
   ask <concept>                    question JSON on stdin -> session note
   check                            read answers from the note; grades choice questions
   answer <Q> <letter|idk> | answer <Q> --text T     learner answered in chat
@@ -50,6 +51,43 @@ LEVELS = {1: "recall the idea just taught, in the same setting",
           3: "explain why it works, or combine it with an earlier idea"}
 
 SOURCES_DIR = "Sources"
+FIG_DIR = "Attachments/learn"
+FIG_MAX_BYTES = 3_000_000
+FIG_TIMEOUT = 90
+CANVAS_COLORS = {"claimed": "6", "learning": "3", "solid": "4", "mastered": "5"}  # new = no colour (grey)
+FIG_EMBED = re.compile(r"!\[\[(Attachments/learn/[^\]|]+)(?:\|[^\]]*)?\]\]")
+MERMAID = re.compile(r"```mermaid\n(.*?)```", re.S)
+# Runs the agent's figure script, then checks every open figure for overlapping labels.
+FIG_HARNESS = r"""
+import json, sys, matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+out_png, out_gif, script = sys.argv[1:4]
+g = {"__name__": "__main__", "OUT_PNG": out_png, "OUT_GIF": out_gif}
+exec(compile(open(script).read(), "figure.py", "exec"), g)
+problems = []
+for num in plt.get_fignums():
+    fig = plt.figure(num)
+    fig.canvas.draw()
+    r = fig.canvas.get_renderer()
+    texts = [t for ax in fig.axes for t in list(ax.texts) + [ax.title]] + list(fig.texts)
+    texts = [t for t in texts if t.get_visible() and t.get_text().strip()]
+    boxes = [t.get_window_extent(r).shrunk(0.96, 0.9) for t in texts]
+    for i in range(len(texts)):
+        for j in range(i):
+            if boxes[i].overlaps(boxes[j]):
+                problems.append(f"{texts[j].get_text()[:30]!r} overlaps {texts[i].get_text()[:30]!r}")
+    for ax in fig.axes:
+        for line in ax.lines:
+            xs, ys = line.get_data()
+            if len(xs) < 2:
+                continue
+            pts = line.get_transform().transform(list(zip(xs, ys)))
+            for t, b in zip(texts, boxes):
+                if t.axes is ax and any(b.contains(px, py) for px, py in pts):
+                    problems.append(f"{t.get_text()[:30]!r} sits on top of a plotted line")
+print("LEARN-CHECK " + json.dumps(problems))
+"""
 BRIEF_SECTIONS = ["Concepts", "Definitions", "Misconceptions", "Worked examples", "Sources", "Open questions"]
 SOURCE_TYPES = {"primary", "textbook", "review", "secondary", "vendor"}
 STRONG_TYPES = {"primary", "textbook", "review"}
@@ -93,6 +131,7 @@ DEFAULT_PREFS = [
     "If the learner says they are lost, restart from the most basic idea, from zero.",
     "Always say why a step exists before showing how to do it.",
     "One note per session. Never send the learner to another file mid-session.",
+    "Visual learner: every idea gets a picture of how it works (diagram, animation or plot), plus normal text.",
 ]
 
 
@@ -119,7 +158,10 @@ def slug(text):
 
 def load():
     if STATE.exists():
-        return json.loads(STATE.read_text())
+        s = json.loads(STATE.read_text())
+        prefs = s["profile"]["preferences"]
+        prefs += [p for p in DEFAULT_PREFS if p not in prefs]  # new defaults reach existing learners
+        return s
     return {"version": 1, "profile": {"preferences": list(DEFAULT_PREFS)},
             "topics": {}, "session": None, "history": [], "mistakes": []}
 
@@ -326,6 +368,73 @@ def brief_of(s):
     return brief
 
 
+# ---------- visuals ----------
+
+def cli_eval(js):
+    """Run JS inside Obsidian via its CLI. Returns the result text, or None when the CLI is unavailable."""
+    if os.environ.get("LEARN_NO_CLI") or not shutil.which("obsidian"):
+        return None
+    try:
+        r = subprocess.run(["obsidian", "eval", f"code={js}"], capture_output=True, text=True, timeout=15)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    out = r.stdout.strip()
+    return out[3:].strip() if out.startswith("=>") else None
+
+
+def mermaid_problems(md):
+    """Parse every mermaid block with Obsidian's own mermaid. Returns (errors, unchecked_count)."""
+    errors, unchecked = [], 0
+    for i, code in enumerate(MERMAID.findall(md), 1):
+        js = ("(async()=>{if(!window.mermaid)return 'UNLOADED';try{await window.mermaid.parse(%s);return 'OK'}"
+              "catch(e){return 'ERR '+String(e.message||e).slice(0,300)}})()" % json.dumps(code))
+        res = cli_eval(js)
+        if res is None or res == "UNLOADED":
+            unchecked += 1
+        elif res.startswith("ERR"):
+            errors.append(f"mermaid diagram {i}: {res[4:]}")
+    return errors, unchecked
+
+
+def render_canvas(s, tid):
+    """Write Maps/<topic> map.canvas: concepts coloured by status, arrows from prerequisites."""
+    t = s["topics"][tid]
+    cs = t["concepts"]
+    if not cs:
+        return None
+    depth = {}
+
+    def d(cid):
+        if cid not in depth:
+            depth[cid] = 1 + max((d(p) for p in cs[cid]["prereqs"] if p in cs), default=-1)
+        return depth[cid]
+    rows = {}
+    nodes, edges = [], []
+    for cid, c in cs.items():
+        col = d(cid)
+        row = rows[col] = rows.get(col, -1) + 1
+        node = {"id": cid, "type": "text", "x": col * 340, "y": row * 150, "width": 280, "height": 100,
+                "text": f"**{c['title']}**\n\n{c['status']}" + (f" · box {c['box']}" if c["box"] else "")}
+        if c["status"] in CANVAS_COLORS:
+            node["color"] = CANVAS_COLORS[c["status"]]
+        nodes.append(node)
+        edges += [{"id": f"{p}->{cid}", "fromNode": p, "fromSide": "right", "toNode": cid, "toSide": "left"}
+                  for p in c["prereqs"] if p in cs]
+    last = max(depth.values()) + 1
+    nodes.append({"id": "goal", "type": "text", "x": last * 340, "y": 0, "width": 280, "height": 100,
+                  "text": f"**Goal**\n\n{t['goal'] or '-'}", "color": "1"})
+    edges += [{"id": f"{cid}->goal", "fromNode": cid, "fromSide": "right", "toNode": "goal", "toSide": "left"}
+              for cid in cs if not any(cid in o["prereqs"] for o in cs.values())]
+    nodes.append({"id": "legend", "type": "text", "x": 0, "y": -170, "width": 520, "height": 90,
+                  "text": "grey = new · purple = you said you know it · yellow = learning · "
+                          "green = solid · cyan = mastered"})
+    rel = f"Maps/{t['title']} map.canvas"
+    path = VAULT / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"nodes": nodes, "edges": edges}, indent=1))
+    return rel
+
+
 # ---------- decisions ----------
 
 def step(action, cid=None, reason="", level=None):
@@ -401,12 +510,15 @@ def instruction(s, st):
                 "--known is required: the ids the learner SAID they already know (they get a quick check instead "
                 "of teaching), or --known none. Never teach what they already know.")
     if a == "teach":
-        return (f"Write the theory block for '{title}' from the research brief (cite its sources as [S1]) using the "
-                f"block recipe in the skill, pipe it to "
+        return (f"Make 1 visual of how '{title}' works (references/visuals.md: `learn figure <name>`; if the idea is "
+                f"physical, draw the things themselves moving, Template 4; a system of parts: Template 1; numbers: "
+                f"Template 3; structure: mermaid). Then write the theory block from the research "
+                f"brief (cite sources as [S1]) with the visual embedded, using the block recipe in the skill, pipe it to "
                 f"`learn block {cid}`, then write 1 question at {lvl_txt} and pipe it to `learn ask {cid}`.")
     if a == "reteach":
         return (f"Re-teach '{title}': write a NEW block on the SAME idea with smaller steps, smaller numbers and a "
-                f"different example from the same subject (not a toy story without the idea). Name the step they got wrong. Pipe it to `learn block {cid}`. Then 1 question at "
+                f"different example from the same subject (not a toy story without the idea), and a NEW visual that shows "
+                f"the step they got wrong (references/visuals.md). Name that step. Pipe it to `learn block {cid}`. Then 1 question at "
                 f"level 1 via `learn ask {cid}`.")
     if a == "ask":
         return (f"Write 1 NEW question on '{title}' at {lvl_txt}. Do not repeat an earlier question; change the "
@@ -551,6 +663,7 @@ def grade(s, qid, result, kind=None, what="", picked=None):
     p = sess["pending"][qid]
     body = feedback(qid, p, result, picked)
     reason = record(s, qid, result, kind, what)
+    render_canvas(s, sess["topic"])
     st = current_step(s)
     insert_after(s, qid, "\n".join(body + [">", f"> **Next:** {st['reason']}"]))
     c = sess["counts"]
@@ -604,6 +717,7 @@ def cmd_start(s, a):
         if last:
             append(s, f"> [!note] Last time ({last['date']})\n> {last['next_by_topic'][tid]}")
         msg = f"New session note: {rel}"
+    render_canvas(s, tid)
     cli("open", f"path={sess['note']}")
     print(msg)
     print_briefing(s, tid)
@@ -675,6 +789,9 @@ def write_map(s, t):
         for p in c["prereqs"]:
             lines.append(f'  {p.replace("-", "_")} --> {cid.replace("-", "_")}')
     lines += ["```", "", "Arrows point from an idea to the ideas built on it. We go top to bottom."]
+    rel = render_canvas(s, need_session(s)["topic"])
+    if rel:
+        lines += ["", "Live progress map (colours change as you learn):", "", f"![[{rel}]]"]
     append(s, "\n".join(lines))
 
 
@@ -807,6 +924,7 @@ def cmd_known(s, a):
         print_next(s, f"'{c['title']}': said known and just answered correctly, so it is solid. Review tomorrow.")
         return
     c["status"] = "claimed"
+    render_canvas(s, sess["topic"])
     print_next(s, f"Marked '{c['title']}' as known. One quick check, then we skip it.")
 
 
@@ -824,7 +942,58 @@ def cmd_add(s, a):
             sess["stack"].append(slug(a.before))
         sess["step"] = step("teach", cid, f"'{t['concepts'][cid]['title']}' is the smaller step under "
                                           f"'{target['title']}'. Teach it first.")
+    render_canvas(s, need_session(s)["topic"])
     print_next(s, f"Added '{t['concepts'][cid]['title']}'.")
+
+
+def cmd_figure(s, a):
+    import tempfile
+    sess = need_session(s)
+    name = slug(a.name)
+    script = sys.stdin.read()
+    if not script.strip():
+        raise LearnError("Empty figure script. Pipe a matplotlib script on stdin (templates: references/visuals.md).")
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        (tmp / "figure.py").write_text(script)
+        (tmp / "harness.py").write_text(FIG_HARNESS)
+        png, gif = tmp / "out.png", tmp / "out.gif"
+        try:
+            r = subprocess.run([sys.executable, str(tmp / "harness.py"), str(png), str(gif), str(tmp / "figure.py")],
+                               cwd=tmp, capture_output=True, text=True, timeout=FIG_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            raise LearnError(f"Figure script ran longer than {FIG_TIMEOUT}s. Use fewer frames or less data.")
+        if r.returncode != 0:
+            tail = "\n".join(r.stderr.strip().splitlines()[-8:])
+            raise LearnError(f"Figure script failed. Fix it and re-run:\n{tail}")
+        check = next((l for l in r.stdout.splitlines() if l.startswith("LEARN-CHECK ")), None)
+        problems = json.loads(check[len("LEARN-CHECK "):]) if check else []
+        if problems:
+            raise LearnError("Labels collide (with each other or with a plotted line), so the picture would be hard to read. Move or shorten them and re-run:\n- "
+                             + "\n- ".join(problems[:8]))
+        made = [f for f in (png, gif) if f.exists()]
+        if len(made) != 1:
+            raise LearnError("The script must save exactly one file: `fig.savefig(OUT_PNG, dpi=110, "
+                             "bbox_inches=\"tight\")` for a picture, or `anim.save(OUT_GIF, writer=PillowWriter(fps=2))` "
+                             "for an animation.")
+        out = made[0]
+        if out.stat().st_size > FIG_MAX_BYTES:
+            raise LearnError(f"{out.suffix} is {out.stat().st_size // 1000} KB; the limit is {FIG_MAX_BYTES // 1000} KB. "
+                             "Lower dpi, size or frame count.")
+        if out.suffix == ".gif":
+            from PIL import Image
+            with Image.open(out) as im:
+                if getattr(im, "n_frames", 1) < 2:
+                    raise LearnError("The GIF has one frame. Use a PNG for a still picture, or add frames.")
+        rel = f"{FIG_DIR}/{sess['topic']}/{name}{out.suffix}"
+        dest = VAULT / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(out.read_bytes())
+    sess.setdefault("figures", []).append(rel)
+    print(f"Figure saved: {rel}")
+    print(f"EMBED: ![[{rel}]]")
+    print("NEXT: Put the EMBED line in the theory block (or in a question's \"figure\" field), with text that "
+          "walks through it using the numbered marks, then run `learn block <concept>`.")
 
 
 def cmd_block(s, a):
@@ -844,6 +1013,18 @@ def cmd_block(s, a):
     unknown = [x for x in cited if x not in brief["sources"]]
     if unknown:
         raise LearnError(f"{', '.join(unknown)} not in the research brief. Brief sources: {', '.join(brief['sources'])}.")
+    figs = FIG_EMBED.findall(md)
+    missing = [f for f in figs if not (VAULT / f).exists()]
+    if missing:
+        raise LearnError(f"Embedded figure not found: {', '.join(missing)}. Make it with `learn figure <name>` "
+                         "and paste the embed line it prints.")
+    if not figs and not MERMAID.search(md):
+        raise LearnError("Every block needs a visual of how it works (learner preference). Make one with "
+                         "`learn figure <name>` (diagram, animation or plot; references/visuals.md) and paste the "
+                         "embed line, or add a ```mermaid``` diagram for structure. Then re-run `learn block`.")
+    merr, unchecked = mermaid_problems(md)
+    if merr:
+        raise LearnError("Mermaid would not render in Obsidian. Fix it and re-run:\n- " + "\n- ".join(merr))
     words = len(re.sub(r"\$\$.*?\$\$|```.*?```", " ", md, flags=re.S).split())
     if words > MAX_BLOCK_WORDS:
         raise LearnError(f"Block is {words} words; the limit is {MAX_BLOCK_WORDS}. Cut it to one idea and re-run.")
@@ -858,7 +1039,9 @@ def cmd_block(s, a):
     prev = sess["step"]
     lvl = 1 if (prev and prev["action"] == "reteach") else c["level"]
     sess["step"] = step("ask", cid, f"Theory for '{c['title']}' is in the note. Now active recall on it.", lvl)
-    print_next(s, "Block written to the note.")
+    render_canvas(s, sess["topic"])
+    print_next(s, "Block written to the note." + (f" ({unchecked} mermaid diagram(s) not checked: Obsidian not "
+                                                    "reachable; open the note to confirm it renders.)" if unchecked else ""))
 
 
 def cmd_ask(s, a):
@@ -885,6 +1068,13 @@ def cmd_ask(s, a):
     qid = f"Q{sess['qn']}"
     p = {"concept": cid, "type": kind, "level": level, "why": q["why"].strip(), "question": q["question"].strip()}
     out = [f"### {qid} · level {level}", "", q["question"].strip(), ""]
+    fig = str(q.get("figure") or "").strip()
+    if fig:
+        m = FIG_EMBED.fullmatch(fig) or FIG_EMBED.fullmatch(f"![[{fig}]]")
+        if not m or not (VAULT / m.group(1)).exists():
+            raise LearnError(f"\"figure\" must be an embed printed by `learn figure`, got {fig!r}.")
+        out[3:3] = ["", f"![[{m.group(1)}]]"]
+        p["figure"] = m.group(1)
     if kind == "choice":
         opts = q.get("options") or []
         if not 2 <= len(opts) <= 5:
@@ -1137,6 +1327,7 @@ def main(argv=None):
     p = sub.add_parser("known"); p.add_argument("concept")
     p = sub.add_parser("add"); p.add_argument("id"); p.add_argument("title", nargs="+")
     p.add_argument("--prereqs"); p.add_argument("--before")
+    p = sub.add_parser("figure"); p.add_argument("name")
     p = sub.add_parser("block"); p.add_argument("concept")
     p = sub.add_parser("ask"); p.add_argument("concept")
     sub.add_parser("check")

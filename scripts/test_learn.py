@@ -23,6 +23,7 @@ CHOICE = {"type": "choice", "question": "Coin, 2 flips. Chance of at least one h
                       {"text": "0.5", "misconception": "thinks one flip decides it"}]}
 
 
+VIS = "\n\n```mermaid\nflowchart LR\n  A --> B\n```"
 PROB = [("total", "All chances add to 1", "-"), ("none", "Chance of none", "total"),
         ("atleast", "At least one = 1 - none", "none")]
 PY = [("for", "For loop", "-"), ("acc", "Running total", "for"), ("sum", "Sum a list", "acc")]
@@ -122,14 +123,14 @@ class Base(unittest.TestCase):
         self.run_cmd("start", *words)
         self.research(concepts)
 
-    def teach_and_ask(self, cid, block="Short theory. [S1]", q=CHOICE):
+    def teach_and_ask(self, cid, block="Short theory. [S1]" + VIS, q=CHOICE):
         self.run_cmd("block", cid, stdin=block)
         out = self.run_cmd("ask", cid, stdin=json.dumps(q))
         return re.search(r"(Q\d+) written", out).group(1)
 
     def answer(self, cid, which, teach=False, level=2):
         if teach:
-            self.run_cmd("block", cid, stdin="Theory again. [S1]")
+            self.run_cmd("block", cid, stdin="Theory again. [S1]" + VIS)
         q = dict(CHOICE, level=level)
         qid = re.search(r"(Q\d+) written", self.run_cmd("ask", cid, stdin=json.dumps(q))).group(1)
         return self.tick(qid, which)
@@ -179,11 +180,11 @@ class TestNewLearner(Base):
 
     def test_block_word_limit(self):
         self.start_planned()
-        self.assertIn("limit is", self.run_cmd("block", "total", stdin="word " * 300 + "[S1]", ok=False))
+        self.assertIn("limit is", self.run_cmd("block", "total", stdin="word " * 300 + "[S1]" + VIS, ok=False))
 
     def test_bad_question_json_is_rejected(self):
         self.start_planned()
-        self.run_cmd("block", "total", stdin="x [S1]")
+        self.run_cmd("block", "total", stdin="x [S1]" + VIS)
         bad = dict(CHOICE, options=[{"text": "a", "correct": True}, {"text": "b"}])
         self.assertIn("needs a \"misconception\"", self.run_cmd("ask", "total", stdin=json.dumps(bad), ok=False))
 
@@ -231,7 +232,7 @@ class TestResearchGate(Base):
         self.start_planned()
         self.assertIn("Cite the research brief", self.run_cmd("block", "total", stdin="No source.", ok=False))
         self.assertIn("S7 not in the research brief", self.run_cmd("block", "total", stdin="x [S7]", ok=False))
-        self.run_cmd("block", "total", stdin="All ways add to 1 [S1].")
+        self.run_cmd("block", "total", stdin="All ways add to 1 [S1]." + VIS)
         self.assertIn("> [!quote]- Sources\n> S1: Source 1, https://example.org/1 (textbook)", self.note())
 
     def test_lit_without_praxist_explains_fallback(self):
@@ -247,6 +248,109 @@ class TestResearchGate(Base):
             self.assertIn("PRAXIST is not installed", self.run_cmd("lit", "search", "x", ok=False))
         finally:
             builtins.__import__ = real
+
+
+PNG_OK = """
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots(figsize=(3, 2))
+ax.plot([0, 1, 2], [0, 1, 0])
+ax.text(0.2, 0.5, "1 rise"); ax.text(1.5, 0.5, "2 fall")
+fig.savefig(OUT_PNG, dpi=60)
+"""
+GIF_OK = """
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation, PillowWriter
+fig, ax = plt.subplots(figsize=(2, 2))
+dot, = ax.plot([0], [0], "o"); ax.set_xlim(0, 3)
+anim = FuncAnimation(fig, lambda k: dot.set_data([k], [0]), frames=3)
+anim.save(OUT_GIF, writer=PillowWriter(fps=2), dpi=40)
+"""
+
+
+class TestVisuals(Base):
+    def test_block_needs_a_visual(self):
+        self.start_planned()
+        out = self.run_cmd("block", "total", stdin="Plain text only [S1].", ok=False)
+        self.assertIn("needs a visual", out)
+
+    def test_figure_png_lands_in_vault_and_embeds(self):
+        self.start_planned()
+        out = self.run_cmd("figure", "Rise and fall", stdin=PNG_OK)
+        embed = re.search(r"EMBED: (!\[\[.+\]\])", out).group(1)
+        self.assertEqual(embed, "![[Attachments/learn/probability-basics/rise-and-fall.png]]")
+        self.assertTrue((learn.VAULT / "Attachments/learn/probability-basics/rise-and-fall.png").exists())
+        self.run_cmd("block", "total", stdin=f"{embed}\n\nThe curve rises then falls [S1].")
+        self.assertIn(embed, self.note())
+
+    def test_figure_gif_animation(self):
+        self.start_planned()
+        out = self.run_cmd("figure", "dot", stdin=GIF_OK)
+        self.assertIn("dot.gif", out)
+
+    def test_figure_errors_are_explained(self):
+        self.start_planned()
+        self.assertIn("Figure script failed", self.run_cmd("figure", "x", stdin="raise ValueError('boom')", ok=False))
+        self.assertIn("save exactly one file", self.run_cmd("figure", "x", stdin="import matplotlib.pyplot as plt\nplt.figure()", ok=False))
+        overlap = PNG_OK.replace('ax.text(1.5, 0.5, "2 fall")', 'ax.text(0.2, 0.5, "2 fall")')
+        self.assertIn("Labels collide", self.run_cmd("figure", "x", stdin=overlap, ok=False))
+        on_line = PNG_OK.replace('ax.text(1.5, 0.5, "2 fall")', 'ax.text(0.9, 0.95, "2 fall")')
+        self.assertIn("sits on top of a plotted line", self.run_cmd("figure", "x", stdin=on_line, ok=False))
+
+    def test_missing_figure_embed_rejected(self):
+        self.start_planned()
+        out = self.run_cmd("block", "total", stdin="![[Attachments/learn/nope.png]] [S1]", ok=False)
+        self.assertIn("Embedded figure not found", out)
+
+    def test_broken_mermaid_rejected_when_obsidian_says_so(self):
+        self.start_planned()
+        real = learn.cli_eval
+        learn.cli_eval = lambda js: "ERR Parse error on line 2"
+        try:
+            out = self.run_cmd("block", "total", stdin="x [S1]" + VIS, ok=False)
+        finally:
+            learn.cli_eval = real
+        self.assertIn("Mermaid would not render", out)
+
+    def test_canvas_map_follows_progress(self):
+        self.start_planned()
+        path = learn.VAULT / "Maps" / "Probability basics map.canvas"
+        self.assertIn("![[Maps/Probability basics map.canvas]]", self.note())
+        nodes = {n["id"]: n for n in json.loads(path.read_text())["nodes"]}
+        self.assertNotIn("color", nodes["total"])
+        self.assertEqual(nodes["none"]["x"], 340)  # one column right of its prerequisite
+        self.run_cmd("block", "total", stdin="t [S1]" + VIS)
+        nodes = {n["id"]: n for n in json.loads(path.read_text())["nodes"]}
+        self.assertEqual(nodes["total"]["color"], "3")  # yellow = learning, right after the block
+        self.answer("total", "correct")
+        self.answer("total", "correct")
+        nodes = {n["id"]: n for n in json.loads(path.read_text())["nodes"]}
+        self.assertEqual(nodes["total"]["color"], "4")  # green = solid
+
+    def test_question_can_show_a_figure(self):
+        self.start_planned()
+        embed = re.search(r"EMBED: (!\[\[.+\]\])", self.run_cmd("figure", "q1", stdin=PNG_OK)).group(1)
+        self.run_cmd("block", "total", stdin=embed + " [S1]")
+        self.run_cmd("ask", "total", stdin=json.dumps(dict(CHOICE, figure=embed)))
+        head = self.note().split("### Q1")[1]
+        self.assertIn(embed, head.split("- [ ]")[0])
+        bad = dict(CHOICE, figure="![[nope.png]]")
+        self.assertIn('"figure" must be', self.run_cmd("ask", "total", stdin=json.dumps(bad), ok=False))
+
+    def test_every_template_in_visuals_guide_renders(self):
+        guide = Path(__file__).resolve().parent.parent / "skills/teach-understanding/references/visuals.md"
+        templates = re.findall(r"```python\n(.*?)```", guide.read_text(), re.S)
+        self.assertGreaterEqual(len(templates), 4)
+        self.start_planned()
+        for n, code in enumerate(templates, 1):
+            out = self.run_cmd("figure", f"template-{n}", stdin=code)
+            self.assertIn("EMBED:", out, f"template {n} failed")
+
+    def test_new_default_preferences_reach_existing_learners(self):
+        self.start_planned()
+        st = self.state()
+        st["profile"]["preferences"] = st["profile"]["preferences"][:2]
+        learn.STATE.write_text(json.dumps(st))
+        self.assertIn("Visual learner", self.run_cmd("start", "Probability", "basics"))
 
 
 class TestExistingKnowledge(Base):
@@ -319,7 +423,7 @@ class TestRepeatedStruggle(Base):
     def test_two_misses_revisit_weak_prerequisite_then_return(self):
         self.start_planned()
         self.answer("total", "correct", teach=True)  # total: learning, 1 of 2
-        self.run_cmd("block", "none", stdin="none theory [S1]")
+        self.run_cmd("block", "none", stdin="none theory [S1]" + VIS)
         self.answer("none", "wrong")
         out = self.answer("none", "wrong")
         self.assertIn("rests on 'All chances add to 1'", out)
@@ -330,7 +434,7 @@ class TestRepeatedStruggle(Base):
 
     def test_three_misses_stop_quizzing(self):
         self.start_planned()
-        self.run_cmd("block", "total", stdin="t [S1]")
+        self.run_cmd("block", "total", stdin="t [S1]" + VIS)
         for _ in range(2):
             self.answer("total", "wrong")
         out = self.answer("total", "wrong", teach=True)

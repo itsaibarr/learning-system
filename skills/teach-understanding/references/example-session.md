@@ -74,13 +74,32 @@ WHY: Next new idea: 'All chances add up to 1', because it needs nothing else, so
 NEXT: Write the theory block for 'All chances add up to 1' from the research brief (cite its sources as [S1]) ...
 ```
 
-## 3. Theory, then the question
+## 3. Picture, theory, then the question
+
+```bash
+learn figure all-chances <<'EOF'
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots(figsize=(6, 2.6))
+faces = ["1", "2", "3", "4", "5", "6"]
+ax.bar(faces, [1/6] * 6, color="#3b6fb6")
+ax.set_ylim(0, 0.32); ax.set_ylabel("chance"); ax.set_xlabel("die face")
+ax.text(2.5, 0.26, "① each face: 1/6     ② all six together: 6 × 1/6 = 1", ha="center", fontsize=10, weight="bold")
+fig.savefig(OUT_PNG, dpi=110, bbox_inches="tight")
+EOF
+```
+```
+Figure saved: Attachments/learn/probability-basics/all-chances.png
+EMBED: ![[Attachments/learn/probability-basics/all-chances.png]]
+```
 
 ```bash
 learn block total <<'EOF'
 **Why we need this:** To find a chance, we first need to know what "all of it" is.
 
-Something can turn out in a few ways. The chances of all the ways add up to 1. One whole [S1].
+![[Attachments/learn/probability-basics/all-chances.png]]
+
+Something can turn out in a few ways. ① Each way has its own chance. ② The chances of
+all the ways add up to 1. One whole [S1].
 
 > [!example] Example
 > A coin lands heads or tails. Heads $= 0.5$, tails $= 0.5$. Together $0.5 + 0.5 = 1$.
