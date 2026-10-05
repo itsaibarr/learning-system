@@ -43,6 +43,18 @@ printf 'from manim import *\nclass S(Scene):\n    def construct(self):\n        
 PATH="$TEX_BIN:$PATH" "$MANIM_VENV/bin/manim" -ql -s --disable_caching --media_dir "$SMOKE/m" "$SMOKE/s.py" S >/dev/null 2>&1 \
   && echo "manim + LaTeX: ok" || echo "warning: manim + LaTeX smoke render failed (run it by hand: $SMOKE/s.py)"
 
+# Narration: Voicebox (jamiepine/voicebox, MIT) server pinned to v0.5.0, Kokoro-82M engine only (slim deps),
+# Python 3.12 venv via uv (Voicebox pins numba<0.61). Kokoro weights (~313 MB) go to the Hugging Face cache.
+VOICEBOX="$HOME/.local/share/learning-system/voicebox"
+command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
+[ -d "$VOICEBOX/.git" ] || git clone -q --depth 1 --branch v0.5.0 https://github.com/jamiepine/voicebox "$VOICEBOX"
+[ -x "$VOICEBOX/.venv/bin/python" ] || { (cd "$VOICEBOX" && uv venv -q --python 3.12 .venv) \
+  && uv pip install -q --python "$VOICEBOX/.venv/bin/python" -r "$REPO/scripts/voicebox-requirements.txt"; }
+PYTHONPATH="$REPO/scripts" python3 - <<'PY' && echo "narration voice (Voicebox + Kokoro): ok" || echo "warning: narration smoke test failed; animations will stay silent until it works"
+import tempfile, pathlib, learn
+learn.tts_lines(["Narration check: the local voice is ready."], learn.DEFAULT_VOICE, pathlib.Path(tempfile.mkdtemp()))
+PY
+
 grep -q "<!-- learning-system -->" "$OC/AGENTS.md" 2>/dev/null || cat "$REPO/opencode/agents-block.md" >> "$OC/AGENTS.md"
 
 python3 -m unittest discover -s "$REPO/scripts" -q

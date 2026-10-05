@@ -9,7 +9,9 @@ the content and follows the engine's `NEXT:` lines. Every new topic is researche
 (PRAXIST method, source-backed brief in vault `Sources/`); lessons cite that brief.
 Every idea is taught with a Manim animation of how it works, 3Blue1Brown style, with
 LaTeX formulas (`learn figure`, rendered locally with Manim Community + TinyTeX and
-checked before the learner sees it), plus a live progress map (canvas) per topic.
+checked before the learner sees it) and narrated by a local voice (Voicebox server running the
+Kokoro-82M engine; synced to the animation's numbered captions; no paid API; see
+`docs/voiceover.md`), plus a live progress map (canvas) per topic.
 
 Install on a machine: `bash scripts/install.sh` (idempotent). `scripts/anki_push.py` pushes
 approved cards.

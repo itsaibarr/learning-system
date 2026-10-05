@@ -45,6 +45,9 @@ says research, load the `praxist-scientific-research` skill and follow
    understands pictures far better than text. Copy the closest template in
    `references/visuals.md`, adapt it, render it with `learn figure` before writing the
    block. Manim Community syntax only. The engine refuses blocks without a Manim visual.
+   Every animation also gets a `NARRATION` list (one spoken line per numbered caption,
+   explaining what to notice and why). `learn figure` turns it into a voiceover in the
+   learner's voice, synced to the captions.
 
 ## The loop
 
@@ -53,7 +56,7 @@ learn start <topic words>            -> briefing + WHY/NEXT
   NEXT says research?  ask the goal question, wait, research (references/research.md),
                        learn research --save <<'EOF' <brief> EOF
   NEXT says plan?   learn plan --concept <brief ids> ... --known <ids|none>
-  NEXT says teach?  make a visual -> learn figure <name> <<'EOF' <Manim scene> EOF  (prints EMBED)
+  NEXT says teach?  make a visual -> learn figure <name> <<'EOF' <Manim scene + NARRATION> EOF  (prints EMBED)
                     write a block  -> learn block <id> <<'EOF' ... EOF  (EMBED inside)
                     write a question -> learn ask <id> <<'EOF' {json} EOF
                     tell the learner one line, STOP
