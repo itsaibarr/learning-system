@@ -1,0 +1,1060 @@
+{
+  "version": 1,
+  "profile": {
+    "preferences": [
+      "Theory first, then questions. Only ask about what was just taught in this note.",
+      "Very easy words. Short sentences. One idea per sentence. A concrete example before any formula.",
+      "Everything the learner reads goes into the Obsidian session note. Chat replies are 1-2 lines that point to the note.",
+      "If the learner says they are lost, restart from the most basic idea, from zero.",
+      "Always say why a step exists before showing how to do it.",
+      "One note per session. Never send the learner to another file mid-session.",
+      "Visual learner: every idea gets a Manim animation of how it works (3Blue1Brown style), plus normal text."
+    ]
+  },
+  "topics": {
+    "voice-ai-audio-basics": {
+      "title": "voice ai audio basics",
+      "goal": "Understand how a computer stores and streams sound well enough to reason about audio formats, sizes and latency in a real-time voice agent (Speko internship prep)",
+      "created": "2026-10-03",
+      "concepts": {
+        "wave": {
+          "title": "Sound is a wave: frequency and amplitude",
+          "prereqs": [],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-04",
+          "solid_date": "2026-10-03",
+          "promoted": "2026-10-03",
+          "last_seen": "2026-10-03",
+          "history": [
+            {
+              "date": "2026-10-03",
+              "q": "Q1",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q2",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q3",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "sample": {
+          "title": "Sampling: measure the wave many times a second (sample rate)",
+          "prereqs": [
+            "wave"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-04",
+          "solid_date": "2026-10-03",
+          "promoted": "2026-10-03",
+          "last_seen": "2026-10-03",
+          "history": [
+            {
+              "date": "2026-10-03",
+              "q": "Q4",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q5",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q6",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "nyquist": {
+          "title": "The highest frequency you can capture is half the sample rate",
+          "prereqs": [
+            "sample"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-04",
+          "solid_date": "2026-10-03",
+          "promoted": "2026-10-03",
+          "last_seen": "2026-10-03",
+          "history": [
+            {
+              "date": "2026-10-03",
+              "q": "Q7",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q8",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q9",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "quantize": {
+          "title": "Bit depth: each measurement is stored as a whole number",
+          "prereqs": [
+            "sample"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-04",
+          "solid_date": "2026-10-03",
+          "promoted": "2026-10-03",
+          "last_seen": "2026-10-03",
+          "history": [
+            {
+              "date": "2026-10-03",
+              "q": "Q10",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q11",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q12",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "pcm": {
+          "title": "Raw PCM audio: sample rate x bytes per sample x channels = bytes per second",
+          "prereqs": [
+            "quantize",
+            "nyquist"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "chunk": {
+          "title": "Streaming sends audio in small chunks; chunk length in ms sets samples and bytes",
+          "prereqs": [
+            "pcm"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        }
+      },
+      "research": {
+        "note": "Sources/voice ai audio basics research brief.md",
+        "date": "2026-10-03",
+        "sources": 7
+      }
+    },
+    "communication-and-networking-technologies-cambridge-as-cs-9608-ch2": {
+      "title": "Communication and networking technologies (Cambridge AS CS 9608 Ch2)",
+      "goal": "Learn, retain and be able to apply the exact content of Chapter 2 of the Cambridge International AS & A Level Computer Science coursebook (printed pp. 26-50), including textbook terminology and exam-style reasoning (Cambridge 9608 questions).",
+      "created": "2026-10-05",
+      "concepts": {
+        "wan-lan": {
+          "title": "WAN and LAN: what each is, who owns it, what it connects",
+          "prereqs": [],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q2",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q3",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q4",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q45",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "internet-www": {
+          "title": "The Internet is an internetwork; the WWW is an application on it",
+          "prereqs": [
+            "wan-lan"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q5",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q6",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q7",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q46",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "client-server": {
+          "title": "Client-server model, thin-client and thick-client",
+          "prereqs": [
+            "wan-lan"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q8",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q9",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q10",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q47",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "p2p": {
+          "title": "Peer-to-peer versus client-server for file sharing",
+          "prereqs": [
+            "client-server"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 2,
+          "level": 1,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q1",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q48",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "comm-modes": {
+          "title": "Five parts of data communication; simplex, half and full duplex; unicast, multicast, broadcast",
+          "prereqs": [
+            "wan-lan"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q11",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q12",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q13",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q49",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "topologies": {
+          "title": "Point-to-point, bus, star, mesh and hybrid topologies",
+          "prereqs": [
+            "comm-modes",
+            "bus-star"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q17",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q18",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q19",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q50",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "cable-media": {
+          "title": "Twisted pair, coaxial and fibre-optic cable compared",
+          "prereqs": [
+            "topologies",
+            "signal-basics"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q20",
+              "result": "idk",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q24",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q25",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q26",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q51",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "bus-star": {
+          "title": "Point-to-point, bus and star topologies",
+          "prereqs": [
+            "comm-modes"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q14",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q15",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q16",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q52",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "signal-basics": {
+          "title": "Bandwidth, attenuation and interference in plain words",
+          "prereqs": [
+            "topologies"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q21",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q22",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q23",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q53",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "wireless-media": {
+          "title": "Radio, microwave and infrared; wired versus wireless",
+          "prereqs": [
+            "cable-media",
+            "wireless-types"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q30",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q31",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q32",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q54",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "satellites": {
+          "title": "GEO, MEO and LEO satellites and transmission delay",
+          "prereqs": [
+            "wireless-media"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q33",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q34",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q35",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q55",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "lan-hardware": {
+          "title": "NIC, repeater, bridge, hub, switch, WAP and WNIC",
+          "prereqs": [
+            "topologies",
+            "cable-media",
+            "lan-wired"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q39",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q40",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q41",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q56",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "ethernet-csmacd": {
+          "title": "Ethernet, collisions and CSMA/CD, switched Ethernet",
+          "prereqs": [
+            "lan-hardware",
+            "ethernet-collision"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q59",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q60",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q61",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "isp-router": {
+          "title": "ISP tiers, IXPs and routers as Internet nodes",
+          "prereqs": [
+            "internet-www",
+            "lan-hardware"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "pstn-cell": {
+          "title": "PSTN, modem, leased line, WiFi hotspot and cell phone network access",
+          "prereqs": [
+            "isp-router"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "cloud": {
+          "title": "Public and private cloud, infrastructure/platform/software provision",
+          "prereqs": [
+            "client-server",
+            "internet-www"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "wireless-types": {
+          "title": "Radio, microwave and infrared compared",
+          "prereqs": [
+            "cable-media",
+            "signal-basics"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q27",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q28",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q29",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q57",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "lan-wired": {
+          "title": "NIC, terminators, repeater and bridge on a wired LAN",
+          "prereqs": [
+            "topologies",
+            "cable-media",
+            "signal-basics"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q36",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q37",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q38",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q58",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "ethernet-collision": {
+          "title": "Ethernet, IEEE 802.3 and why collisions happen",
+          "prereqs": [
+            "lan-hardware"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q42",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q43",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q44",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        }
+      },
+      "research": {
+        "note": "Sources/Communication and networking technologies (Cambridge AS CS 9608 Ch2) research brief.md",
+        "date": "2026-10-05",
+        "sources": 6
+      }
+    }
+  },
+  "session": null,
+  "history": [
+    {
+      "date": "2026-10-03",
+      "topics": [
+        "voice-ai-audio-basics"
+      ],
+      "note": "Sessions/2026-10-03 voice ai audio basics.md",
+      "correct": 12,
+      "wrong": 0,
+      "idk": 0,
+      "next_time": null,
+      "next_by_topic": {
+        "voice-ai-audio-basics": "Start with 'Sound is a wave: frequency and amplitude': 'Sound is a wave: frequency and amplitude' is due for review (box 1, last seen 2026-10-03)."
+      }
+    },
+    {
+      "date": "2026-10-05",
+      "topics": [
+        "communication-and-networking-technologies-cambridge-as-cs-9608-ch2"
+      ],
+      "note": "Sessions/2026-10-05 Communication and networking technologies (Cambridge AS CS 9608 Ch2).md",
+      "correct": 60,
+      "wrong": 0,
+      "idk": 1,
+      "next_time": "Chapter 2 (Cambridge 9608/9618). Start by answering Q62 (ISP and router, 1 of 2 recall). Then reviews due 2026-10-07 (ethernet-collision, ethernet-csmacd), then teach pstn-cell and cloud, then plan batch 3: bit-streaming, ipv4, cidr, subnetting, nat-private, static-dynamic, ipv6, dns-url. Last: cumulative chapter review + final mastery check. Narrated Manim is now required (NARRATION list per figure).",
+      "next_by_topic": {
+        "communication-and-networking-technologies-cambridge-as-cs-9608-ch2": "Start with 'ISP tiers, IXPs and routers as Internet nodes': 'ISP tiers, IXPs and routers as Internet nodes' is not solid yet (0 of 2 correct in a row). Note: Chapter 2 (Cambridge 9608/9618). Start by answering Q62 (ISP and router, 1 of 2 recall). Then reviews due 2026-10-07 (ethernet-collision, ethernet-csmacd), then teach pstn-cell and cloud, then plan batch 3: bit-streaming, ipv4, cidr, subnetting, nat-private, static-dynamic, ipv6, dns-url. Last: cumulative chapter review + final mastery check. Narrated Manim is now required (NARRATION list per figure)."
+      }
+    }
+  ],
+  "mistakes": [
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "cable-media",
+      "date": "2026-10-05",
+      "q": "Q20",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": "2026-10-06"
+    }
+  ],
+  "figures": {
+    "Attachments/learn/voice-ai-audio-basics/wave-frequency-amplitude.mp4": "manim",
+    "Attachments/learn/voice-ai-audio-basics/q-two-waves.png": "manim",
+    "Attachments/learn/voice-ai-audio-basics/sampling.mp4": "manim",
+    "Attachments/learn/voice-ai-audio-basics/nyquist-aliasing.mp4": "manim",
+    "Attachments/learn/voice-ai-audio-basics/quantization.mp4": "manim",
+    "Attachments/learn/voice-ai-audio-basics/pcm-bytes.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/wan-lan.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/internet-www.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/client-server.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/comm-modes.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/bus-star.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/topologies.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/cable-media.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/signal-basics.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/wireless-types.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/wireless-media.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/satellites.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/lan-wired.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/lan-hardware.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ethernet-collision.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/csma-cd.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/isp-router.mp4": "manim"
+  },
+  "narrations": {
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/csma-cd.mp4": [
+      "Before sending, a computer on a shared cable first listens. If someone is already transmitting, there is a voltage on the cable, and the computer can detect it. Here B is sending, so A senses activity.",
+      "Because the cable is busy, A does not talk over B. It waits a random amount of time, and then listens again. The wait is random so that two waiting computers do not both jump in at the same moment.",
+      "Now the cable is quiet, so A starts sending. But it keeps paying attention: it checks the cable the whole time, in case another computer starts sending too.",
+      "Here D also started sending, and the two signals clash in the middle. That is a collision. A notices, stops, and sends a jamming signal to warn every other computer. Then A and D each wait a random time and try again.",
+      "Modern Ethernet is switched. Each computer has its own full duplex link to the switch, so a collision cannot happen on that link. The switch holds an incoming message in a buffer until the cable is free. So the old procedure, C S M A C D, is no longer needed."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/isp-router.mp4": [
+      "At the bottom are people and companies. They reach the Internet through an access ISP, the company that gives them their connection. Notice that each ISP is itself just a network.",
+      "Access ISPs connect upward to middle tier, or regional, ISPs, and those connect to tier one ISPs, the backbone at the top. Where ISPs meet to pass traffic to each other, they use Internet exchange points, the small yellow squares.",
+      "The busiest connections are fibre optic cables under the sea and across land. Together they form a mesh, and every place where cables join is called a node.",
+      "At every node sits a router. Each router connects to several others, and its job is to choose the best route for the data. Watch the dot pick one path through the mesh instead of the others."
+    ]
+  }
+}
