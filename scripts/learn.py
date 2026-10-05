@@ -10,7 +10,8 @@ The rules live here, not in the prompt, so every model gets the same decisions.
   plan --concept id ... --known id,id|none   concepts come from the research brief
   known <concept>                  learner says they already know it -> quick check instead of teaching
   add <id> <title...> [--prereqs a,b] [--before c]
-  figure <name> [--still]          Manim scene on stdin -> checked MP4 (or PNG with --still) in the vault, prints the embed
+  figure <name> [--still|--silent] Manim scene on stdin -> checked, narrated MP4 (or PNG with --still) in the vault
+                                   (narration = the scene's NARRATION list, spoken by a local Voicebox/Kokoro voice)
                                    (matplotlib is the fallback, unlocked after 3 failed Manim attempts in a row)
   block <concept>                  theory markdown (with a visual) on stdin -> session note
   ask <concept>                    question JSON on stdin -> session note
@@ -19,14 +20,17 @@ The rules live here, not in the prompt, so every model gets the same decisions.
   grade <Q> correct|wrong|idk [--kind slip|gap|misconception] [--what W]   typed answers
   next                             what to do now, and why
   pref <text...>                   save a learner preference for every future session
+  voice [id]                       show or set the narrator voice (Kokoro preset, e.g. af_heart)
   end [--next-time T]              summary into the note, dashboard, commit
   status                           what the system believes the learner knows
 
 Env: LEARN_STATE, LEARN_VAULT, LEARN_TODAY (YYYY-MM-DD), LEARN_NO_CLI=1, LEARN_NO_GIT=1,
-     LEARN_MANIM (manim binary), LEARN_TEX_BIN (TeX bin dir), LEARN_REQUIRE_MANIM=0 (accept any visual).
+     LEARN_MANIM (manim binary), LEARN_TEX_BIN (TeX bin dir), LEARN_REQUIRE_MANIM=0 (accept any visual),
+     LEARN_TTS=voicebox|fake|none, LEARN_VOICEBOX_URL, LEARN_VOICEBOX_DIR, LEARN_VOICEBOX_AUTOSTART=0.
 """
 
 import argparse
+import ast
 import json
 import os
 import random
@@ -34,6 +38,11 @@ import re
 import shutil
 import subprocess
 import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+import wave
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -89,6 +98,9 @@ if len(_found) != 1:
     raise SystemExit(f"LEARN: define exactly one Scene class, found {len(_found)}")
 _TEXT = (Text, MarkupText, MathTex, Tex, SingleStringMathTex, Paragraph, DecimalNumber, Integer)
 _problems = []
+_marks = {}   # caption number -> [time it starts appearing, caption text]
+import re as _re
+_NUM = _re.compile(r"^\s*(\d{1,2})[\s.):]")
 
 def _texts(mobs):
     out = []
@@ -109,7 +121,17 @@ def _label(m):
 def _visible(m):
     return max((max(x.get_fill_opacity(), x.get_stroke_opacity()) for x in m.family_members_with_points()), default=0) > 0.05
 
+def _note_marks(mobs, t):
+    for m in _texts([x for x in mobs if x is not None]):
+        txt = getattr(m, "original_text", None) or getattr(m, "text", None) or ""
+        hit = _NUM.match(txt)
+        if hit and int(hit.group(1)) not in _marks:
+            _marks[int(hit.group(1))] = [round(t, 3), txt.strip()]
+
 class LearnChecked(_found[0]):
+    def add(self, *mobs):
+        _note_marks(mobs, self.renderer.time)
+        return super().add(*mobs)
     def _learn_check(self):
         W, H = config.frame_width / 2, config.frame_height / 2
         ts = [t for t in _texts(self.mobjects) if _visible(t)]
@@ -125,6 +147,8 @@ class LearnChecked(_found[0]):
                 if a[0] + pad < b[1] - pad and b[0] + pad < a[1] - pad and a[2] + pad < b[3] - pad and b[2] + pad < a[3] - pad:
                     _problems.append(f"{_label(ts[j])!r} overlaps {_label(ts[i])!r} {when}")
     def play(self, *args, **kwargs):
+        t0 = self.renderer.time
+        _note_marks([getattr(a, "target_mobject", None) or getattr(a, "mobject", None) for a in args], t0)
         super().play(*args, **kwargs)
         self._learn_check()
     def wait(self, *args, **kwargs):
@@ -133,8 +157,8 @@ class LearnChecked(_found[0]):
     def construct(self):
         super().construct()
         self._learn_check()
-        seen = list(dict.fromkeys(_problems))
-        json.dump(seen, open(os.environ["LEARN_FIG_REPORT"], "w"))
+        json.dump({"problems": list(dict.fromkeys(_problems)), "marks": _marks},
+                  open(os.environ["LEARN_FIG_REPORT"], "w"))
 """
 CANVAS_COLORS = {"claimed": "6", "learning": "3", "solid": "4", "mastered": "5"}  # new = no colour (grey)
 FIG_EMBED = re.compile(r"!\[\[(Attachments/learn/[^\]|]+)(?:\|[^\]]*)?\]\]")
@@ -600,7 +624,7 @@ def instruction(s, st):
     if a == "teach":
         return (f"Make 1 Manim visual of how '{title}' works: pick the closest template in references/visuals.md "
                 f"(things moving: physical; a system of parts: diagram with --still; a curve or numbers: graph; a "
-                f"formula: derivation; steps: process), adapt it, and run `learn figure <name>`. Then write the theory block from the research "
+                f"formula: derivation; steps: process), adapt it, write its NARRATION (one spoken line per numbered caption: what to notice and why), and run `learn figure <name>`; it comes back narrated. Then write the theory block from the research "
                 f"brief (cite sources as [S1]) with the visual embedded, using the block recipe in the skill, pipe it to "
                 f"`learn block {cid}`, then write 1 question at {lvl_txt} and pipe it to `learn ask {cid}`.")
     if a == "reteach":
@@ -1034,6 +1058,265 @@ def cmd_add(s, a):
     print_next(s, f"Added '{t['concepts'][cid]['title']}'.")
 
 
+# ---------- narration (local TTS: Voicebox server running the Kokoro engine) ----------
+
+DEFAULT_VOICE = "af_heart"
+KOKORO_EN = ["af_alloy", "af_aoede", "af_bella", "af_heart", "af_jessica", "af_kore", "af_nicole", "af_nova",
+             "af_river", "af_sarah", "af_sky", "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam",
+             "am_michael", "am_onyx", "am_puck", "am_santa", "bf_alice", "bf_emma", "bf_isabella", "bf_lily",
+             "bm_daniel", "bm_fable", "bm_george", "bm_lewis"]
+VOICEBOX_URL = os.environ.get("LEARN_VOICEBOX_URL", "http://127.0.0.1:17493")
+VOICEBOX_DIR = Path(os.environ.get("LEARN_VOICEBOX_DIR", Path.home() / ".local/share/learning-system/voicebox"))
+VOICEBOX_DATA = VOICEBOX_DIR.parent / "voicebox-data"
+TTS_LINE_TIMEOUT = 120
+NARR_WORDS = (4, 70)          # per line
+NARR_TOTAL_WORDS = 260
+NARR_LEAD, NARR_GAP, NARR_TAIL = 0.25, 0.35, 0.6   # seconds
+NARRATION_MISSING = (
+    "This animation has no NARRATION. Every animation is narrated for this learner. Add a module-level list "
+    "with one spoken line per numbered caption, in order, explaining what to notice and why (not reading the "
+    "caption):\n  NARRATION = [\"Watch the arrows: ...\", \"Now follow the red molecule ...\"]\n"
+    "(see references/visuals.md, Narration). Use --silent only if a voice would add nothing.")
+
+
+class TTSError(Exception):
+    pass
+
+
+def narration_of(script):
+    """The scene's NARRATION list (module-level literal), or None."""
+    try:
+        tree = ast.parse(script)
+    except SyntaxError:
+        return None
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "NARRATION" for t in node.targets):
+            try:
+                val = ast.literal_eval(node.value)
+            except ValueError:
+                raise LearnError("NARRATION must be a plain list of strings, written out (no variables or f-strings).")
+            if not isinstance(val, (list, tuple)) or not val or not all(isinstance(x, str) for x in val):
+                raise LearnError("NARRATION must be a non-empty list of strings, one per numbered caption.")
+            return [" ".join(x.split()) for x in val]
+    return None
+
+
+def validate_narration(lines):
+    errs = []
+    total = 0
+    for i, line in enumerate(lines, 1):
+        n = len(line.split())
+        total += n
+        if not NARR_WORDS[0] <= n <= NARR_WORDS[1]:
+            errs.append(f"line {i} has {n} words; keep each line {NARR_WORDS[0]}-{NARR_WORDS[1]} words")
+        if re.search(r"[\\$^_{}]", line):
+            errs.append(f"line {i} has LaTeX/code symbols; write maths as spoken words "
+                        "(\"f equals one over T\", \"x squared\")")
+        if re.search(r"\[S\d+\]", line):
+            errs.append(f"line {i} has a citation id; citations stay in the block text, not in speech")
+        if re.search(r"\*\*|`|^#", line):
+            errs.append(f"line {i} has markdown; write plain spoken sentences")
+    if total > NARR_TOTAL_WORDS:
+        errs.append(f"narration is {total} words; keep the whole clip under {NARR_TOTAL_WORDS}")
+    if errs:
+        raise LearnError("NARRATION needs fixing:\n- " + "\n- ".join(errs))
+
+
+def _content_words(text):
+    return [w for w in re.findall(r"[a-z]+", text.lower()) if len(w) > 3]
+
+
+def align_narration(lines, marks):
+    """Mark time per line (numbered captions 1..n), or None for whole-clip sync. Rejects label-reading."""
+    if not marks:
+        return None
+    nums = sorted(marks)
+    if nums != list(range(1, len(nums) + 1)):
+        return None
+    if len(nums) != len(lines):
+        raise LearnError(f"The scene shows numbered captions 1-{len(nums)} but NARRATION has {len(lines)} "
+                         "line(s). Write exactly one narration line per numbered caption, in the same order.")
+    for i, line in enumerate(lines, 1):
+        cap = set(_content_words(re.sub(r"^\s*\d+[\s.):]+", "", marks[i][1])))
+        words = _content_words(line)
+        if words and len(words) <= len(cap) + 2 and sum(w in cap for w in words) >= 0.8 * len(words):
+            raise LearnError(f"Narration line {i} only reads its caption ({marks[i][1]!r}). Say what the "
+                             "learner should notice on screen and why it matters.")
+    return [marks[i][0] for i in nums]
+
+
+def schedule(marks, durations, video_len):
+    """Place each line on the output timeline. Where a line would still be talking when the next step's visuals
+    start, freeze the video at that step until the voice catches up. Returns (starts, holds, total_len);
+    holds are (original_time, seconds)."""
+    holds, starts = {}, []
+    shift, prev_end = 0.0, 0.0
+    for i, d in enumerate(durations):
+        if marks and (i == 0 or marks[i] > marks[i - 1] + 0.05):
+            t = max(marks[i], 0.05)
+            want = t + shift + (NARR_LEAD if i == 0 else 0.1)
+            if prev_end > want:   # previous line still talking when this step's visuals begin: freeze here
+                holds[round(t, 3)] = holds.get(round(t, 3), 0) + prev_end - want
+                shift += prev_end - want
+                want = prev_end
+            start = want
+        else:   # no captions, or this caption appeared together with the previous one: speak right after it
+            start = max(NARR_LEAD, prev_end)
+        starts.append(start)
+        prev_end = start + d + NARR_GAP
+    total = video_len + shift
+    need = prev_end - NARR_GAP + NARR_TAIL
+    if need > total:
+        holds[round(video_len, 3)] = holds.get(round(video_len, 3), 0) + need - total
+        total = need
+    return starts, sorted(holds.items()), total
+
+
+def probe_duration(path):
+    r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
+                       capture_output=True, text=True)
+    try:
+        return float(r.stdout.strip())
+    except ValueError:
+        raise LearnError(f"Could not read the length of {path.name}.")
+
+
+def compose(video, clips, starts, holds, total, video_len, out):
+    """Mux narration into the video: freeze frames where `holds` says, loudness-normalise the voice (EBU R128,
+    -16 LUFS). The video stream is copied unless a freeze is needed."""
+    cmd = ["ffmpeg", "-v", "error", "-y", "-i", str(video)] + [x for c, _ in clips for x in ("-i", str(c))]
+    graph = []
+    if holds:
+        cuts = [0.0] + [t for t, _ in holds if t < video_len - 1e-3] + [video_len]
+        pad = dict(holds)
+        pieces = []
+        for j in range(len(cuts) - 1):
+            a, b = cuts[j], cuts[j + 1]
+            h = pad.get(round(b, 3), 0)
+            graph.append(f"[0:v]trim=start={a:.3f}:end={b:.3f},setpts=PTS-STARTPTS"
+                         + (f",tpad=stop_mode=clone:stop_duration={h:.3f}" if h else "") + f"[v{j}]")
+            pieces.append(f"[v{j}]")
+        graph.append("".join(pieces) + f"concat=n={len(pieces)}:v=1:a=0[v]")
+    for i, st in enumerate(starts, 1):
+        graph.append(f"[{i}:a]aresample=48000,adelay=delays={int(st * 1000)}:all=1[a{i}]")
+    mix = "".join(f"[a{i}]" for i in range(1, len(starts) + 1))
+    graph.append((f"{mix}amix=inputs={len(starts)}:normalize=0:dropout_transition=0," if len(starts) > 1
+                  else f"{mix}") + "loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,apad[a]")
+    cmd += ["-filter_complex", ";".join(graph), "-map", "[v]" if holds else "0:v", "-map", "[a]"]
+    cmd += (["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p"] if holds else ["-c:v", "copy"])
+    cmd += ["-c:a", "aac", "-b:a", "160k", "-t", f"{total:.3f}", "-movflags", "+faststart", str(out)]
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    if r.returncode != 0 or not out.exists():
+        raise LearnError("ffmpeg could not mix the narration: " + (r.stderr.strip().splitlines() or ["?"])[-1])
+
+
+def _voicebox(method, path, body=None, timeout=30):
+    req = urllib.request.Request(VOICEBOX_URL + path, method=method,
+                                 data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Content-Type": "application/json"})
+    return urllib.request.urlopen(req, timeout=timeout)
+
+
+def voicebox_ready():
+    """Make sure the local Voicebox server answers; start it from the install dir if needed."""
+    try:
+        _voicebox("GET", "/health", timeout=3).read()
+        return
+    except (urllib.error.URLError, OSError):
+        pass
+    py = VOICEBOX_DIR / ".venv/bin/python"
+    if not py.exists():
+        raise TTSError(f"Voicebox is not installed at {VOICEBOX_DIR} (run scripts/install.sh)")
+    if os.environ.get("LEARN_VOICEBOX_AUTOSTART", "1") == "0":
+        raise TTSError(f"Voicebox server is not running at {VOICEBOX_URL}")
+    VOICEBOX_DATA.mkdir(parents=True, exist_ok=True)
+    port = str(urllib.parse.urlparse(VOICEBOX_URL).port or 17493)
+    with open(VOICEBOX_DATA / "server.log", "a") as log:
+        subprocess.Popen([str(py), "-m", "backend.main", "--port", port, "--data-dir", str(VOICEBOX_DATA)],
+                         cwd=VOICEBOX_DIR, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+    for _ in range(90):
+        time.sleep(1)
+        try:
+            _voicebox("GET", "/health", timeout=3).read()
+            return
+        except (urllib.error.URLError, OSError):
+            continue
+    raise TTSError(f"Voicebox server did not start within 90 s (see {VOICEBOX_DATA / 'server.log'})")
+
+
+def voicebox_profile(voice):
+    name = f"learn-narrator-{voice}"
+    for p in json.loads(_voicebox("GET", "/profiles").read()):
+        if p.get("name") == name:
+            return p["id"]
+    return json.loads(_voicebox("POST", "/profiles", {
+        "name": name, "language": "en", "voice_type": "preset", "preset_engine": "kokoro",
+        "preset_voice_id": voice, "default_engine": "kokoro"}).read())["id"]
+
+
+def tts_lines(lines, voice, outdir):
+    """Speak each line to a WAV. Returns [(path, seconds)]. Raises TTSError on any failure."""
+    backend = os.environ.get("LEARN_TTS", "voicebox")
+    clips = []
+    if backend == "none":
+        raise TTSError("narration is turned off (LEARN_TTS=none)")
+    if backend == "fake":   # tests: silent WAVs at a speaking rate of ~2.6 words/s
+        for i, line in enumerate(lines):
+            secs = max(1.0, len(line.split()) / 2.6)
+            path = outdir / f"line{i}.wav"
+            with wave.open(str(path), "wb") as w:
+                w.setnchannels(1), w.setsampwidth(2), w.setframerate(24000)
+                w.writeframes(b"\0\0" * int(secs * 24000))
+            clips.append((path, secs))
+        return clips
+    try:
+        voicebox_ready()
+        pid = voicebox_profile(voice)
+        for i, line in enumerate(lines):
+            gid = json.loads(_voicebox("POST", "/generate", {"profile_id": pid, "text": line, "language": "en",
+                                                             "engine": "kokoro"}).read())["id"]
+            last = {}
+            with _voicebox("GET", f"/generate/{gid}/status", timeout=TTS_LINE_TIMEOUT) as stream:
+                for raw in stream:
+                    row = raw.decode().strip()
+                    if row.startswith("data:"):
+                        last = json.loads(row[5:])
+            if last.get("status") != "completed":
+                raise TTSError(f"line {i + 1}: {last.get('status', 'no status')} {last.get('error') or ''}".strip())
+            path = outdir / f"line{i}.wav"
+            path.write_bytes(_voicebox("GET", f"/audio/{gid}", timeout=60).read())
+            clips.append((path, float(last.get("duration") or probe_duration(path))))
+    except TTSError:
+        raise
+    except (urllib.error.URLError, OSError, ValueError, KeyError) as e:
+        raise TTSError(f"{type(e).__name__}: {e}")
+    return clips
+
+
+def narrate(s, video, lines, marks, tmp):
+    """Return (video_to_save, message). Never raises for TTS problems: the silent video is kept instead."""
+    voice = s["profile"].get("voice", DEFAULT_VOICE)
+    try:
+        clips = tts_lines(lines, voice, tmp)
+    except TTSError as e:
+        return video, (f"WARNING: narration failed ({e}). Saved the silent video so the lesson can continue. "
+                       f"Fix later: `bash scripts/install.sh`, or see {VOICEBOX_DATA / 'server.log'}.")
+    video_len = probe_duration(video)
+    starts, holds, total = schedule(marks, [d for _, d in clips], video_len)
+    if os.environ.get("LEARN_DEBUG_SYNC"):
+        print(f"SYNC marks={marks} durations={[round(d, 2) for _, d in clips]} starts={[round(x, 2) for x in starts]} "
+              f"holds={holds} total={total:.2f}")
+    out = tmp / "narrated.mp4"
+    try:
+        compose(video, clips, starts, holds, total, video_len, out)
+    except (LearnError, subprocess.TimeoutExpired) as e:
+        return video, f"WARNING: could not mix the narration ({e}). Saved the silent video."
+    held = sum(h for _, h in holds)
+    sync = "step-synced to the numbered captions" if marks else "played as one block (no numbered captions found)"
+    return out, (f"Narration: {len(lines)} line(s), voice {voice}, {sum(d for _, d in clips):.1f}s of speech, {sync}"
+                 + (f"; picture held {held:.1f}s in total so it waits for the voice" if held else "") + ".")
+
+
 def save_figure(s, name, out, kind):
     sess = need_session(s)
     rel = f"{FIG_DIR}/{sess['topic']}/{name}{out.suffix}"
@@ -1041,10 +1324,12 @@ def save_figure(s, name, out, kind):
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(out.read_bytes())
     s.setdefault("figures", {})[rel] = kind
+    s.setdefault("narrations", {}).pop(rel, None)
     print(f"Figure saved: {rel} ({kind})")
     print(f"EMBED: ![[{rel}]]")
     print("NEXT: Put the EMBED line in the theory block (or in a question's \"figure\" field), with text that "
           "walks through it using the numbered marks, then run `learn block <concept>`.")
+    return rel
 
 
 def strip_ansi(text):
@@ -1083,7 +1368,8 @@ def render_manim(s, name, script, still, tmp):
             "\nHint: a LaTeX error. Check the MathTex/Tex string: every { has a }, use raw strings r\"...\", "
             "and put plain words in Text(), not MathTex()." if latex else "")
         raise LearnError("Manim failed. Fix the scene and re-run:\n" + "\n".join(lines[-14:]) + hint)
-    problems = json.loads(report.read_text()) if report.exists() else []
+    rep = json.loads(report.read_text()) if report.exists() else {}
+    problems = rep.get("problems", [])
     if problems:
         raise LearnError("Text in the animation is hard to read. Move it with .next_to(...)/.to_edge(...)/"
                          "VGroup(...).arrange(...), shrink it, or FadeOut old text first. Then re-run:\n- "
@@ -1106,7 +1392,7 @@ def render_manim(s, name, script, still, tmp):
         if secs is not None and not VIDEO_SECONDS[0] <= secs <= VIDEO_SECONDS[1]:
             raise LearnError(f"The animation lasts {secs:.1f}s; keep it between {VIDEO_SECONDS[0]} and "
                              f"{VIDEO_SECONDS[1]} s (add self.wait() or shorten run_time).")
-    return out
+    return out, {int(k): v for k, v in rep.get("marks", {}).items()}
 
 
 def render_matplotlib(script, tmp):
@@ -1161,11 +1447,25 @@ def cmd_figure(s, a):
                          "scene: `from manim import *`, one `class X(Scene)` with construct() (templates: "
                          f"references/visuals.md). matplotlib unlocks only after {MANIM_FALLBACK_AFTER} failed Manim "
                          f"attempts in a row (now {fails}).")
+    if is_manim:   # old 3b1b/ManimGL code is the first thing to fix, and counts as a failed Manim attempt
+        old = [fix for pat, fix in OLD_MANIM_API if re.search(pat, script)]
+        if old:
+            sess["manim_failures"] = fails + 1
+            save(s)
+            raise LearnError("This is old 3Blue1Brown/ManimGL code. Rewrite it for Manim Community "
+                             "(references/visuals.md):\n- " + "\n- ".join(old)
+                             + f"\n(Manim attempt failed {sess['manim_failures']} time(s) in a row)")
+    lines = None
+    if is_manim and not a.still and not a.silent:
+        lines = narration_of(script)
+        if lines is None:
+            raise LearnError(NARRATION_MISSING)
+        validate_narration(lines)
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         if is_manim:
             try:
-                out = render_manim(s, name, script, a.still, tmp)
+                out, marks = render_manim(s, name, script, a.still, tmp)
             except LearnError:
                 sess["manim_failures"] = fails + 1
                 left = MANIM_FALLBACK_AFTER - sess["manim_failures"]
@@ -1175,7 +1475,14 @@ def cmd_figure(s, a):
                 save(s)
                 raise
             sess["manim_failures"] = 0
-            save_figure(s, name, out, "manim")
+            note = None
+            if lines:
+                out, note = narrate(s, out, lines, align_narration(lines, marks), tmp)
+            rel = save_figure(s, name, out, "manim")
+            if lines and not note.startswith("WARNING"):
+                s["narrations"][rel] = lines
+            if note:
+                print(note)
         else:
             out = render_matplotlib(script, tmp)
             save_figure(s, name, out, "matplotlib")
@@ -1217,6 +1524,12 @@ def cmd_block(s, a):
     words = len(re.sub(r"\$\$.*?\$\$|```.*?```", " ", md, flags=re.S).split())
     if words > MAX_BLOCK_WORDS:
         raise LearnError(f"Block is {words} words; the limit is {MAX_BLOCK_WORDS}. Cut it to one idea and re-run.")
+    for f in figs:   # folded transcript under each narrated video
+        said = s.get("narrations", {}).get(f)
+        if said:
+            md = re.sub(r"(!\[\[" + re.escape(f) + r"(?:\|[^\]]*)?\]\])",
+                        lambda m: m.group(1) + "\n\n> [!quote]- Narration (what the voice says)\n"
+                        + "\n".join(f"> {i}. {x}" for i, x in enumerate(said, 1)), md, count=1)
     sess["blocks"] += 1
     c["taught"] = True
     if c["status"] == "new":
@@ -1398,6 +1711,18 @@ def cmd_next(s, a):
     print_next(s)
 
 
+def cmd_voice(s, a):
+    cur = s["profile"].get("voice", DEFAULT_VOICE)
+    if not a.voice:
+        print(f"Narrator voice: {cur}. English Kokoro voices: {', '.join(KOKORO_EN)}")
+        return
+    v = a.voice.strip().lower()
+    if v not in KOKORO_EN:
+        raise LearnError(f"Unknown voice {v!r}. Choose one of: {', '.join(KOKORO_EN)}")
+    s["profile"]["voice"] = v
+    print(f"Narrator voice set to {v}. New animations use it; existing videos keep their voice.")
+
+
 def cmd_pref(s, a):
     text = " ".join(a.text).strip()
     if text and text not in s["profile"]["preferences"]:
@@ -1517,6 +1842,8 @@ def main(argv=None):
     p = sub.add_parser("add"); p.add_argument("id"); p.add_argument("title", nargs="+")
     p.add_argument("--prereqs"); p.add_argument("--before")
     p = sub.add_parser("figure"); p.add_argument("name"); p.add_argument("--still", action="store_true")
+    p.add_argument("--silent", action="store_true")
+    p = sub.add_parser("voice"); p.add_argument("voice", nargs="?")
     p = sub.add_parser("block"); p.add_argument("concept")
     p = sub.add_parser("ask"); p.add_argument("concept")
     sub.add_parser("check")

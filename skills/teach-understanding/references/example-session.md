@@ -80,6 +80,11 @@ NEXT: Write the theory block for 'All chances add up to 1' from the research bri
 learn figure all-chances <<'EOF'
 from manim import *
 
+NARRATION = [
+    "A die can land in six ways, and every face is just as likely, so each one gets a chance of one sixth.",
+    "Now add all six chances together: six times one sixth makes exactly one. One is the whole, every way the throw can go.",
+]
+
 class AllChances(Scene):
     def construct(self):
         faces = VGroup(*[VGroup(Square(1.1, color=BLUE), Text(str(i), font_size=36)) for i in range(1, 7)])
@@ -97,6 +102,7 @@ EOF
 ```
 Figure saved: Attachments/learn/probability-basics/all-chances.mp4 (manim)
 EMBED: ![[Attachments/learn/probability-basics/all-chances.mp4]]
+Narration: 2 line(s), voice af_heart, 15.7s of speech, step-synced to the numbered captions; picture held 10.4s in total so it waits for the voice.
 ```
 
 ```bash

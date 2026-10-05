@@ -38,6 +38,11 @@ Idempotent. It sets up:
   `~/Library/TinyTeX` with the LaTeX packages Manim needs, and `pkgconf` (Homebrew) so
   pycairo can build. No admin rights; TinyTeX's optional PATH step is skipped because
   `learn` passes the TeX path to Manim itself. Ends with a LaTeX smoke render.
+- Narration: Voicebox v0.5.0 (jamiepine/voicebox, MIT) cloned to
+  `~/.local/share/learning-system/voicebox` with a Python 3.12 venv (via `uv`) holding only
+  the Kokoro engine's dependencies (`scripts/voicebox-requirements.txt`, ~1.1 GB). The
+  Kokoro-82M weights (~313 MB) download once into the Hugging Face cache. `learn` starts
+  the server itself when needed. Ends with a spoken smoke test. Details: `docs/voiceover.md`.
 - The routing block `opencode/agents-block.md` appended to `~/.config/opencode/AGENTS.md`.
 - Obsidian CLI: Settings > General > Advanced > Command line interface (optional; the
   engine writes files directly and uses the CLI to open notes).

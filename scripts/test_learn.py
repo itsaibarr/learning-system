@@ -69,7 +69,8 @@ class Base(unittest.TestCase):
         root = Path(self.tmp.name)
         learn.STATE = root / "state" / "learner.json"
         learn.VAULT = root / "vault"
-        os.environ.update(LEARN_NO_CLI="1", LEARN_NO_GIT="1", LEARN_TODAY="2026-10-03", LEARN_REQUIRE_MANIM="0")
+        os.environ.update(LEARN_NO_CLI="1", LEARN_NO_GIT="1", LEARN_TODAY="2026-10-03", LEARN_REQUIRE_MANIM="0",
+                          LEARN_TTS="fake")
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -339,7 +340,7 @@ class TestVisuals(Base):
     @unittest.skipUnless(learn.MANIM.exists(), "Manim not installed (scripts/install.sh)")
     def test_every_template_in_visuals_guide_renders(self):
         guide = Path(__file__).resolve().parent.parent / "skills/teach-understanding/references/visuals.md"
-        templates = re.findall(r"```python\n(.*?)```", guide.read_text(), re.S)
+        templates = [t for t in re.findall(r"```python\n(.*?)```", guide.read_text(), re.S) if "TEMPLATE" in t or "OUT_PNG" in t]
         self.assertGreaterEqual(sum("from manim import" in t for t in templates), 5)
         self.start_planned()
         for n, code in enumerate(templates, 1):
@@ -357,6 +358,7 @@ class TestVisuals(Base):
 
 MANIM_OK = """
 from manim import *
+NARRATION = ["The squeeze of air moves along the tube while each bit of air only rocks in place."]
 class Ok(Scene):
     def construct(self):
         self.play(Write(Text("pressure wave", font_size=32).to_edge(UP)))
@@ -364,6 +366,7 @@ class Ok(Scene):
 """
 MANIM_OVERLAP = """
 from manim import *
+NARRATION = ["Two labels sit on top of each other here, which the engine must catch."]
 class Bad(Scene):
     def construct(self):
         self.play(Write(Text("pressure wave")), Write(Text("air stays").shift(0.1 * RIGHT)))
@@ -423,6 +426,139 @@ class TestManim(Base):
         out = self.run_cmd("start", "Probability", "basics")
         self.assertNotIn(old, out)
         self.assertEqual(out.count("Visual learner"), 1)
+
+
+MANIM_STEPS = """
+from manim import *
+NARRATION = ["First the client asks the server whether it may open a connection.",
+             "Then the server agrees and asks for a connection in the other direction too."]
+class Steps(Scene):
+    def construct(self):
+        cap = Text("1  client asks", font_size=30).to_edge(UP)
+        self.play(Write(cap))
+        self.wait(0.5)
+        self.play(Transform(cap, Text("2  server answers", font_size=30).to_edge(UP)))
+        self.wait(1)
+"""
+
+
+def has_audio(path):
+    import subprocess
+    r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_name",
+                        "-of", "csv=p=0", str(path)], capture_output=True, text=True)
+    return bool(r.stdout.strip())
+
+
+class TestNarrationRules(Base):
+    def test_schedule_fits_without_holds(self):
+        starts, holds, total = learn.schedule([0.0, 5.0], [2.0, 2.0], 10.0)
+        self.assertEqual(holds, [])
+        self.assertAlmostEqual(starts[1], 5.1)
+        self.assertEqual(total, 10.0)
+
+    def test_schedule_freezes_the_next_step_until_the_voice_finishes(self):
+        starts, holds, total = learn.schedule([0.0, 2.0], [5.0, 1.0], 4.0)
+        self.assertEqual(holds[0][0], 2.0)               # frozen right where step 2 would start
+        self.assertAlmostEqual(starts[1], 0.30 + 5.0 + 0.35)  # first mark clamps to 0.05
+        self.assertAlmostEqual(total, 4.0 + holds[0][1])
+
+    def test_captions_shown_together_are_spoken_back_to_back(self):
+        starts, holds, _ = learn.schedule([0.0, 0.0], [3.0, 3.0], 10.0)
+        self.assertEqual(holds, [])
+        self.assertAlmostEqual(starts[1], 0.30 + 3.0 + 0.35)
+
+    def test_schedule_holds_the_end_when_speech_is_longer(self):
+        _, holds, total = learn.schedule(None, [6.0, 6.0], 5.0)
+        self.assertEqual(holds[0][0], 5.0)
+        self.assertGreater(total, 12.0)
+
+    def test_narration_parsing_and_rules(self):
+        self.assertEqual(learn.narration_of('NARRATION = ["a b c d", "e f g h"]\n'), ["a b c d", "e f g h"])
+        self.assertIsNone(learn.narration_of("x = 1\n"))
+        with self.assertRaises(learn.LearnError):
+            learn.narration_of("NARRATION = [f'{x}']\n")
+        for bad, msg in [(r"lambda equals \\frac v f here now", "spoken words"),
+                         ("this sentence cites the brief [S1] for sure", "citation"),
+                         ("word " * 80, "4-70 words"), ("**bold** words are not speech", "markdown")]:
+            with self.assertRaises(learn.LearnError) as e:
+                learn.validate_narration([bad])
+            self.assertIn(msg, str(e.exception))
+
+    def test_alignment_needs_one_line_per_caption_and_no_label_reading(self):
+        marks = {1: [0.0, "1  the squeeze travels"], 2: [3.0, "2  the molecule wobbles"]}
+        with self.assertRaises(learn.LearnError) as e:
+            learn.align_narration(["only one line here for two captions"], marks)
+        self.assertIn("one narration line per numbered caption", str(e.exception))
+        with self.assertRaises(learn.LearnError) as e:
+            learn.align_narration(["The squeeze travels.", "Follow the red dot: it only rocks around its spot."], marks)
+        self.assertIn("only reads its caption", str(e.exception))
+        self.assertEqual(learn.align_narration(["Watch the crowded air move right: that is sound.",
+                                                "The red dot only rocks back and forth in place."], marks), [0.0, 3.0])
+        self.assertIsNone(learn.align_narration(["x y z w"], {}))
+
+    def test_missing_narration_is_rejected_before_rendering(self):
+        os.environ["LEARN_REQUIRE_MANIM"] = "1"
+        self.start_planned()
+        out = self.run_cmd("figure", "x", stdin=MANIM_OK.replace("NARRATION", "_UNUSED"), ok=False)
+        self.assertIn("no NARRATION", out)
+        self.assertEqual(self.state()["session"].get("manim_failures", 0), 0)
+
+    def test_voice_setting(self):
+        self.start_planned()
+        self.assertIn("af_heart", self.run_cmd("voice"))
+        self.run_cmd("voice", "bm_george")
+        self.assertEqual(self.state()["profile"]["voice"], "bm_george")
+        self.assertIn("Unknown voice", self.run_cmd("voice", "darth", ok=False))
+
+
+@unittest.skipUnless(learn.MANIM.exists(), "Manim not installed")
+class TestNarratedVideo(Base):
+    def test_narrated_video_has_audio_synced_to_captions_and_a_transcript(self):
+        self.start_planned()
+        os.environ["LEARN_DEBUG_SYNC"] = "1"
+        try:
+            out = self.run_cmd("figure", "steps", stdin=MANIM_STEPS)
+        finally:
+            os.environ.pop("LEARN_DEBUG_SYNC")
+        self.assertIn("step-synced to the numbered captions", out)
+        marks = re.search(r"marks=\[([0-9.]+), ([0-9.]+)\]", out)
+        self.assertLess(float(marks.group(1)), float(marks.group(2)))
+        rel = "Attachments/learn/probability-basics/steps.mp4"
+        self.assertTrue(has_audio(learn.VAULT / rel))
+        self.assertEqual(len(self.state()["narrations"][rel]), 2)
+        self.run_cmd("block", "total", stdin=f"![[{rel}]]\n\nThe client asks first [S1].")
+        self.assertIn("> [!quote]- Narration (what the voice says)\n> 1. First the client asks", self.note())
+
+    def test_silent_flag_and_still_have_no_voice(self):
+        self.start_planned()
+        self.run_cmd("figure", "quiet", "--silent", stdin=MANIM_STEPS)
+        self.assertFalse(has_audio(learn.VAULT / "Attachments/learn/probability-basics/quiet.mp4"))
+        self.assertIn("still.png", self.run_cmd("figure", "still", "--still", stdin=MANIM_STEPS))
+
+    def test_tts_down_keeps_the_silent_video_and_warns(self):
+        self.start_planned()
+        os.environ.update(LEARN_TTS="voicebox", LEARN_VOICEBOX_AUTOSTART="0")
+        real = learn.VOICEBOX_URL
+        learn.VOICEBOX_URL = "http://127.0.0.1:9"
+        try:
+            out = self.run_cmd("figure", "steps", stdin=MANIM_STEPS)
+        finally:
+            learn.VOICEBOX_URL = real
+            os.environ.update(LEARN_TTS="fake")
+            os.environ.pop("LEARN_VOICEBOX_AUTOSTART")
+        self.assertIn("WARNING: narration failed", out)
+        rel = "Attachments/learn/probability-basics/steps.mp4"
+        self.assertTrue((learn.VAULT / rel).exists())
+        self.assertFalse(has_audio(learn.VAULT / rel))
+        self.assertNotIn(rel, self.state().get("narrations", {}))
+
+    @unittest.skipUnless(os.environ.get("LEARN_TEST_VOICEBOX"), "set LEARN_TEST_VOICEBOX=1 to use the real voice")
+    def test_real_voicebox_voice(self):
+        self.start_planned()
+        os.environ["LEARN_TTS"] = "voicebox"
+        out = self.run_cmd("figure", "real", stdin=MANIM_STEPS)
+        self.assertIn("voice af_heart", out)
+        self.assertTrue(has_audio(learn.VAULT / "Attachments/learn/probability-basics/real.mp4"))
 
 
 class TestExistingKnowledge(Base):
