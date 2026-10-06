@@ -8,7 +8,9 @@
       "If the learner says they are lost, restart from the most basic idea, from zero.",
       "Always say why a step exists before showing how to do it.",
       "One note per session. Never send the learner to another file mid-session.",
-      "Visual learner: every idea gets a Manim animation of how it works (3Blue1Brown style), plus normal text."
+      "Visual learner: every idea gets a Manim animation of how it works (3Blue1Brown style), plus normal text.",
+      "Start each new idea from the everyday problem, and explain what each part is and why it exists before going into details.",
+      "Each visual must show the full idea being taught, including every case such as all classes A, B and C, before any questions are asked on it."
     ]
   },
   "topics": {
@@ -20,15 +22,15 @@
         "wave": {
           "title": "Sound is a wave: frequency and amplitude",
           "prereqs": [],
-          "status": "solid",
+          "status": "mastered",
           "taught": true,
-          "streak": 3,
+          "streak": 4,
           "level": 3,
-          "box": 1,
-          "next_review": "2026-10-04",
+          "box": 2,
+          "next_review": "2026-10-09",
           "solid_date": "2026-10-03",
-          "promoted": "2026-10-03",
-          "last_seen": "2026-10-03",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
           "history": [
             {
               "date": "2026-10-03",
@@ -50,6 +52,13 @@
               "result": "correct",
               "level": 2,
               "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q1",
+              "result": "correct",
+              "level": 3,
+              "kind": null
             }
           ]
         },
@@ -58,15 +67,15 @@
           "prereqs": [
             "wave"
           ],
-          "status": "solid",
+          "status": "mastered",
           "taught": true,
-          "streak": 3,
+          "streak": 4,
           "level": 3,
-          "box": 1,
-          "next_review": "2026-10-04",
+          "box": 2,
+          "next_review": "2026-10-09",
           "solid_date": "2026-10-03",
-          "promoted": "2026-10-03",
-          "last_seen": "2026-10-03",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
           "history": [
             {
               "date": "2026-10-03",
@@ -88,6 +97,13 @@
               "result": "correct",
               "level": 2,
               "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q2",
+              "result": "correct",
+              "level": 3,
+              "kind": null
             }
           ]
         },
@@ -96,15 +112,15 @@
           "prereqs": [
             "sample"
           ],
-          "status": "solid",
+          "status": "mastered",
           "taught": true,
-          "streak": 3,
+          "streak": 4,
           "level": 3,
-          "box": 1,
-          "next_review": "2026-10-04",
+          "box": 2,
+          "next_review": "2026-10-09",
           "solid_date": "2026-10-03",
-          "promoted": "2026-10-03",
-          "last_seen": "2026-10-03",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
           "history": [
             {
               "date": "2026-10-03",
@@ -126,6 +142,13 @@
               "result": "correct",
               "level": 2,
               "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q3",
+              "result": "correct",
+              "level": 3,
+              "kind": null
             }
           ]
         },
@@ -134,15 +157,15 @@
           "prereqs": [
             "sample"
           ],
-          "status": "solid",
+          "status": "mastered",
           "taught": true,
-          "streak": 3,
+          "streak": 4,
           "level": 3,
-          "box": 1,
-          "next_review": "2026-10-04",
+          "box": 2,
+          "next_review": "2026-10-09",
           "solid_date": "2026-10-03",
-          "promoted": "2026-10-03",
-          "last_seen": "2026-10-03",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
           "history": [
             {
               "date": "2026-10-03",
@@ -164,6 +187,13 @@
               "result": "correct",
               "level": 2,
               "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q4",
+              "result": "correct",
+              "level": 3,
+              "kind": null
             }
           ]
         },
@@ -173,32 +203,62 @@
             "quantize",
             "nyquist"
           ],
-          "status": "learning",
+          "status": "solid",
           "taught": true,
-          "streak": 0,
-          "level": 1,
-          "box": 0,
-          "next_review": null,
-          "solid_date": null,
-          "promoted": null,
-          "last_seen": null,
-          "history": []
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q5",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q6",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q7",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
         },
         "chunk": {
           "title": "Streaming sends audio in small chunks; chunk length in ms sets samples and bytes",
           "prereqs": [
             "pcm"
           ],
-          "status": "new",
-          "taught": false,
+          "status": "learning",
+          "taught": true,
           "streak": 0,
           "level": 1,
           "box": 0,
-          "next_review": null,
+          "next_review": "2026-10-07",
           "solid_date": null,
           "promoted": null,
-          "last_seen": null,
-          "history": []
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q8",
+              "result": "wrong",
+              "level": 1,
+              "kind": null
+            }
+          ]
         }
       },
       "research": {
@@ -793,32 +853,111 @@
             "internet-www",
             "lan-hardware"
           ],
-          "status": "learning",
+          "status": "solid",
           "taught": true,
-          "streak": 0,
-          "level": 1,
-          "box": 0,
-          "next_review": null,
-          "solid_date": null,
-          "promoted": null,
-          "last_seen": null,
-          "history": []
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q63",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q64",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q65",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
         },
         "pstn-cell": {
           "title": "PSTN, modem, leased line, WiFi hotspot and cell phone network access",
           "prereqs": [
             "isp-router"
           ],
-          "status": "new",
-          "taught": false,
-          "streak": 0,
-          "level": 1,
-          "box": 0,
-          "next_review": null,
-          "solid_date": null,
-          "promoted": null,
-          "last_seen": null,
-          "history": []
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q66",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q67",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q68",
+              "result": "wrong",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q69",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q70",
+              "result": "idk",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q71",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q72",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q73",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
         },
         "cloud": {
           "title": "Public and private cloud, infrastructure/platform/software provision",
@@ -826,16 +965,38 @@
             "client-server",
             "internet-www"
           ],
-          "status": "new",
-          "taught": false,
-          "streak": 0,
-          "level": 1,
-          "box": 0,
-          "next_review": null,
-          "solid_date": null,
-          "promoted": null,
-          "last_seen": null,
-          "history": []
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q74",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q75",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q76",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
         },
         "wireless-types": {
           "title": "Radio, microwave and infrared compared",
@@ -967,11 +1128,365 @@
               "kind": null
             }
           ]
+        },
+        "bit-streaming": {
+          "title": "Bit stream, on-demand versus real-time, buffer, bit rate and water marks",
+          "prereqs": [
+            "internet-www",
+            "cable-media"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q77",
+              "result": "idk",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q78",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q79",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q80",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "ipv4": {
+          "title": "IPv4 address: 32 bits, netID and hostID, classes A B C, dotted decimal",
+          "prereqs": [
+            "isp-router"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q81",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q82",
+              "result": "idk",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q83",
+              "result": "wrong",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q84",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q85",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q86",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "cidr": {
+          "title": "CIDR: suffix gives the number of netID bits",
+          "prereqs": [
+            "ipv4"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q87",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q88",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q89",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "subnetting": {
+          "title": "Sub-netting: structure inside the hostID",
+          "prereqs": [
+            "cidr"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q90",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q91",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q92",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "nat-private": {
+          "title": "Private addresses and network address translation (NAT)",
+          "prereqs": [
+            "ipv4"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": "2026-10-07",
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q93",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q94",
+              "result": "wrong",
+              "level": 1,
+              "kind": null
+            }
+          ]
+        },
+        "static-dynamic": {
+          "title": "Static and dynamic IP addresses",
+          "prereqs": [
+            "ipv4"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "ipv6": {
+          "title": "IPv6: 128 bits, colon hexadecimal, abbreviations",
+          "prereqs": [
+            "ipv4"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "dns-url": {
+          "title": "URL, domain names and DNS name resolution",
+          "prereqs": [
+            "ipv4"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
         }
       },
       "research": {
         "note": "Sources/Communication and networking technologies (Cambridge AS CS 9608 Ch2) research brief.md",
-        "date": "2026-10-05",
+        "date": "2026-10-06",
+        "sources": 6
+      }
+    },
+    "computer-science-chapter-two-preparation": {
+      "title": "Computer Science chapter two preparation",
+      "goal": "",
+      "created": "2026-10-06",
+      "concepts": {}
+    },
+    "remainder-theorem-find-k-binomial-expansion": {
+      "title": "remainder-theorem-find-k binomial-expansion",
+      "goal": "solve A-level type questions where a remainder is given to find unknown k, expand (a - bx)^n, and find gradient at x=0; especially part A show k=2/5",
+      "created": "2026-10-06",
+      "concepts": {
+        "remainder": {
+          "title": "Remainder theorem for divisor x minus a",
+          "prereqs": [],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "divisor-axb": {
+          "title": "Remainder when dividing by a x minus b",
+          "prereqs": [
+            "remainder"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "find-k": {
+          "title": "Use a known remainder to find unknown k",
+          "prereqs": [
+            "divisor-axb"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "binomial": {
+          "title": "Binomial expansion of a plus b x to power n",
+          "prereqs": [],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "gradient": {
+          "title": "Gradient of a curve at a point by differentiating",
+          "prereqs": [
+            "binomial"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        }
+      },
+      "research": {
+        "note": "Sources/remainder-theorem-find-k binomial-expansion research brief.md",
+        "date": "2026-10-06",
         "sources": 6
       }
     }
@@ -1005,6 +1520,26 @@
       "next_by_topic": {
         "communication-and-networking-technologies-cambridge-as-cs-9608-ch2": "Start with 'ISP tiers, IXPs and routers as Internet nodes': 'ISP tiers, IXPs and routers as Internet nodes' is not solid yet (0 of 2 correct in a row). Note: Chapter 2 (Cambridge 9608/9618). Start by answering Q62 (ISP and router, 1 of 2 recall). Then reviews due 2026-10-07 (ethernet-collision, ethernet-csmacd), then teach pstn-cell and cloud, then plan batch 3: bit-streaming, ipv4, cidr, subnetting, nat-private, static-dynamic, ipv6, dns-url. Last: cumulative chapter review + final mastery check. Narrated Manim is now required (NARRATION list per figure)."
       }
+    },
+    {
+      "date": "2026-10-06",
+      "topics": [
+        "voice-ai-audio-basics",
+        "computer-science-chapter-two-preparation",
+        "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+        "remainder-theorem-find-k-binomial-expansion"
+      ],
+      "note": "Sessions/2026-10-05 Communication and networking technologies (Cambridge AS CS 9608 Ch2).md",
+      "correct": 33,
+      "wrong": 4,
+      "idk": 3,
+      "next_time": "math remainder-theorem moved to dedicated note; continue networking NAT next",
+      "next_by_topic": {
+        "voice-ai-audio-basics": "Start with 'Streaming sends audio in small chunks; chunk length in ms sets samples and bytes': 'Streaming sends audio in small chunks; chunk length in ms sets samples and bytes' is not solid yet (0 of 2 correct in a row).",
+        "computer-science-chapter-two-preparation": "'Computer Science chapter two preparation' has no research brief yet. Research comes before any teaching.",
+        "communication-and-networking-technologies-cambridge-as-cs-9608-ch2": "Start with 'Private addresses and network address translation (NAT)': 'Private addresses and network address translation (NAT)' is not solid yet (0 of 2 correct in a row).",
+        "remainder-theorem-find-k-binomial-expansion": "Start with 'Remainder theorem for divisor x minus a': 'Remainder theorem for divisor x minus a' is not solid yet (0 of 2 correct in a row). Note: math remainder-theorem moved to dedicated note; continue networking NAT next"
+      }
     }
   ],
   "mistakes": [
@@ -1016,6 +1551,69 @@
       "kind": "gap",
       "what": "said I don't know",
       "closed": "2026-10-06"
+    },
+    {
+      "topic": "voice-ai-audio-basics",
+      "concept": "chunk",
+      "date": "2026-10-06",
+      "q": "Q8",
+      "kind": "misconception",
+      "what": "Found the bytes in a whole second and forgot to cut to 20 ms",
+      "closed": null
+    },
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "pstn-cell",
+      "date": "2026-10-06",
+      "q": "Q68",
+      "kind": "misconception",
+      "what": "A leased line is a fixed wired link between two points, not a mobile connection",
+      "closed": null
+    },
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "pstn-cell",
+      "date": "2026-10-06",
+      "q": "Q70",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": null
+    },
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "bit-streaming",
+      "date": "2026-10-06",
+      "q": "Q77",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": null
+    },
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "ipv4",
+      "date": "2026-10-06",
+      "q": "Q82",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": null
+    },
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "ipv4",
+      "date": "2026-10-06",
+      "q": "Q83",
+      "kind": "misconception",
+      "what": "Confuses the Class A network count with the 256 hosts of a Class C network",
+      "closed": null
+    },
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "nat-private",
+      "date": "2026-10-06",
+      "q": "Q94",
+      "kind": "misconception",
+      "what": "Mixes up incoming handling with outgoing handling",
+      "closed": null
     }
   ],
   "figures": {
@@ -1040,7 +1638,21 @@
     "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/lan-hardware.mp4": "manim",
     "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ethernet-collision.mp4": "manim",
     "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/csma-cd.mp4": "manim",
-    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/isp-router.mp4": "manim"
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/isp-router.mp4": "manim",
+    "Attachments/learn/voice-ai-audio-basics/pcm-retaught.mp4": "manim",
+    "Attachments/learn/voice-ai-audio-basics/chunks.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/pstn-modem.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/pstn-dialup.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/cloud-flow.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/bitstream-buffer.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/bitstream-basics.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv4-address.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv4-classes.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv4-decide.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/cidr-split.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/subnet-split.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/nat-box.mp4": "manim",
+    "Attachments/learn/remainder-theorem-find-k-binomial-expansion/remainder-basic.mp4": "manim"
   },
   "narrations": {
     "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/csma-cd.mp4": [
@@ -1055,6 +1667,85 @@
       "Access ISPs connect upward to middle tier, or regional, ISPs, and those connect to tier one ISPs, the backbone at the top. Where ISPs meet to pass traffic to each other, they use Internet exchange points, the small yellow squares.",
       "The busiest connections are fibre optic cables under the sea and across land. Together they form a mesh, and every place where cables join is called a node.",
       "At every node sits a router. Each router connects to several others, and its job is to choose the best route for the data. Watch the dot pick one path through the mesh instead of the others."
+    ],
+    "Attachments/learn/voice-ai-audio-basics/pcm-retaught.mp4": [
+      "Start with one sample. With sixteen bit audio, the height of this one measurement is stored using sixteen little boxes, and each box holds a zero or a one.",
+      "The computer counts storage in bytes, and one byte is eight of these boxes. So sixteen boxes are exactly two bytes. To get bytes from bits, divide by eight.",
+      "Now count the channels. Mono has one stream, so each moment needs one sample, two bytes. Stereo has two streams, so each moment needs two samples, four bytes. One moment of all channels is called a frame.",
+      "Finally, time. The microphone makes sixteen thousand frames every second, and each frame is two bytes. Multiply them and one second of audio is thirty two thousand bytes. This is the number you use to size buffers."
+    ],
+    "Attachments/learn/voice-ai-audio-basics/chunks.mp4": [
+      "A microphone never stops. Sound keeps arriving, so there is no moment when the recording is finished. If we waited for the end of the sentence, the listener would wait too.",
+      "So we cut the stream into equal small pieces called chunks. Here each chunk is twenty milliseconds long. That length is only an example, real systems choose their own.",
+      "Each chunk holds a known number of samples, and that gives its size in bytes. At sixteen thousand samples per second, twenty milliseconds is three hundred twenty samples. With two bytes each, that is six hundred forty bytes.",
+      "Now chunks travel one by one. Each is sent as soon as it is ready, so the listener can start working on the first chunk while you are still talking. This is what streaming means."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/pstn-modem.mp4": [
+      "A computer works with digital bits, ones and zeros. But the old telephone network was built for analogue voice, a signal that changes smoothly.",
+      "So a modem converts the digital bits into an analogue signal the phone line can carry. Modem is short for modulator demodulator.",
+      "The analogue signal travels along the phone line, the same kind of line that carries ordinary phone calls.",
+      "At the far end a second modem does the reverse. It turns the analogue signal back into digital bits the receiving computer can read."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/pstn-dialup.mp4": [
+      "To go online, the computer dials the ISP, just like making a phone call.",
+      "A modem converts the digital bits into an analogue signal the phone line can carry.",
+      "The call shares the phone line with ordinary calls, so the speed is modest and shared.",
+      "The ISP answers and gives a modest-speed connection, only while the call lasts."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/cloud-flow.mp4": [
+      "A user opens a browser on any device, in any location. The cloud is reached over the Internet, not from a local hard drive.",
+      "The request travels over the Internet to the cloud provider.",
+      "The cloud runs on large mainframe computers or server farms, so it has far more power and storage than a single machine.",
+      "The services it offers are one of three kinds: infrastructure for power and storage, platform for developing and testing software, or software that runs heavy applications."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/bitstream-buffer.mp4": [
+      "The media server sends the compressed bit stream into a buffer on your computer.",
+      "The buffer fills faster than the player drains it, because input is sent at a higher rate than the display rate.",
+      "When the level reaches the high-water mark, the player tells the server to pause input, so the buffer never overflows.",
+      "When the level drops to the low-water mark, input restarts. The player keeps the level between the two marks, so playback never runs dry."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/bitstream-basics.mp4": [
+      "The whole video sits on a server, far away. You do not download it all first.",
+      "Data arrives over the Internet into a buffer, a temporary store on your computer.",
+      "The media player, the software that shows the video, takes data from the buffer and plays it.",
+      "The buffer keeps a little ahead of the player, so playback stays smooth even if the network slows."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv4-address.mp4": [
+      "An I P version four address, the address of a device on the Internet, is thirty two ones and zeros, shown as four groups of eight.",
+      "The first part names the network. Routers read this part first, to send the message toward the right network.",
+      "The last part names the device on that network. It is only read when the message arrives at the network.",
+      "Machines send the bits, but people read numbers. Each group of eight bits is written as one ordinary number, with dots between the groups."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv4-classes.mp4": [
+      "The first one, two, or three bits say which class an address belongs to. The class fixes where the split between network and device sits.",
+      "Class A starts with a single zero. Seven bits name the network and twenty four name the device, so there are only one hundred twenty eight Class A networks, but each holds millions of devices.",
+      "Class B starts with one zero. Fourteen bits name the network and sixteen name the device.",
+      "Class C starts with one one zero. Twenty one bits name the network and eight name the device: about two million networks with two hundred fifty six devices each."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv4-decide.mp4": [
+      "Read the very first bit. If it is a zero, stop: the address is Class A, with seven network bits and twenty four device bits.",
+      "If the first bit is a one, read the second bit too. If the two are one zero, the address is Class B, with fourteen network bits and sixteen device bits.",
+      "Otherwise the first three bits are one one zero, and the address is Class C, with twenty one network bits and eight device bits."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/cidr-split.mp4": [
+      "Classes lock the split in place, which wastes addresses. Classless routing lets the split move to suit need. A short suffix at the end of the address says how many bits name the network.",
+      "Here the suffix is twenty one, so the first twenty one bits name the network.",
+      "The remaining eleven bits name the devices on it: two to the eleven gives two thousand forty eight host addresses."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/subnet-split.mp4": [
+      "One Class C network serves the whole company: the first three groups name the company network, leaving eight bits for everything inside it.",
+      "The top three of those bits name the department LAN. Zero zero zero is the head office LAN.",
+      "The last five bits name the workstation on that LAN. Zero one one one zero is workstation fourteen, so this address reaches computer fourteen on the head office LAN."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/nat-box.mp4": [
+      "Inside the company network, computers use private addresses, like one ninety two dot one sixty eight dot one dot one. Any company can use the same addresses, because they are never seen on the Internet.",
+      "The NAT box holds the single address the Internet sees. Every message leaving or entering passes through it.",
+      "Its software examines each transmission, and can run a security check before an incoming message reaches the right inside computer."
+    ],
+    "Attachments/learn/remainder-theorem-find-k-binomial-expansion/remainder-basic.mp4": [
+      "Dividing a polynomial leaves a quotient plus a leftover number, because the divisor is only degree one.",
+      "If we put x equals a, the quotient part vanishes, because a minus a is zero.",
+      "What is left is the remainder, so the remainder is just the polynomial evaluated at a."
     ]
   }
 }
