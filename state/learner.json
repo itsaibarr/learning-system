@@ -10,7 +10,9 @@
       "One note per session. Never send the learner to another file mid-session.",
       "Visual learner: every idea gets a Manim animation of how it works (3Blue1Brown style), plus normal text.",
       "Start each new idea from the everyday problem, and explain what each part is and why it exists before going into details.",
-      "Each visual must show the full idea being taught, including every case such as all classes A, B and C, before any questions are asked on it."
+      "Each visual must show the full idea being taught, including every case such as all classes A, B and C, before any questions are asked on it.",
+      "For the 9702 exam-prep session: big blocks (one block per syllabus section, not tiny subtopics), 20% theory / 80% practice, questions taken from real 9702 past papers, every animation narrated with audio.",
+      "Exam-prep: use only material tied to past-paper questions and the attached syllabus; do not add extras."
     ]
   },
   "topics": {
@@ -1315,14 +1317,14 @@
           "prereqs": [
             "ipv4"
           ],
-          "status": "learning",
+          "status": "solid",
           "taught": true,
-          "streak": 0,
-          "level": 1,
-          "box": 0,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
           "next_review": "2026-10-07",
-          "solid_date": null,
-          "promoted": null,
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
           "last_seen": "2026-10-06",
           "history": [
             {
@@ -1337,6 +1339,27 @@
               "q": "Q94",
               "result": "wrong",
               "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q95",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q96",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q97",
+              "result": "correct",
+              "level": 2,
               "kind": null
             }
           ]
@@ -1362,6 +1385,44 @@
           "prereqs": [
             "ipv4"
           ],
+          "status": "learning",
+          "taught": true,
+          "streak": 2,
+          "level": 2,
+          "box": 0,
+          "next_review": "2026-10-07",
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q98",
+              "result": "wrong",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q99",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q100",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            }
+          ]
+        },
+        "dns-url": {
+          "title": "URL, domain names and DNS name resolution",
+          "prereqs": [
+            "ipv4"
+          ],
           "status": "new",
           "taught": false,
           "streak": 0,
@@ -1373,10 +1434,26 @@
           "last_seen": null,
           "history": []
         },
-        "dns-url": {
-          "title": "URL, domain names and DNS name resolution",
+        "voip": {
+          "title": "PSTN calls versus VoIP calls: circuit versus packet switching",
           "prereqs": [
-            "ipv4"
+            "pstn-cell"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "scripting": {
+          "title": "JavaScript client-side and PHP server-side",
+          "prereqs": [
+            "client-server"
           ],
           "status": "new",
           "taught": false,
@@ -1412,14 +1489,22 @@
           "prereqs": [],
           "status": "learning",
           "taught": true,
-          "streak": 0,
+          "streak": 1,
           "level": 1,
           "box": 0,
           "next_review": null,
           "solid_date": null,
           "promoted": null,
-          "last_seen": null,
-          "history": []
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q1",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            }
+          ]
         },
         "divisor-axb": {
           "title": "Remainder when dividing by a x minus b",
@@ -1489,6 +1574,177 @@
         "date": "2026-10-06",
         "sources": 6
       }
+    },
+    "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy": {
+      "title": "Cambridge A-Level Physics 9702 exam prep - quantities, kinematics, dynamics, energy",
+      "goal": "Pass the 9702 test today (MCQ + structured) aiming for grade A; topics 1, 2, 3, 5 of the syllabus; learner already studied them, needs exam-readiness through past-paper practice.",
+      "created": "2026-10-07",
+      "concepts": {
+        "units-errors-vectors": {
+          "title": "Units, homogeneity, uncertainties, scalars and vectors (syllabus 1.1-1.4)",
+          "prereqs": [],
+          "status": "solid",
+          "taught": true,
+          "streak": 2,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-08",
+          "solid_date": "2026-10-07",
+          "promoted": "2026-10-07",
+          "last_seen": "2026-10-07",
+          "history": [
+            {
+              "date": "2026-10-07",
+              "q": "Q1",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q2",
+              "result": "wrong",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q3",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q4",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q5",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q6",
+              "result": "idk",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q7",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q8",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "kinematics": {
+          "title": "Graphs and uniformly accelerated motion, free fall, projectiles (syllabus 2.1)",
+          "prereqs": [
+            "units-errors-vectors"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": "2026-10-08",
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": "2026-10-07",
+          "history": [
+            {
+              "date": "2026-10-07",
+              "q": "Q9",
+              "result": "wrong",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q10",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q11",
+              "result": "wrong",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q12",
+              "result": "idk",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "dynamics": {
+          "title": "Newton's laws, momentum, collisions, drag and terminal velocity (syllabus 3.1-3.3)",
+          "prereqs": [
+            "kinematics"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "work-energy-power": {
+          "title": "Work, energy conservation, efficiency, power, GPE and KE (syllabus 5.1-5.2)",
+          "prereqs": [
+            "dynamics"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        }
+      },
+      "research": {
+        "note": "Sources/Cambridge A-Level Physics 9702 exam prep - quantities, kinematics, dynamics, energy research brief.md",
+        "date": "2026-10-07",
+        "sources": 4
+      }
+    },
+    "trigonometry-for-a-level-maths-pure-1-p1-papers": {
+      "title": "trigonometry for A level maths Pure 1 P1 papers",
+      "goal": "Score full marks on the trigonometry questions of Edexcel IAL Pure Mathematics 1 (WMA11/01) papers. Board assumed from the learner's own files (WMA11 May 2022 paper, IAL Oct 2019 P2 in Downloads); the learner did not say what they already know, so every concept starts as new and quick checks decide.",
+      "created": "2026-10-07",
+      "concepts": {},
+      "research": {
+        "note": "Sources/trigonometry for A level maths Pure 1 P1 papers research brief.md",
+        "date": "2026-10-07",
+        "sources": 4
+      }
     }
   },
   "session": null,
@@ -1539,6 +1795,38 @@
         "computer-science-chapter-two-preparation": "'Computer Science chapter two preparation' has no research brief yet. Research comes before any teaching.",
         "communication-and-networking-technologies-cambridge-as-cs-9608-ch2": "Start with 'Private addresses and network address translation (NAT)': 'Private addresses and network address translation (NAT)' is not solid yet (0 of 2 correct in a row).",
         "remainder-theorem-find-k-binomial-expansion": "Start with 'Remainder theorem for divisor x minus a': 'Remainder theorem for divisor x minus a' is not solid yet (0 of 2 correct in a row). Note: math remainder-theorem moved to dedicated note; continue networking NAT next"
+      }
+    },
+    {
+      "date": "2026-10-06",
+      "topics": [
+        "remainder-theorem-find-k-binomial-expansion",
+        "communication-and-networking-technologies-cambridge-as-cs-9608-ch2"
+      ],
+      "note": "Sessions/2026-10-05 Communication and networking technologies (Cambridge AS CS 9608 Ch2).md",
+      "correct": 6,
+      "wrong": 1,
+      "idk": 0,
+      "next_time": null,
+      "next_by_topic": {
+        "remainder-theorem-find-k-binomial-expansion": "Start with 'Remainder theorem for divisor x minus a': 'Remainder theorem for divisor x minus a' is not solid yet (1 of 2 correct in a row).",
+        "communication-and-networking-technologies-cambridge-as-cs-9608-ch2": "Start with 'Ethernet, collisions and CSMA/CD, switched Ethernet': 'Ethernet, collisions and CSMA/CD, switched Ethernet' is due for review (box 1, last seen 2026-10-06)."
+      }
+    },
+    {
+      "date": "2026-10-07",
+      "topics": [
+        "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy",
+        "trigonometry-for-a-level-maths-pure-1-p1-papers"
+      ],
+      "note": "Sessions/2026-10-07 Cambridge A-Level Physics 9702 exam prep - quantities, kinematics, dynamics, energy.md",
+      "correct": 7,
+      "wrong": 3,
+      "idk": 2,
+      "next_time": "Physics 9702: answer Q13 (acceleration from a tangent on a v-t curve), then continue kinematics. Trigonometry (Edexcel IAL P1) has its own note.",
+      "next_by_topic": {
+        "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy": "Start with 'Graphs and uniformly accelerated motion, free fall, projectiles (syllabus 2.1)': 'Graphs and uniformly accelerated motion, free fall, projectiles (syllabus 2.1)' is not solid yet (0 of 2 correct in a row).",
+        "trigonometry-for-a-level-maths-pure-1-p1-papers": "'trigonometry for A level maths Pure 1 P1 papers' has a research brief but no plan yet. Note: Physics 9702: answer Q13 (acceleration from a tangent on a v-t curve), then continue kinematics. Trigonometry (Edexcel IAL P1) has its own note."
       }
     }
   ],
@@ -1614,6 +1902,60 @@
       "kind": "misconception",
       "what": "Mixes up incoming handling with outgoing handling",
       "closed": null
+    },
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "ipv6",
+      "date": "2026-10-06",
+      "q": "Q98",
+      "kind": "misconception",
+      "what": "Compresses the zero run but keeps the leading zeros",
+      "closed": null
+    },
+    {
+      "topic": "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy",
+      "concept": "units-errors-vectors",
+      "date": "2026-10-07",
+      "q": "Q2",
+      "kind": "misconception",
+      "what": "Thinks calibration faults are random",
+      "closed": null
+    },
+    {
+      "topic": "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy",
+      "concept": "units-errors-vectors",
+      "date": "2026-10-07",
+      "q": "Q6",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": null
+    },
+    {
+      "topic": "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy",
+      "concept": "kinematics",
+      "date": "2026-10-07",
+      "q": "Q9",
+      "kind": "misconception",
+      "what": "Confused average velocity with speed throughout",
+      "closed": null
+    },
+    {
+      "topic": "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy",
+      "concept": "kinematics",
+      "date": "2026-10-07",
+      "q": "Q11",
+      "kind": "misconception",
+      "what": "Divided the speed at 3 s by the time ($6/3$)",
+      "closed": null
+    },
+    {
+      "topic": "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy",
+      "concept": "kinematics",
+      "date": "2026-10-07",
+      "q": "Q12",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": null
     }
   ],
   "figures": {
@@ -1652,7 +1994,13 @@
     "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/cidr-split.mp4": "manim",
     "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/subnet-split.mp4": "manim",
     "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/nat-box.mp4": "manim",
-    "Attachments/learn/remainder-theorem-find-k-binomial-expansion/remainder-basic.mp4": "manim"
+    "Attachments/learn/remainder-theorem-find-k-binomial-expansion/remainder-basic.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv6-compress.mp4": "manim",
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/units-errors-vectors.mp4": "manim",
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/errors-systematic-random.mp4": "manim",
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/vectors-resolving.mp4": "manim",
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/kinematics-full.mp4": "manim",
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/kinematics-reteach.mp4": "manim"
   },
   "narrations": {
     "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/csma-cd.mp4": [
@@ -1746,6 +2094,92 @@
       "Dividing a polynomial leaves a quotient plus a leftover number, because the divisor is only degree one.",
       "If we put x equals a, the quotient part vanishes, because a minus a is zero.",
       "What is left is the remainder, so the remainder is just the polynomial evaluated at a."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv6-compress.mp4": [
+      "An eye pea version six address is one hundred twenty eight bits, written as eight groups of four hexadecimal digits. That is long to write.",
+      "So one run of zero groups, and only one, is replaced by a double colon. Here six zero groups vanish into one double colon.",
+      "Two double colons would be ambiguous: nobody could tell how many zeros each one stands for. That is why the rule allows it only once."
+    ],
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/units-errors-vectors.mp4": [
+      "First, units. To check an equation, turn every quantity into base units, kilograms, metres and seconds. Force is mass times acceleration, so newton becomes kilogram metre per second squared. If both sides end up with the same base units, the equation is homogeneous, which means it can be right.",
+      "Second, uncertainty. When you multiply or divide measurements, add their percentage uncertainties. Here one percent plus five percent makes six percent. When you add or subtract, add the absolute uncertainties instead. A power multiplies the percentage, so a squared quantity doubles it.",
+      "Third, vectors. A vector has size and direction, so you add it tip to tail. The yellow arrow is the sum of the blue and green ones. To use a vector, split it into two perpendicular parts: the horizontal part is F cosine theta, the vertical part is F sine theta. Remember, cosine goes with the side next to the angle."
+    ],
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/errors-systematic-random.mp4": [
+      "Every measurement can go wrong in two ways, and the exam wants you to name which one. Here are four targets. Each will get five readings.",
+      "On the left, the dots sit on the centre and close together. That is precise and accurate. This is what a good experiment looks like.",
+      "Next, the dots are tight together but away from the centre. Precise, but not accurate. This is the signature of a systematic error.",
+      "Third, the dots scatter around the centre. Accurate on average, but not precise. This is the signature of a random error.",
+      "Last, spread out and off centre: neither precise nor accurate. Now let us look at each error type in turn, starting with systematic.",
+      "A systematic error pushes every reading the same way. Imagine a ruler with a worn end. It reads one more than the true length, which is five.",
+      "Every reading comes out close to six. They agree with each other, so the instrument looks precise. But they are all wrong in the same direction.",
+      "The shift is the zero error, here plus one. The cure is to subtract it. Repeating the measurement does not help, because every repeat is wrong in the same way.",
+      "A random error is different. Readings scatter above and below the true value, from reaction time, or from reading a scale at slightly different angles.",
+      "Averaging helps here. High errors and low errors cancel, so the mean lands close to the true value. That is why we repeat measurements.",
+      "Now the classic exam setting, measuring g. A ball hangs from an electromagnet above a trapdoor. You measure the distance P Q, from the magnet to the trapdoor.",
+      "But the ball only falls a distance shorter than P Q, by its own diameter. So every run has exactly the same wrong distance.",
+      "A constant offset is a systematic error, not a random one. The fix is to correct the distance. Repeating the drop will not fix it.",
+      "Now uncertainty. Rule one: when you multiply or divide, add the percentage uncertainties.",
+      "Rule two: when a quantity is raised to a power, multiply its percentage uncertainty by that power. A square doubles it, a cube triples it.",
+      "Rule three: when you add or subtract, add the absolute uncertainties. Always check whether the question wants a percentage or an absolute uncertainty.",
+      "Example: the density of a sphere. Mass is thirty two point five grams, give or take zero point one. That is zero point three percent.",
+      "The diameter is one point eight seven, give or take zero point zero four. That is two point one percent. Volume goes as diameter cubed, so we count it three times, which gives six point three.",
+      "Add the mass part: about six point seven percent. The cube is the trap. Examiners love it, so always look for powers.",
+      "Example: the pendulum. Rearrange first. g equals four pi squared l over T squared. The length has zero point two four percent uncertainty.",
+      "The period has seven point seven percent. It is squared, so that becomes fifteen point four. Add them: about sixteen percent.",
+      "If the formula has a root, such as v equals the cube root of P over b, divide the combined percentage by three. Never multiply.",
+      "Checklist. Name the error type. Averaging cures only random error. Add percentages and multiply by every power. Convert units before squaring. Absolute uncertainty is percentage times value."
+    ],
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/vectors-resolving.mp4": [
+      "Why did the aeroplane question feel hard? It needs one skill, splitting a slanted vector. First the basics. A scalar has size only, like speed, distance, energy, power and mass.",
+      "A vector has size and direction. Velocity, displacement, force, acceleration and momentum are all vectors. Direction matters, so a sign or an angle must be given.",
+      "Adding vectors means tip to tail. Walk three metres east. That is the first arrow.",
+      "Now walk four metres north. Start the second arrow where the first one ended. The distance walked is seven metres.",
+      "The displacement is the straight arrow from start to finish. By Pythagoras, that is five metres. Distance seven, displacement five.",
+      "A semicircle of radius one metre is the same idea. The distance is pi, about three point one metres. The displacement is the diameter, two metres, with a direction.",
+      "Now the key skill, splitting a vector. Take a force F at angle theta above the horizontal. Draw a right triangle around it.",
+      "The side next to the angle is F cosine theta. This is the horizontal part.",
+      "The side opposite the angle is F sine theta. This is the vertical part.",
+      "A quick check: if theta is zero, the whole force is horizontal, and cosine of zero is one. So the horizontal part is always the cosine part.",
+      "On a slope, the angle is measured from the horizontal, and the weight always points straight down. Draw the slope and the weight.",
+      "The part of the weight along the slope is W sine theta. This is the part that pulls the object down the slope.",
+      "The part pressing into the slope is W cosine theta. That is why a smooth slope gives acceleration g sine theta, not g.",
+      "Now the aeroplane, climbing at constant speed. Forces balance in both directions. Along the path: thrust forward, resistance backward, and the weight component W sine theta backward. So thrust equals R plus W sine theta.",
+      "Across the path, lift balances W cosine theta. Same triangle as the slope, so constant velocity means no resultant force.",
+      "Projectiles use the same split. A ball kicked at fifteen metres per second at sixty degrees has a horizontal part of fifteen cosine sixty, which is seven point five, and a vertical part of fifteen sine sixty, which is thirteen.",
+      "The horizontal part never changes, because no horizontal force acts. The vertical part is slowed by g and reaches zero at the top, after thirteen over nine point eight one, about one point three seconds.",
+      "One last exam move: a change in a vector. A ball hits a wall at seven point five metres per second and leaves at four point three the other way. Choose right as positive.",
+      "So the change in velocity has size eleven point eight. Multiply by the mass, zero point four, for a change in momentum of four point seven. Reversed direction means you add the speeds, you never subtract them."
+    ],
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/kinematics-full.mp4": [
+      "Kinematics starts with three definitions. Velocity is rate of change of displacement. Acceleration is rate of change of velocity. Displacement is distance in a given direction, so it is a vector, while distance and speed are scalars.",
+      "Exam trap: a toy car goes round a circular track at a constant zero point five metres per second, taking forty seconds per lap. After a full lap its distance is twenty metres, but its displacement is zero, so the average velocity is zero. After half a lap, the displacement is the diameter, giving zero point three two.",
+      "On a displacement time graph, the gradient is the velocity. A steeper line means faster. A flat line means at rest. A line sloping down means moving backwards.",
+      "On a velocity time graph, two rules. The gradient is the acceleration. The area under the graph is the displacement. These two rules answer most graph questions in the exam.",
+      "Watch the sign. In this real exam graph the car starts at minus ten metres per second, passes zero at four seconds, and reaches twenty at twelve. The area below the axis counts as negative displacement. Subtract it, and the displacement at twelve seconds is sixty metres, not the total area.",
+      "If the graph is curved, the gradient at one moment needs a tangent: a straight line that just touches the curve at that point. Draw it clearly, because the mark scheme gives a mark for the line itself. Then take rise over run on that tangent.",
+      "Now the equations of uniformly accelerated motion. They apply only when the acceleration is constant and the motion is in a straight line. Learn the four: v equals u plus a t; s equals u t plus half a t squared; v squared equals u squared plus two a s; and s equals half u plus v, times t.",
+      "To choose, list what you know and what you want. The one quantity that is neither known nor wanted tells you which equation to use. Missing s, use v equals u plus a t. Missing v, use s equals u t plus half a t squared. Missing t, use v squared equals u squared plus two a s.",
+      "Signs matter. Choose a direction as positive and stay with it. If up is positive, then g is minus nine point eight one. A stone thrown up at fifteen metres per second: at the top v is zero, so v squared equals u squared plus two a s gives s equals fifteen squared over two times nine point eight one, about eleven metres.",
+      "On a frictionless slope at thirty degrees, only the part of the weight along the slope accelerates the object. So a is g sine thirty, four point nine. In zero point eight seconds from rest, s is half times four point nine times zero point eight squared, one point six metres. The mass does not matter.",
+      "Overtaking questions: a goods train passes at ten metres per second while an express starts from rest, accelerating at zero point five. The express overtakes when the displacements are equal, not the speeds. Half times zero point five times t squared equals ten t, so t is forty seconds. Twenty seconds is just when the speeds match.",
+      "Another pattern: a stone dropped down a well, and you hear the splash later. The total time is the fall time plus the sound travel time. Seventy eight metres: fall time root of two s over g, three point nine nine seconds. Sound takes seventy eight over three hundred thirty, zero point two four. Total four point two two.",
+      "Projectile motion is two separate motions. Horizontally there is no force, so the velocity is constant. Vertically the acceleration is g downward. Time is the link between them, and it always comes from the vertical motion or from the horizontal distance over the horizontal speed.",
+      "Real example. A ball is kicked at nine point five metres per second horizontally and seven point four vertically, toward a wall nine metres away. Time to the wall is nine over nine point five, zero point nine five seconds. Then the height is seven point four times zero point nine five, minus half g t squared, two point six metres.",
+      "Speed after a time needs both components. On the Moon, a ball starts with vertical eight and horizontal four, g is one point six two. After nine seconds the vertical component is eight minus one point six two times nine, minus six point five eight. Speed is the root of six point five eight squared plus four squared, seven point seven.",
+      "Finally, the experiment to find g. Drop a ball, measure the height s and the time t. Then s equals half g t squared, so a graph of s against t squared is a straight line with gradient g over two. For the uncertainty in g, add the percentage in s to twice the percentage in t. A missing ball diameter in the height is a systematic error.",
+      "Checklist. Gradient of s t is velocity. Gradient of v t is acceleration. Area under v t is displacement, negative below the axis. Draw tangents on curves. Use the four equations only for constant acceleration, with a sign convention. Overtaking means equal displacement. Projectiles: split horizontal and vertical."
+    ],
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/kinematics-reteach.mp4": [
+      "Two steps went wrong, so let us slow right down. First: how to read a gradient from a graph. Second: how to find the speed of a projectile using both components. Smaller numbers, one step at a time.",
+      "Step A. On a straight line, pick two points far apart. Here from zero comma two, to four comma ten. The rise is ten minus two, which is eight. The run is four. So the gradient is eight over four, which is two. On a velocity time graph, that two is the acceleration in metres per second squared.",
+      "Now a curve. The slope changes all along it, so the gradient at one moment needs a tangent. A tangent is a straight line that just touches the curve at that one point. Draw it with a ruler. Use the chord from the origin and you get the average gradient, which is the wrong answer.",
+      "Now read the tangent like any straight line. Choose two points on the tangent, far apart. Here it rises from about four point two to seven point eight, over a run of two point eight seconds. Three point six over two point eight is about one point three metres per second squared.",
+      "Step B. A projectile is moving sideways and up and down at the same time. The sideways velocity, called v x, never changes, because nothing pushes sideways. The vertical velocity v y changes, because gravity pulls down. Watch the arrows at four moments along the path.",
+      "At the start the vertical arrow is long and up. Later it is shorter. At the top it is zero. After the top it points down and gets longer. But the horizontal arrow, in blue, stays exactly the same length every time.",
+      "To find the speed at some time, find each component separately. Horizontal: it is just the starting value. Vertical: use v equals u plus a t, with a equal to minus g. On the Moon, g is one point six two. After nine seconds the vertical part is eight minus fourteen point five eight, which is minus six point five eight. Minus means moving down.",
+      "Now combine them. The two components are at right angles, so use Pythagoras. Speed is the square root of six point five eight squared plus four squared, which is seven point seven. Do not add six point five eight and four. That gives ten point six, which is a wrong option in the real question.",
+      "So remember. A: pick two far apart points on a straight line or tangent, then rise over run. B: find vx, find vy with v equals u plus a t, then Pythagoras. Never add components straight."
     ]
   }
 }
