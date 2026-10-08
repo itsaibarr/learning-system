@@ -4,7 +4,7 @@
 The agent runs one subcommand per step and follows the WHY/NEXT lines it prints.
 The rules live here, not in the prompt, so every model gets the same decisions.
 
-  start <topic...>                 begin or resume a session (switches topic if one is open)
+  start <topic...> [--exam <profile>]  begin or resume a session; --exam switches the topic to exam mode
   research [--save]                research gate: show the brief template / save a brief (stdin) for this topic
   lit search|resolve|text|guide|db ...   PRAXIST no-key literature lookup (OpenAlex, arXiv, Crossref, PubMed...)
   plan --concept id ... --known id,id|none   concepts come from the research brief
@@ -19,7 +19,7 @@ The rules live here, not in the prompt, so every model gets the same decisions.
   answer <Q> <letter|idk> | answer <Q> --text T     learner answered in chat
   grade <Q> correct|wrong|idk [--kind slip|gap|misconception] [--what W]   typed answers
   next                             what to do now, and why
-  pref <text...>                   save a learner preference for every future session
+  pref <text...> [--topic]         save a learner preference (for every session, or only this topic)
   voice [id]                       show or set the narrator voice (Kokoro preset, e.g. af_heart)
   end [--next-time T]              summary into the note, dashboard, commit
   status                           what the system believes the learner knows
@@ -55,11 +55,22 @@ DASHBOARD = "Maps/Learner dashboard.md"
 INTERVALS = {1: 1, 2: 3, 3: 7, 4: 21}  # review box -> days until next review
 # Solid = 2 correct in a row, the last one at level 2+ (applied, not just recalled).
 SOLID = ("solid", "mastered")
-MAX_BLOCK_WORDS = 250
-MAX_PLAN = 7
+MAX_BLOCK_WORDS = 300            # one segment (or a single-concept block)
+MAX_SEGMENTS = 4                  # a unit block holds 1-4 segments
+MAX_PARAGRAPH_WORDS = 60          # longer prose must become a list, table or steps
+MAX_PLAN = 12                     # concepts per `learn plan` call
+MAX_UNIT_CONCEPTS = 5             # one unit = one schema, ~15-20 min
+MAX_PENDING = 5                   # questions waiting at once (a unit check asks several)
+SESSION_REVIEW_MAX = 5            # spaced-review questions at the start of a session
+BAND = (0.70, 0.90)               # target success band over the last 10 graded answers (Rosenshine ~80%)
+KEY_LENGTH_RATIO = 1.25           # key longer than 1.25x the mean distractor = length cue (Haladyna 2002)
+STOPWORDS = set("that this with from what which when where there their they them then than have has had "
+                "into over under about after before because while does done each other such only also more "
+                "most some your will would could should these those being been were".split())
+ABSOLUTES = re.compile(r"\b(always|never|all|none|only|every|completely|must|impossible)\b", re.I)
 LEVELS = {1: "recall the idea just taught, in the same setting",
-          2: "apply it to a new example with new numbers",
-          3: "explain why it works, or combine it with an earlier idea"}
+          2: "apply it to a new scenario the lesson did not use",
+          3: "explain why it works, predict, or combine it with an earlier idea"}
 
 SOURCES_DIR = "Sources"
 FIG_DIR = "Attachments/learn"
@@ -67,9 +78,9 @@ FIG_MAX_BYTES = 3_000_000
 FIG_TIMEOUT = 90
 MANIM = Path(os.environ.get("LEARN_MANIM", Path.home() / ".local/share/learning-system/manim-venv/bin/manim"))
 TEX_BIN = Path(os.environ.get("LEARN_TEX_BIN", Path.home() / "Library/TinyTeX/bin/universal-darwin"))
-MANIM_TIMEOUT = 180
-VIDEO_MAX_BYTES = 15_000_000
-VIDEO_SECONDS = (2, 90)
+MANIM_TIMEOUT = 600
+VIDEO_MAX_BYTES = 30_000_000
+VIDEO_SECONDS = (2, 180)          # one scene = one segment; a unit uses 2-4 scenes (Guo 2014: <=3 min)
 MANIM_FALLBACK_AFTER = 3
 # Old 3Blue1Brown manimlib / legacy names that free models reproduce from training data -> Manim Community fix.
 OLD_MANIM_API = [
@@ -99,6 +110,9 @@ if len(_found) != 1:
 _TEXT = (Text, MarkupText, MathTex, Tex, SingleStringMathTex, Paragraph, DecimalNumber, Integer)
 _problems = []
 _marks = {}   # caption number -> [time it starts appearing, caption text]
+_DUR = {int(k): v for k, v in json.loads(os.environ.get("LEARN_VOICE_DUR") or "{}").items()}
+_vmarks = {}  # narration line -> time its voice block starts (audio-first sync)
+from contextlib import contextmanager as _cm
 import re as _re
 _NUM = _re.compile(r"^\s*(\d{1,2})[\s.):]")
 
@@ -129,6 +143,15 @@ def _note_marks(mobs, t):
             _marks[int(hit.group(1))] = [round(t, 3), txt.strip()]
 
 class LearnChecked(_found[0]):
+    @_cm
+    def voice(self, i):
+        # narration line i (1-based) is spoken from here; the block lasts at least as long as the line
+        t0 = self.renderer.time
+        _vmarks.setdefault(int(i), round(t0, 3))
+        yield _DUR.get(int(i), 0.0)
+        rest = _DUR.get(int(i), 0.0) - (self.renderer.time - t0)
+        if rest > 0.02:
+            self.wait(rest)
     def add(self, *mobs):
         _note_marks(mobs, self.renderer.time)
         return super().add(*mobs)
@@ -157,7 +180,7 @@ class LearnChecked(_found[0]):
     def construct(self):
         super().construct()
         self._learn_check()
-        json.dump({"problems": list(dict.fromkeys(_problems)), "marks": _marks},
+        json.dump({"problems": list(dict.fromkeys(_problems)), "marks": _marks, "voice": _vmarks},
                   open(os.environ["LEARN_FIG_REPORT"], "w"))
 """
 CANVAS_COLORS = {"claimed": "6", "learning": "3", "solid": "4", "mastered": "5"}  # new = no colour (grey)
@@ -195,8 +218,23 @@ for num in plt.get_fignums():
 print("LEARN-CHECK " + json.dumps(problems))
 """
 BRIEF_SECTIONS = ["Concepts", "Definitions", "Misconceptions", "Worked examples", "Sources", "Open questions"]
-SOURCE_TYPES = {"primary", "textbook", "review", "secondary", "vendor"}
-STRONG_TYPES = {"primary", "textbook", "review"}
+EXAM_SOURCE_TYPES = {"syllabus", "past-paper", "mark-scheme", "examiner-report"}
+SOURCE_TYPES = {"primary", "textbook", "review", "secondary", "vendor"} | EXAM_SOURCE_TYPES
+STRONG_TYPES = {"primary", "textbook", "review", "syllabus", "past-paper", "mark-scheme"}
+EXAMS_DIR = REPO / "skills" / "teach-understanding" / "exams"
+EXAM_SECTIONS = ["Syllabus points", "Paper patterns", "Examiner-report errors"]
+EXAM_TEMPLATE = """
+## Syllabus points
+- <code, e.g. 1.2.2>: <the learning outcome, quoted from the syllabus> [S1]
+
+## Paper patterns
+| Id | Syllabus point | Pattern | Command words | Marks | Real questions | Mark scheme |
+| --- | --- | --- | --- | --- | --- | --- |
+| P1 | 1.2.2 | <stem shape + data given> | Determine, Show that | 2-3 | <2+ citations, e.g. 9702/21/M/J/23 Q1(b); 9702/22/F/M/24 Q1(b)> | <C1 ..., A1 ...> |
+
+## Examiner-report errors
+- <citation>: "<quoted common error>" (<frequency: majority / significant number / few>) [S3]
+"""
 MIN_SOURCES = 3
 CITE = re.compile(r"\[(S\d+)\]")
 BRIEF_TEMPLATE = """# Research brief: <Topic>
@@ -206,10 +244,10 @@ Domain: <machine_learning | biology | chemistry | medicine | robotics_control | 
 Date: YYYY-MM-DD
 
 ## Concepts
-| Id | Concept | Builds on | Sources |
-| --- | --- | --- | --- |
-| short-id | Plain title | - | S1 |
-| next-id | Plain title | short-id | S1, S2 |
+| Id | Concept | Builds on | Sources | Unit |
+| --- | --- | --- | --- | --- |
+| short-id | Plain title | - | S1 | unit-id |
+| next-id | Plain title | short-id | S1, S2 | unit-id |
 
 ## Definitions
 - **term**: the exact definition, as the sources state it [S1]
@@ -272,6 +310,13 @@ def load():
         s = json.loads(STATE.read_text())
         prefs = s["profile"]["preferences"]
         prefs[:] = [p for p in prefs if p not in SUPERSEDED_PREFS]
+        for p in [p for p in prefs if p.startswith(("For the 9702 exam-prep", "Exam-prep:"))]:
+            home = next((t for tid, t in s["topics"].items() if "9702" in tid), None)
+            if home is not None:      # these were 9702 rules saved globally; they now apply to that topic only
+                home.setdefault("prefs", [])
+                if p not in home["prefs"]:
+                    home["prefs"].append(p)
+                prefs.remove(p)
         prefs += [p for p in DEFAULT_PREFS if p not in prefs]  # new defaults reach existing learners
         return s
     return {"version": 1, "profile": {"preferences": list(DEFAULT_PREFS)},
@@ -385,6 +430,26 @@ def ensure_base():
         "    sort:\n      - property: date\n        direction: DESC\n")
 
 
+# ---------- exam profiles (skills/teach-understanding/exams/*.md) ----------
+
+def exam_profile(pid):
+    path = EXAMS_DIR / f"{pid}.md"
+    if not path.exists():
+        have = ", ".join(sorted(p.stem for p in EXAMS_DIR.glob("*.md"))) or "none"
+        raise LearnError(f"No exam profile {pid!r}. Available: {have}. Add a new board as exams/<id>.md.")
+    text = path.read_text()
+    m = re.match(r"---\n(.*?)\n---\n", text, re.S)
+    meta = dict(l.split(":", 1) for l in (m.group(1).split("\n") if m else []) if ":" in l)
+    prof = {k.strip(): v.strip() for k, v in meta.items()}
+    prof["path"] = str(path)
+    prof["re"] = re.compile(prof["citation_regex"])
+    return prof
+
+
+def topic_profile(t):
+    return exam_profile(t["exam"]) if t.get("mode") == "exam" else None
+
+
 # ---------- research brief (PRAXIST method, adapted for learning) ----------
 
 def sections(text):
@@ -404,11 +469,11 @@ def table_rows(lines):
     return [r for r in rows[1:] if not all(re.fullmatch(r":?-{3,}:?", c) for c in r)]
 
 
-def parse_brief(text):
-    """Validate a research brief. Returns (brief, errors)."""
+def parse_brief(text, profile=None):
+    """Validate a research brief. Returns (brief, errors). With an exam profile, exam sections are required."""
     errs = []
     sec = sections(text)
-    for name in BRIEF_SECTIONS:
+    for name in BRIEF_SECTIONS + (EXAM_SECTIONS if profile else []):
         if name.lower() not in sec:
             errs.append(f"missing section '## {name}'")
     goal = next((l.split(":", 1)[1].strip() for l in text.split("\n") if l.lower().startswith("goal:")), "")
@@ -449,7 +514,8 @@ def parse_brief(text):
         cited = re.findall(r"S\d+", cites)
         if not cited:
             errs.append(f"concept {cid}: cite at least one source id")
-        concepts[cid] = {"title": title, "prereqs": prereqs, "sources": cited}
+        unit = slug(r[4]) if len(r) > 4 and r[4].strip() not in ("", "-") else None
+        concepts[cid] = {"title": title, "prereqs": prereqs, "sources": cited, "unit": unit}
     if len(concepts) < 3:
         errs.append(f"need at least 3 concepts, found {len(concepts)}")
     for cid, c in concepts.items():
@@ -463,7 +529,29 @@ def parse_brief(text):
     used = set(CITE.findall(text)) | {x for c in concepts.values() for x in c["sources"]}
     for sid in sorted(used - set(sources)):
         errs.append(f"{sid} is cited but not in the Sources table")
-    return {"goal": goal, "concepts": concepts, "sources": sources}, errs
+    patterns, citations = {}, set()
+    if profile:
+        types = {v["type"] for v in sources.values()}
+        for need in ("syllabus", "past-paper", "mark-scheme"):
+            if need not in types:
+                errs.append(f"exam mode: add at least one '{need}' source (official site, PapaCambridge or PMT)")
+        if not any(l.strip().startswith("- ") for l in sec.get("syllabus points", [])):
+            errs.append("'## Syllabus points' needs the learning outcomes you will teach, quoted with their codes")
+        citations = set(m.group(0) for m in profile["re"].finditer(text))
+        for r in table_rows(sec.get("paper patterns", [])):
+            if len(r) < 7 or not re.fullmatch(r"P\d+", r[0]):
+                errs.append(f"pattern row needs 7 columns starting with P1, P2...: {r[:2]}")
+                continue
+            real = [m.group(0) for m in profile["re"].finditer(r[5])]
+            if len(real) < 2:
+                errs.append(f"pattern {r[0]} needs 2+ real past-paper questions cited like "
+                            f"{profile.get('citation_example')} (found {len(real)})")
+            patterns[r[0]] = {"point": r[1], "pattern": r[2], "command": r[3], "marks": r[4], "real": real,
+                              "scheme": r[6]}
+        if not patterns:
+            errs.append("'## Paper patterns' needs at least one pattern row built from real questions")
+    return {"goal": goal, "concepts": concepts, "sources": sources, "patterns": patterns,
+            "citations": citations}, errs
 
 
 def brief_of(s):
@@ -474,7 +562,7 @@ def brief_of(s):
     path = VAULT / r["note"]
     if not path.exists():
         raise LearnError(f"Research brief {r['note']} is missing from the vault. Re-save it with `learn research --save`.")
-    brief, errs = parse_brief(path.read_text())
+    brief, errs = parse_brief(path.read_text(), topic_profile(t))
     if errs:
         raise LearnError("The research brief no longer validates: " + "; ".join(errs[:5]))
     return brief
@@ -547,6 +635,59 @@ def render_canvas(s, tid):
     return rel
 
 
+# ---------- units ----------
+
+def units_of(t):
+    """Ordered {unit_id: {"title", "concepts"}}. Concepts outside any unit are their own one-concept unit."""
+    units = {u: dict(v) for u, v in t.get("units", {}).items()}
+    placed = {c for v in units.values() for c in v["concepts"]}
+    for cid, c in t["concepts"].items():
+        if cid not in placed:
+            units[cid] = {"title": c["title"], "concepts": [cid]}
+    return units
+
+
+def unit_of(t, cid):
+    for uid, u in units_of(t).items():
+        if cid in u["concepts"]:
+            return uid, u
+    raise LearnError(f"Concept {cid!r} is in no unit.")
+
+
+def band_note(s):
+    """Difficulty signal from the last 10 graded answers (target ~70-90% correct)."""
+    recent = need_session(s).get("recent", [])[-10:]
+    if len(recent) < 5:
+        return ""
+    rate = sum(r == "correct" for r in recent) / len(recent)
+    if rate > BAND[1]:
+        return (f" DIFFICULTY: {rate:.0%} correct recently, too easy. Make these harder: level 3, a scenario the lesson "
+                "never used, two-tier (answer + reason), fewer hints.")
+    if rate < BAND[0]:
+        return (f" DIFFICULTY: {rate:.0%} correct recently, too hard. Smaller steps: add a worked example before the "
+                "next questions and ask one idea at a time.")
+    return ""
+
+
+def pending_concepts(sess):
+    return {p["concept"] for p in sess["pending"].values()}
+
+
+def unit_check_needed(s):
+    """(unit_id, [concept ids still to ask]) for a unit whose concepts were taught but not yet checked."""
+    sess = need_session(s)
+    t = topic_of(s)
+    waiting = pending_concepts(sess)
+    for uid, u in units_of(t).items():
+        cs = [t["concepts"][c] for c in u["concepts"]]
+        if len(u["concepts"]) > 1 and all(c["taught"] for c in cs):
+            todo = [cid for cid in u["concepts"] if not t["concepts"][cid].get("checked")
+                    and t["concepts"][cid]["status"] not in SOLID and cid not in waiting]
+            if todo:
+                return uid, todo
+    return None, []
+
+
 # ---------- decisions ----------
 
 def step(action, cid=None, reason="", level=None):
@@ -555,50 +696,77 @@ def step(action, cid=None, reason="", level=None):
 
 def choose_fresh(s):
     t = topic_of(s)
+    sess = need_session(s)
     cs = t["concepts"]
     d = iso(today())
-    for cid, c in cs.items():
-        if c["status"] in SOLID and c["next_review"] and c["next_review"] <= d and c["last_seen"] != d:
-            return step("review", cid, f"'{c['title']}' is due for review (box {c['box']}, last seen {c['last_seen']}).",
-                        max(2, c["level"]))
+    if sess.get("reviews", 0) < SESSION_REVIEW_MAX:
+        for cid, c in cs.items():
+            if c["status"] in SOLID and c["next_review"] and c["next_review"] <= d and c["last_seen"] != d:
+                return step("review", cid, f"'{c['title']}' is due for review (box {c['box']}, last seen "
+                                           f"{c['last_seen']}).", max(2, c["level"]))
     for cid, c in cs.items():
         if c["status"] == "claimed":
             return step("check", cid, f"You said you already know '{c['title']}'. One quick check before we build on it.", 2)
     for cid, c in cs.items():
         if c["status"] == "learning":
             if c["taught"]:
-                return step("ask", cid, f"'{c['title']}' is not solid yet ({c['streak']} of 2 correct in a row).", c["level"])
+                return step("ask", cid, f"'{c['title']}' is not solid yet: one new application question.", max(2, c["level"]))
             return step("teach", cid, f"'{c['title']}' still needs teaching.")
-    for cid, c in cs.items():
-        if c["status"] == "new":
-            weak = [p for p in c["prereqs"] if cs[p]["status"] not in SOLID]
-            if not weak:
-                base = (f"it builds on {', '.join(repr(cs[p]['title']) for p in c['prereqs'])}, which you have solid"
-                        if c["prereqs"] else "it needs nothing else, so it is a starting point")
-                return step("teach", cid, f"Next new idea: '{c['title']}', because {base}.")
+    if t.get("mode") == "exam":   # practice share grows as more of the topic is solid (adaptive split)
+        solid = sum(c["status"] in SOLID for c in cs.values()) / max(1, len(cs))
+        target = 2 + round(4 * solid)
+        for uid, u in units_of(t).items():
+            done = t.get("practice", {}).get(uid, 0)
+            if all(cs[c]["status"] in SOLID for c in u["concepts"]) and done < target:
+                return step("practice", uid, f"Exam practice on '{u['title']}': {done}/{target} past-paper questions "
+                                             f"({solid:.0%} of the topic is solid, so practice takes a bigger share).")
+    for uid, u in units_of(t).items():
+        fresh = [c for c in u["concepts"] if cs[c]["status"] == "new"]
+        if not fresh:
+            continue
+        outside = [p for c in u["concepts"] for p in cs[c]["prereqs"] if p not in u["concepts"]]
+        weak = [p for p in outside if cs[p]["status"] not in SOLID]
+        if weak:
+            continue
+        base = (f"it builds on {', '.join(repr(cs[p]['title']) for p in dict.fromkeys(outside))}, which you have solid"
+                if outside else "it needs nothing else, so it is a starting point")
+        if len(u["concepts"]) == 1:
+            return step("teach", u["concepts"][0], f"Next new idea: '{u['title']}', because {base}.")
+        return step("teach_unit", uid, f"Next unit: '{u['title']}' ({len(u['concepts'])} linked ideas taught "
+                                       f"together), because {base}.")
     blocked = [cid for cid, c in cs.items() if c["status"] == "new"]
     if blocked:
         return step("teach", blocked[0], f"'{cs[blocked[0]]['title']}' is the next idea in the plan.")
     return step("complete", None, "Every concept in this topic is solid or mastered.")
 
-
 def current_step(s):
     sess = need_session(s)
     t = topic_of(s)
-    if sess["pending"]:
-        return step("wait", None, f"{', '.join(sess['pending'])} waiting for the learner's answer.")
     if not t.get("research"):
         return step("research", None, f"'{t['title']}' has no research brief yet. Research comes before any teaching.")
+    if t.get("mode") == "exam" and t["research"].get("exam") != t["exam"]:
+        return step("research", None, f"'{t['title']}' is in exam mode ({t['exam']}): the brief needs syllabus points, "
+                                      "paper patterns from real questions, and examiner-report errors.")
     if not t["concepts"]:
         return step("plan", None, f"'{t['title']}' has a research brief but no plan yet.")
+    uid, todo = unit_check_needed(s)
+    if uid and len(sess["pending"]) < MAX_PENDING:
+        names = ", ".join(repr(t["concepts"][c]["title"]) for c in todo)
+        return step("unit_check", uid, f"Unit '{units_of(t)[uid]['title']}' is taught. Still to check: {names}.")
+    if sess["pending"]:
+        return step("wait", None, f"{', '.join(sess['pending'])} waiting for the learner's answer.")
     st = sess.get("step")
-    if st and (st["concept"] is None or st["concept"] in t["concepts"]):
+    if st and (st["concept"] is None or st["concept"] in t["concepts"] or st["concept"] in units_of(t)):
         return st
+    for f in sess.get("followups", []):
+        if f["concept"] in t["concepts"] and t["concepts"][f["concept"]]["status"] not in SOLID:
+            return f
     return choose_fresh(s)
-
 
 def instruction(s, st):
     t = topic_of(s)
+    if st["action"] in ("teach_unit", "unit_check", "practice"):
+        return unit_instruction(s, st)
     c = t["concepts"].get(st["concept"]) if st["concept"] else None
     title = c["title"] if c else ""
     cid = st["concept"]
@@ -609,6 +777,14 @@ def instruction(s, st):
         return ("Tell the learner in ONE line which question to answer in the note. Then STOP and wait. "
                 "When they send any message, run `learn check`. If they answer in chat instead, run "
                 "`learn answer <Q> <letter>` or `learn answer <Q> --text \"...\"`.")
+    if a == "research" and t.get("mode") == "exam":
+        prof = exam_profile(t["exam"])
+        return (f"EXAM MODE. Read {prof['path']}. 1) If you don't know the goal, ask ONE plain question: which papers, "
+                "which syllabus points, and when is the exam? 2) Download the syllabus and real past papers + mark "
+                "schemes (+ examiner reports) ONLY from the sources the profile approves; check every download is a "
+                "real PDF. 3) Build patterns from 4+ real questions per syllabus point (profile, 'Building a "
+                "pattern'). 4) `learn research` prints the template with the exam sections; pipe the brief to "
+                "`learn research --save`. Never invent a question pattern: every pattern cites real questions.")
     if a == "research":
         return ("1) If you don't know the learner's goal yet, ask ONE plain question in chat: what do you want to be "
                 f"able to do with '{t['title']}', and what do you already know about it? Wait for the reply. "
@@ -617,24 +793,34 @@ def instruction(s, st):
                 "best 3-6 sources. 3) Write the brief from `learn research` (template) and pipe it to "
                 "`learn research --save`. Do not teach anything before the brief is saved.")
     if a == "plan":
-        return ("Pick 3-7 concept ids from the brief's Concepts table that lead to the learner's goal, simplest "
-                "first, and run `learn plan --concept <id> --concept <id> ... --known <ids|none>`. "
+        return ("Group the brief's concepts into UNITS: each unit is 2-5 concepts that only make sense together (one "
+                "schema, ~15-20 min), e.g. a syllabus sub-section. Run `learn plan --unit 'id|Unit title|c1,c2,c3' "
+                "--unit ... --known <ids|none>` (single concepts: --concept <id>). "
                 "--known is required: the ids the learner SAID they already know (they get a quick check instead "
                 "of teaching), or --known none. Never teach what they already know.")
     if a == "teach":
         return (f"Make 1 Manim visual of how '{title}' works: pick the closest template in references/visuals.md "
                 f"(things moving: physical; a system of parts: diagram with --still; a curve or numbers: graph; a "
-                f"formula: derivation; steps: process), adapt it, write its NARRATION (one spoken line per numbered caption: what to notice and why), and run `learn figure <name>`; it comes back narrated. Then write the theory block from the research "
+                f"formula: derivation; steps: process), adapt it, write its NARRATION (one spoken line per visual event, each event inside `with self.voice(i):`), and run `learn figure <name>`; it comes back narrated. Then write the theory block from the research "
                 f"brief (cite sources as [S1]) with the visual embedded, using the block recipe in the skill, pipe it to "
-                f"`learn block {cid}`, then write 1 question at {lvl_txt} and pipe it to `learn ask {cid}`.")
+                f"`learn block {cid}`, then write 1 question at level 2 ({LEVELS[2]}) by references/questions.md and pipe "
+                f"it to `learn ask {cid}`." + band_note(s))
     if a == "reteach":
+        last = next((m for m in reversed(s["mistakes"]) if m["concept"] == cid and not m["closed"]), None)
+        belief = (f" Contrast the wrong belief (\"{last['what']}\") with the right one, side by side."
+                  if last and last["kind"] == "misconception" and last["what"] else "")
         return (f"Re-teach '{title}': write a NEW block on the SAME idea with smaller steps, smaller numbers and a "
-                f"different example from the same subject (not a toy story without the idea), and a NEW Manim visual "
-                f"that shows the step they got wrong (references/visuals.md). Name that step. Pipe it to `learn block {cid}`. Then 1 question at "
-                f"level 1 via `learn ask {cid}`.")
+                f"different example from the same subject (not a toy story without the idea), and a NEW narrated "
+                f"Manim scene (audio-first, references/visuals.md) that shows the step they got wrong. Name that "
+                f"step.{belief} Pipe it to `learn block {cid}`. Then 1 question at level 1 via `learn ask {cid}`.")
     if a == "ask":
-        return (f"Write 1 NEW question on '{title}' at {lvl_txt}. Do not repeat an earlier question; change the "
-                f"numbers or the situation. Pipe it to `learn ask {cid}`.")
+        what = "a scenario the lesson did not use" if lvl > 1 else "worded differently from any earlier question"
+        if topic_profile(topic_of(s)):
+            return (f"EXAM MODE: 1 NEW question on '{title}', {what}: another AUTHENTIC past-paper question from the "
+                    f"brief's sources (quoted word for word, \"source\" + \"marks\"), or one generated from a brief "
+                    f"pattern (\"source\": \"pattern:P#\"). Pipe it to `learn ask {cid}`." + band_note(s))
+        return (f"Write 1 NEW question on '{title}' at {lvl_txt}, {what}, built by the "
+                f"question recipe in references/questions.md. Pipe it to `learn ask {cid}`." + band_note(s))
     if a == "review":
         return (f"Ask 1 review question on '{title}' at {lvl_txt}. No theory first: this checks memory from an "
                 f"earlier session. Pipe it to `learn ask {cid}`. The engine labels it as a review in the note.")
@@ -651,6 +837,40 @@ def instruction(s, st):
     raise LearnError(f"Unknown step {a!r}")
 
 
+def unit_instruction(s, st):
+    t = topic_of(s)
+    u = units_of(t)[st["concept"]]
+    names = ", ".join(f"{c} ('{t['concepts'][c]['title']}')" for c in u["concepts"])
+    exam = t.get("mode") == "exam"
+    if st["action"] == "practice":
+        return (f"Exam practice: ask AUTHENTIC past-paper questions on {names} (quoted word for word, with \"source\": "
+                f"the citation and \"marks\"), mixing in earlier units when the paper does. `learn ask <concept>`; typed "
+                f"answers are graded point by point against the mark scheme (`learn grade Q --marks got/total`)."
+                + band_note(s))
+    if st["action"] == "teach_unit" and exam:
+        return (f"EXAM MODE, short teaching for unit '{u['title']}' ({names}): ONE block with 1-2 segments: the idea as "
+                f"the syllabus states it, then a worked example of a REAL past-paper question (cite it) solved step by "
+                f"step with the mark-scheme points, then the examiner-report trap. One narrated Manim scene per segment "
+                f"(`learn figure`). Pipe to `learn block {st['concept']}`. Practice follows.")
+    if st["action"] == "teach_unit":
+        return (f"Teach the whole unit '{u['title']}' in ONE block: one segment per sub-idea (2-{MAX_SEGMENTS}), covering "
+                f"{names}. For each segment make one short narrated Manim scene with `learn figure` (60-120 s, audio-first "
+                f"`with self.voice(i):`, references/visuals.md). Write the block with the unit recipe in the skill (big idea, "
+                f"key terms, per segment: video + steps/table, worked example), pipe it to `learn block {st['concept']}`. "
+                f"No questions until the block is in the note.")
+    _, todo = unit_check_needed(s)
+    if exam:
+        return (f"EXAM MODE unit check for '{u['title']}': ONE question for each of {', '.join(todo)}: an AUTHENTIC "
+                f"past-paper question not used in the block (quoted word for word, \"source\": the citation, \"marks\"), "
+                f"or one generated from a brief pattern (\"source\": \"pattern:P#\") when no unused real one exists. "
+                f"Pipe each with `learn ask <concept>`; all wait together. Then tell the learner in one line and STOP."
+                + band_note(s))
+    return (f"Unit check for '{u['title']}': write ONE question for each of {', '.join(todo)} at level 2+ (a scenario "
+            f"the lesson did not use; references/questions.md), at least one of them two-tier or typed with a rubric. "
+            f"Pipe each with `learn ask <concept>`; all can wait in the note together. Then tell the learner in one "
+            f"line and STOP." + band_note(s))
+
+
 def print_next(s, extra=""):
     st = current_step(s)
     if extra:
@@ -661,19 +881,36 @@ def print_next(s, extra=""):
 
 # ---------- rules ----------
 
+def topic_of_concept(s, cid):
+    """Return (topic_id, topic) that owns a concept id, searching all topics."""
+    for tid, t in s["topics"].items():
+        if cid in t["concepts"]:
+            return tid, t
+    raise LearnError(f"Unknown concept {cid!r} in any topic.")
+
+
 def record(s, qid, result, kind=None, what=""):
     """Apply a graded answer. Returns the one-line decision reason."""
     sess = need_session(s)
     p = sess["pending"].pop(qid)
-    t = topic_of(s)
     cid = p["concept"]
+    tid, t = topic_of_concept(s, cid)
     c = t["concepts"][cid]
     d = today()
     ds = iso(d)
-    c["history"].append({"date": ds, "q": qid, "result": result, "level": p["level"], "kind": kind})
+    c["history"].append({"date": ds, "q": qid, "result": result, "level": p["level"], "kind": kind,
+                         **({"marks": p["marks_got"]} if "marks_got" in p else {})})
     c["last_seen"] = ds
+    c["checked"] = True
     sess["counts"][result] = sess["counts"].get(result, 0) + 1
-    key = f"{sess['topic']}/{cid}"
+    sess.setdefault("recent", []).append(result)
+    sess["recent"] = sess["recent"][-10:]
+    if p.get("review"):
+        sess["reviews"] = sess.get("reviews", 0) + 1
+    if p.get("practice"):
+        t.setdefault("practice", {})[p["practice"]] = t.get("practice", {}).get(p["practice"], 0) + 1
+    sess["followups"] = [f for f in sess.get("followups", []) if f["concept"] != cid]
+    key = f"{tid}/{cid}"
     sess["touched"].setdefault(key, sess["start_status"].get(key, c["status"]))
 
     if result == "correct":
@@ -700,12 +937,14 @@ def record(s, qid, result, kind=None, what=""):
             return f"Correct again. Same day, so no promotion: spacing needs a later day.{tail}"
         c["status"] = "learning"
         c["streak"] += 1
-        if c["streak"] >= 2 and p["level"] < 2:
+        missed_today = sess["misses"].get(key, 0) > 0
+        applied = p["level"] >= 2 and not missed_today     # one unseen application answer is enough evidence
+        if not applied and c["streak"] >= 2 and p["level"] < 2:
             c["level"] = max(c["level"], 2)
             sess["step"] = step("ask", cid, f"{c['streak']} correct in a row on '{c['title']}', but only recall so far. "
-                                            "One question that applies it to a new example (level 2) before it counts as solid.", 2)
+                                            "One question that applies it to a new scenario (level 2) before it counts as solid.", 2)
             return f"Correct, {c['streak']} in a row on '{c['title']}' at level 1."
-        if c["streak"] >= 2:
+        if applied or c["streak"] >= 2:
             c.update(status="solid", box=1, solid_date=ds, promoted=ds, next_review=iso(d + timedelta(days=1)),
                      level=min(3, c["level"] + 1))
             sess["misses"].pop(key, None)
@@ -714,16 +953,19 @@ def record(s, qid, result, kind=None, what=""):
                 sess["step"] = step("ask", back, f"'{c['title']}' is fixed, so back to '{t['concepts'][back]['title']}'.")
             else:
                 sess["step"] = None
-            return f"2 correct in a row: '{c['title']}' is solid. Review tomorrow.{tail}"
-        sess["step"] = step("ask", cid, f"Correct (1 of 2 in a row). One more question on '{c['title']}' makes it solid.",
-                            c["level"])
-        return f"Correct, 1 of 2 in a row on '{c['title']}'.{tail}"
+            why = "applied to a new scenario" if applied else "2 correct in a row"
+            return f"{why}: '{c['title']}' is solid. Review tomorrow.{tail}"
+        if sess["pending"]:     # part of a unit check: decide after the whole check is graded
+            return f"Correct on '{c['title']}', but recall only (level 1). It gets an application question later.{tail}"
+        sess["step"] = step("ask", cid, f"Correct, recall only. One application question on '{c['title']}' makes it solid.",
+                            max(2, c["level"]))
+        return f"Correct, recall only, on '{c['title']}'.{tail}"
 
     # wrong or "I don't know"
     was = c["status"]
     c.update(streak=0, level=max(1, c["level"] - 1), box=0, status="learning",
              next_review=iso(d + timedelta(days=1)))
-    kind = kind or ("gap" if result == "idk" else "misconception")
+    kind = kind or ("gap" if result == "idk" else "error")
     s["mistakes"].append({"topic": sess["topic"], "concept": cid, "date": ds, "q": qid, "kind": kind,
                           "what": what or ("said I don't know" if result == "idk" else ""), "closed": None})
     misses = sess["misses"][key] = sess["misses"].get(key, 0) + 1
@@ -749,8 +991,15 @@ def record(s, qid, result, kind=None, what=""):
     elif was in SOLID:
         sess["step"] = step("reteach", cid, f"'{c['title']}' was forgotten since last time: short re-teach, then a new question.")
     else:
-        sess["step"] = step("ask", cid, f"Missed once. The feedback explains the fix. Now a new question on the same idea.",
+        sess["step"] = step("reteach" if kind == "misconception" else "ask", cid,
+                            (f"Misconception on '{c['title']}': a short contrast re-teach of that step, then a "
+                             "differently-worded question." if kind == "misconception" else
+                             f"Missed once ({kind}). The feedback explains the fix. Now a new, differently worded question on the same idea."),
                             c["level"])
+    if sess["pending"]:   # unit check still being graded: queue this, don't jump yet
+        sess.setdefault("followups", []).append(sess["step"])
+        sess["step"] = None
+        return sess["followups"][-1]["reason"]
     return sess["step"]["reason"]
 
 
@@ -764,9 +1013,27 @@ def feedback(qid, p, result, picked=None):
         else:
             body = [f"> [!failure] {qid}: you picked {picked}. Right answer: {right}", f"> {p['why']}",
                     f"> Why {picked} is tempting: {p['misconceptions'].get(picked, '')}"]
+    elif p["type"] == "two-tier":
+        right = f"{p['correct']}. {p['options'][p['correct']]}, because {p['reason_correct']}. {p['reasons'][p['reason_correct']]}"
+        if result == "correct":
+            body = [f"> [!success] {qid}: correct ({right})", f"> {p['why']}"]
+        elif result == "idk":
+            body = [f"> [!tip] {qid}: \"I don't know\" is a real answer. Right answer: {right}", f"> {p['why']}"]
+        else:
+            L, R = (picked or "??")[0], (picked or "??")[1:]
+            wrong_bits = []
+            if L != p["correct"]:
+                wrong_bits.append(f"answer {L} comes from: {p['misconceptions'].get(L, '')}")
+            if R != p["reason_correct"]:
+                wrong_bits.append(f"reason {R} is the belief: {p['reason_misconceptions'].get(R, '')}")
+            body = [f"> [!failure] {qid}: you picked {L} because {R}. Right answer: {right}", f"> {p['why']}",
+                    "> " + "; ".join(wrong_bits)]
     else:
         tag = {"correct": "[!success]", "idk": "[!tip]", "wrong": "[!failure]"}[result]
-        body = [f"> {tag} {qid}: {result}. A good answer: {p['answer']}", f"> {p['why']}"]
+        marks = f" ({p['marks_got']} marks)" if p.get("marks_got") else ""
+        body = [f"> {tag} {qid}: {result}{marks}. A good answer: {p['answer']}", f"> {p['why']}"]
+        if p.get("rubric"):
+            body.append("> Marked on: " + "; ".join(p["rubric"]))
     return body
 
 
@@ -788,6 +1055,10 @@ def grade(s, qid, result, kind=None, what="", picked=None):
 def cmd_start(s, a):
     title = " ".join(a.topic).strip()
     tid = slug(title)
+    if tid not in s["topics"] and (len(title.split()) > 8 or re.search(r"[.!?:;]\s", title)):
+        known = ", ".join(t["title"] for t in s["topics"].values()) or "none yet"
+        raise LearnError(f"{title!r} looks like a message, not a topic. Pass only the topic name, e.g. "
+                         f"`learn start probability basics`. Existing topics: {known}.")
     d = iso(today())
     sess = s["session"]
     if sess and sess["date"] != d:
@@ -796,6 +1067,9 @@ def cmd_start(s, a):
     if tid not in s["topics"]:
         s["topics"][tid] = {"title": title, "goal": "", "created": d, "concepts": {}}
     t = s["topics"][tid]
+    if getattr(a, "exam", None):
+        exam_profile(a.exam)                 # validates the id
+        t["mode"], t["exam"] = "exam", a.exam
     msg = ""
     if sess and sess["topic"] != tid:
         sess.update(topic=tid, step=None, stack=[])
@@ -842,6 +1116,12 @@ def print_briefing(s, tid):
     print("\nLEARNER PREFERENCES (apply to every block and every reply):")
     for p in s["profile"]["preferences"]:
         print(f"- {p}")
+    if t.get("prefs"):
+        print(f"\nFOR THIS TOPIC ONLY ({t['title']}):")
+        for p in t["prefs"]:
+            print(f"- {p}")
+    if t.get("mode") == "exam":
+        print(f"\nEXAM MODE: profile {t['exam']} ({exam_profile(t['exam'])['path']})")
     print(f"\nTOPIC: {t['title']}" + (f" | goal: {t['goal']}" if t["goal"] else " | goal: not set yet"))
     if t["concepts"]:
         print(concept_table(t))
@@ -913,7 +1193,20 @@ def cmd_plan(s, a):
     if a.known is None:
         raise LearnError("Pass --known: the ids of concepts the learner said they already know "
                          "(they get a quick check instead of teaching), or --known none.")
-    specs = [parse_concept(x, brief) for x in a.concept]
+    unit_specs = []
+    for spec in a.unit:
+        parts = [x.strip() for x in spec.split("|")]
+        if len(parts) != 3 or not parts[0] or not parts[2]:
+            raise LearnError(f"--unit must look like 'id|Unit title|concept,concept', got {spec!r}")
+        ids = [slug(x) for x in parts[2].split(",") if x.strip()]
+        if not 1 <= len(ids) <= MAX_UNIT_CONCEPTS:
+            raise LearnError(f"Unit {parts[0]!r} has {len(ids)} concepts; a unit holds 1-{MAX_UNIT_CONCEPTS} linked "
+                             "concepts (one schema). Split it.")
+        unit_specs.append((slug(parts[0]), parts[1] or parts[0], ids))
+    if not a.unit and not a.concept:
+        raise LearnError("Pass --unit 'id|Title|c1,c2' (preferred) or --concept <id>.")
+    ids_in_units = [c for _, _, ids in unit_specs for c in ids]
+    specs = [parse_concept(x, brief) for x in list(a.concept) + ids_in_units]
     chosen = {x[0] for x in specs} | set(t["concepts"])
     for cid, _, prereqs in specs:
         for pr in prereqs:
@@ -937,13 +1230,28 @@ def cmd_plan(s, a):
             raise LearnError("The plan's prerequisites form a loop. Fix 'Builds on' in the brief.")
     for cid, title, prereqs in order:
         add_concept(t, cid, title, prereqs)
+    units = t.setdefault("units", {})
+    for uid, title, ids in unit_specs:
+        for other in units.values():
+            other["concepts"] = [c for c in other["concepts"] if c not in ids]
+        units[uid] = {"title": title, "concepts": ids}
+    if not unit_specs:   # group by the brief's Unit column when the plan names concepts only
+        for cid, _, _ in specs:
+            bu = brief["concepts"][cid].get("unit")
+            if bu:
+                units.setdefault(bu, {"title": bu.replace("-", " "), "concepts": []})
+                if cid not in units[bu]["concepts"]:
+                    units[bu]["concepts"].append(cid)
+    for uid in [u for u, v in units.items() if not v["concepts"]]:
+        del units[uid]
     for k in [x.strip() for x in a.known.split(",") if x.strip() and x.strip().lower() != "none"]:
         c = concept(s, slug(k))
         if c["status"] == "new":
             c["status"] = "claimed"
     write_map(s, t)
     need_session(s)["step"] = None
-    print_next(s, f"Plan saved with {len(t['concepts'])} concepts and drawn into the note.")
+    n_units = len(units_of(t))
+    print_next(s, f"Plan saved: {len(t['concepts'])} concepts in {n_units} unit(s), drawn into the note.")
 
 
 def cmd_research(s, a):
@@ -953,16 +1261,21 @@ def cmd_research(s, a):
         print(f"Research brief: {r['note']} (saved {r['date']})" if r else "No research brief yet for this topic.")
         print("\nTEMPLATE (fill every section; cite sources as [S1]; pipe the result to `learn research --save`):\n")
         print(BRIEF_TEMPLATE)
+        prof = topic_profile(t)
+        if prof:
+            print(f"EXAM MODE ({prof['board']}): also add these sections (rules: {prof['path']}):")
+            print(EXAM_TEMPLATE)
         print_next(s)
         return
     text = sys.stdin.read().strip()
-    brief, errs = parse_brief(text)
+    brief, errs = parse_brief(text, topic_profile(t))
     if errs:
         raise LearnError("Brief rejected. Fix and re-save:\n- " + "\n- ".join(errs))
     rel = f"{SOURCES_DIR}/{t['title']} research brief.md"
     (VAULT / SOURCES_DIR).mkdir(parents=True, exist_ok=True)
     (VAULT / rel).write_text(text + "\n")
-    t["research"] = {"note": rel, "date": iso(today()), "sources": len(brief["sources"])}
+    t["research"] = {"note": rel, "date": iso(today()), "sources": len(brief["sources"]),
+                     "exam": t.get("exam") if t.get("mode") == "exam" else None}
     if brief["goal"]:
         t["goal"] = brief["goal"]
     if s["session"]:
@@ -1068,10 +1381,10 @@ KOKORO_EN = ["af_alloy", "af_aoede", "af_bella", "af_heart", "af_jessica", "af_k
 VOICEBOX_URL = os.environ.get("LEARN_VOICEBOX_URL", "http://127.0.0.1:17493")
 VOICEBOX_DIR = Path(os.environ.get("LEARN_VOICEBOX_DIR", Path.home() / ".local/share/learning-system/voicebox"))
 VOICEBOX_DATA = VOICEBOX_DIR.parent / "voicebox-data"
-TTS_LINE_TIMEOUT = 120
-NARR_WORDS = (4, 70)          # per line
-NARR_TOTAL_WORDS = 260
-NARR_LEAD, NARR_GAP, NARR_TAIL = 0.25, 0.35, 0.6   # seconds
+TTS_LINE_TIMEOUT = 300
+NARR_WORDS = (4, 40)          # per line: one phrase per visual event (Mayer: segments of 1-2 sentences)
+NARR_TOTAL_WORDS = 450        # ~3 min of speech at 2.6 words/s
+NARR_LEAD, NARR_GAP, NARR_TAIL = 0.25, 0.35, 2.0   # seconds; 2 s silent hold on the finished frame (segmenting)
 NARRATION_MISSING = (
     "This animation has no NARRATION. Every animation is narrated for this learner. Add a module-level list "
     "with one spoken line per numbered caption, in order, explaining what to notice and why (not reading the "
@@ -1145,12 +1458,18 @@ def align_narration(lines, marks):
     return [marks[i][0] for i in nums]
 
 
-def schedule(marks, durations, video_len):
+def schedule(marks, durations, video_len, exact=False):
     """Place each line on the output timeline. Where a line would still be talking when the next step's visuals
     start, freeze the video at that step until the voice catches up. Returns (starts, holds, total_len);
     holds are (original_time, seconds)."""
     holds, starts = {}, []
     shift, prev_end = 0.0, 0.0
+    if exact:   # audio-first: each voice block already lasts its line + gap, so a line starts on its block
+        starts = list(marks)
+        need = starts[-1] + durations[-1] + NARR_TAIL
+        if need > video_len:
+            holds[round(video_len, 3)] = need - video_len
+        return starts, sorted(holds.items()), max(video_len, need)
     for i, d in enumerate(durations):
         if marks and (i == 0 or marks[i] > marks[i - 1] + 0.05):
             t = max(marks[i], 0.05)
@@ -1198,14 +1517,15 @@ def compose(video, clips, starts, holds, total, video_len, out):
             pieces.append(f"[v{j}]")
         graph.append("".join(pieces) + f"concat=n={len(pieces)}:v=1:a=0[v]")
     for i, st in enumerate(starts, 1):
-        graph.append(f"[{i}:a]aresample=48000,adelay=delays={int(st * 1000)}:all=1[a{i}]")
+        graph.append(f"[{i}:a]silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.03,"
+                     f"aresample=48000,adelay=delays={int(st * 1000)}:all=1[a{i}]")
     mix = "".join(f"[a{i}]" for i in range(1, len(starts) + 1))
     graph.append((f"{mix}amix=inputs={len(starts)}:normalize=0:dropout_transition=0," if len(starts) > 1
                   else f"{mix}") + "loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,apad[a]")
     cmd += ["-filter_complex", ";".join(graph), "-map", "[v]" if holds else "0:v", "-map", "[a]"]
     cmd += (["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p"] if holds else ["-c:v", "copy"])
     cmd += ["-c:a", "aac", "-b:a", "160k", "-t", f"{total:.3f}", "-movflags", "+faststart", str(out)]
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
     if r.returncode != 0 or not out.exists():
         raise LearnError("ffmpeg could not mix the narration: " + (r.stderr.strip().splitlines() or ["?"])[-1])
 
@@ -1293,16 +1613,21 @@ def tts_lines(lines, voice, outdir):
     return clips
 
 
-def narrate(s, video, lines, marks, tmp):
+def tts_warning(e):
+    return (f"WARNING: narration failed ({e}). Saved the silent video so the lesson can continue. "
+            f"Fix later: `bash scripts/install.sh`, or see {VOICEBOX_DATA / 'server.log'}.")
+
+
+def narrate(s, video, lines, marks, tmp, clips=None, audio_first=False):
     """Return (video_to_save, message). Never raises for TTS problems: the silent video is kept instead."""
     voice = s["profile"].get("voice", DEFAULT_VOICE)
-    try:
-        clips = tts_lines(lines, voice, tmp)
-    except TTSError as e:
-        return video, (f"WARNING: narration failed ({e}). Saved the silent video so the lesson can continue. "
-                       f"Fix later: `bash scripts/install.sh`, or see {VOICEBOX_DATA / 'server.log'}.")
+    if clips is None:
+        try:
+            clips = tts_lines(lines, voice, tmp)
+        except TTSError as e:
+            return video, tts_warning(e)
     video_len = probe_duration(video)
-    starts, holds, total = schedule(marks, [d for _, d in clips], video_len)
+    starts, holds, total = schedule(marks, [d for _, d in clips], video_len, exact=audio_first)
     if os.environ.get("LEARN_DEBUG_SYNC"):
         print(f"SYNC marks={marks} durations={[round(d, 2) for _, d in clips]} starts={[round(x, 2) for x in starts]} "
               f"holds={holds} total={total:.2f}")
@@ -1312,7 +1637,8 @@ def narrate(s, video, lines, marks, tmp):
     except (LearnError, subprocess.TimeoutExpired) as e:
         return video, f"WARNING: could not mix the narration ({e}). Saved the silent video."
     held = sum(h for _, h in holds)
-    sync = "step-synced to the numbered captions" if marks else "played as one block (no numbered captions found)"
+    sync = ("audio-first: every line starts on its own visual event" if audio_first else
+            "step-synced to the numbered captions" if marks else "played as one block (no numbered captions found)")
     return out, (f"Narration: {len(lines)} line(s), voice {voice}, {sum(d for _, d in clips):.1f}s of speech, {sync}"
                  + (f"; picture held {held:.1f}s in total so it waits for the voice" if held else "") + ".")
 
@@ -1327,8 +1653,9 @@ def save_figure(s, name, out, kind):
     s.setdefault("narrations", {}).pop(rel, None)
     print(f"Figure saved: {rel} ({kind})")
     print(f"EMBED: ![[{rel}]]")
-    print("NEXT: Put the EMBED line in the theory block (or in a question's \"figure\" field), with text that "
-          "walks through it using the numbered marks, then run `learn block <concept>`.")
+    print("NEXT: Put the EMBED line under its segment heading in the block (or in a question's \"figure\" field). "
+          "The notes beside it add steps or a table, not the narration. Make the next segment's scene, or run "
+          "`learn block <unit>` when all segments are ready.")
     return rel
 
 
@@ -1336,7 +1663,7 @@ def strip_ansi(text):
     return re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", text)
 
 
-def render_manim(s, name, script, still, tmp):
+def render_manim(s, name, script, still, tmp, durations=None):
     sess = need_session(s)
     old = [fix for pat, fix in OLD_MANIM_API if re.search(pat, script)]
     if old:
@@ -1348,11 +1675,13 @@ def render_manim(s, name, script, still, tmp):
     (tmp / "harness.py").write_text(MANIM_HARNESS)
     report = tmp / "report.json"
     env = dict(os.environ, LEARN_FIG_SCRIPT=str(tmp / "figure.py"), LEARN_FIG_REPORT=str(report),
+               LEARN_VOICE_DUR=json.dumps({str(i + 1): d for i, d in enumerate(durations or [])}),
                PATH=f"{TEX_BIN}{os.pathsep}{os.environ.get('PATH', '')}")
-    cmd = [str(MANIM), "-s" if still else "-qm", "--disable_caching", "--media_dir", str(tmp / "media"),
+    quality = os.environ.get("LEARN_MANIM_QUALITY", "-qm")      # 720p30 for lessons; tests use -ql
+    cmd = [str(MANIM), "-s" if still else quality, "--disable_caching", "--media_dir", str(tmp / "media"),
            "-o", "out", str(tmp / "harness.py"), "LearnChecked"]
     if still:
-        cmd.insert(2, "-qm")
+        cmd.insert(2, quality)
     try:
         r = subprocess.run(cmd, cwd=tmp, env=env, capture_output=True, text=True, timeout=MANIM_TIMEOUT)
     except subprocess.TimeoutExpired:
@@ -1392,7 +1721,7 @@ def render_manim(s, name, script, still, tmp):
         if secs is not None and not VIDEO_SECONDS[0] <= secs <= VIDEO_SECONDS[1]:
             raise LearnError(f"The animation lasts {secs:.1f}s; keep it between {VIDEO_SECONDS[0]} and "
                              f"{VIDEO_SECONDS[1]} s (add self.wait() or shorten run_time).")
-    return out, {int(k): v for k, v in rep.get("marks", {}).items()}
+    return out, {int(k): v for k, v in rep.get("marks", {}).items()}, {int(k): v for k, v in rep.get("voice", {}).items()}
 
 
 def render_matplotlib(script, tmp):
@@ -1461,11 +1790,19 @@ def cmd_figure(s, a):
         if lines is None:
             raise LearnError(NARRATION_MISSING)
         validate_narration(lines)
+    audio_first = bool(lines) and "self.voice(" in script
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
+        clips, tts_note = None, None
+        if audio_first:   # speak first, then render the scene to the real line lengths
+            try:
+                clips = tts_lines(lines, s["profile"].get("voice", DEFAULT_VOICE), tmp)
+            except TTSError as e:
+                tts_note = tts_warning(e)
         if is_manim:
             try:
-                out, marks = render_manim(s, name, script, a.still, tmp)
+                out, marks, vmarks = render_manim(s, name, script, a.still, tmp,
+                                                  durations=[d + NARR_GAP for _, d in clips] if clips else None)
             except LearnError:
                 sess["manim_failures"] = fails + 1
                 left = MANIM_FALLBACK_AFTER - sess["manim_failures"]
@@ -1476,10 +1813,19 @@ def cmd_figure(s, a):
                 raise
             sess["manim_failures"] = 0
             note = None
-            if lines:
+            if audio_first:
+                if sorted(vmarks) != list(range(1, len(lines) + 1)):
+                    raise LearnError(f"NARRATION has {len(lines)} line(s) but the scene opened voice blocks "
+                                     f"{sorted(vmarks) or 'none'}. Use `with self.voice(1):` ... `with self.voice("
+                                     f"{len(lines)}):`, one per line, in order.")
+                note = tts_note or None
+                if clips:
+                    out, note = narrate(s, out, lines, [vmarks[i] for i in range(1, len(lines) + 1)], tmp,
+                                        clips=clips, audio_first=True)
+            elif lines:
                 out, note = narrate(s, out, lines, align_narration(lines, marks), tmp)
             rel = save_figure(s, name, out, "manim")
-            if lines and not note.startswith("WARNING"):
+            if lines and note and not note.startswith("WARNING"):
                 s["narrations"][rel] = lines
             if note:
                 print(note)
@@ -1488,10 +1834,57 @@ def cmd_figure(s, a):
             save_figure(s, name, out, "matplotlib")
 
 
+def block_structure_problems(md, unit_size):
+    """Notes must be structured: short paragraphs, and for a unit: big idea, key terms, segments with visuals."""
+    errs = []
+    body = re.sub(r"```.*?```|\$\$.*?\$\$", "", md, flags=re.S)
+    para = []
+    for line in body.split("\n") + [""]:
+        st = line.strip()
+        prose = st and not re.match(r"^(#|>|-|\*\*Big idea|\*\*Key terms|\||!\[\[|\d+[.)]\s|\$)", st)
+        if prose:
+            para.append(st)
+        elif para:
+            n = len(" ".join(para).split())
+            if n > MAX_PARAGRAPH_WORDS:
+                errs.append(f"a {n}-word paragraph (\"{' '.join(para)[:50]}...\"): over {MAX_PARAGRAPH_WORDS} words; "
+                            "turn it into numbered steps, a list or a table")
+            para = []
+    segs = re.split(r"(?m)^### ", md)
+    if unit_size > 1:
+        if not re.search(r"(?m)^\*\*Big idea:\*\*", md):
+            errs.append("start with '**Big idea:** <one sentence>'")
+        if not re.search(r"(?m)^\*\*Key terms", md):
+            errs.append("add '**Key terms:**' with a '- **term**: one-line meaning' list before the first video")
+        parts = segs[1:]
+        if not 1 <= len(parts) <= MAX_SEGMENTS:
+            errs.append(f"a unit block needs 1-{MAX_SEGMENTS} segments, each starting with '### <sub-idea>' "
+                        f"(found {len(parts)})")
+        for p in parts:
+            title = p.split("\n", 1)[0].strip()
+            if not (FIG_EMBED.search(p) or MERMAID.search(p)):
+                errs.append(f"segment '{title}' has no visual (its own short `learn figure` scene)")
+            if not re.search(r"(?m)^\s*(- |\d+[.)] |\|)", p):
+                errs.append(f"segment '{title}' needs a structured element: numbered steps, a list or a table")
+            if len(re.sub(r"```.*?```", " ", p, flags=re.S).split()) > MAX_BLOCK_WORDS:
+                errs.append(f"segment '{title}' is over {MAX_BLOCK_WORDS} words; cut it or split the segment")
+    return errs
+
+
 def cmd_block(s, a):
-    cid = slug(a.concept)
-    c = concept(s, cid)
     sess = need_session(s)
+    t = topic_of(s)
+    target = slug(a.concept)
+    if target in t.get("units", {}) and target not in t["concepts"]:
+        unit = units_of(t)[target]
+        cids = list(unit["concepts"])
+        title = unit["title"]
+    else:
+        cids = [target]
+        concept(s, target)
+        title = t["concepts"][target]["title"]
+    cid = cids[0]
+    c = t["concepts"][cid]
     if sess["pending"]:
         raise LearnError(f"{', '.join(sess['pending'])} still waiting for an answer. Run `learn check` first.")
     md = sys.stdin.read().strip()
@@ -1522,8 +1915,12 @@ def cmd_block(s, a):
     if merr:
         raise LearnError("Mermaid would not render in Obsidian. Fix it and re-run:\n- " + "\n- ".join(merr))
     words = len(re.sub(r"\$\$.*?\$\$|```.*?```", " ", md, flags=re.S).split())
-    if words > MAX_BLOCK_WORDS:
-        raise LearnError(f"Block is {words} words; the limit is {MAX_BLOCK_WORDS}. Cut it to one idea and re-run.")
+    limit = MAX_BLOCK_WORDS * (MAX_SEGMENTS if len(cids) > 1 else 1)
+    if words > limit:
+        raise LearnError(f"Block is {words} words; the limit is {limit}. Cut it and re-run.")
+    shape = block_structure_problems(md, len(cids))
+    if shape:
+        raise LearnError("The notes need structure (unit recipe in the skill):\n- " + "\n- ".join(shape))
     for f in figs:   # folded transcript under each narrated video
         said = s.get("narrations", {}).get(f)
         if said:
@@ -1531,19 +1928,78 @@ def cmd_block(s, a):
                         lambda m: m.group(1) + "\n\n> [!quote]- Narration (what the voice says)\n"
                         + "\n".join(f"> {i}. {x}" for i, x in enumerate(said, 1)), md, count=1)
     sess["blocks"] += 1
-    c["taught"] = True
-    if c["status"] == "new":
-        c["status"] = "learning"
-    key = f"{sess['topic']}/{cid}"
-    sess["touched"].setdefault(key, sess["start_status"].get(key, "new"))
+    for x in cids:
+        cx = t["concepts"][x]
+        cx["taught"] = True
+        if len(cids) > 1:
+            cx["checked"] = False
+        if cx["status"] == "new":
+            cx["status"] = "learning"
+        key = f"{sess['topic']}/{x}"
+        sess["touched"].setdefault(key, sess["start_status"].get(key, "new"))
+    sess["followups"] = [f for f in sess.get("followups", []) if f["concept"] not in cids]
     refs = "\n".join(f"> {x}: {brief['sources'][x]['source']} ({brief['sources'][x]['type']})" for x in cited)
-    append(s, f"## {sess['blocks']}. {c['title']}\n\n{md}\n\n> [!quote]- Sources\n{refs}")
+    append(s, f"## {sess['blocks']}. {title}\n\n{md}\n\n> [!quote]- Sources\n{refs}")
     prev = sess["step"]
-    lvl = 1 if (prev and prev["action"] == "reteach") else c["level"]
-    sess["step"] = step("ask", cid, f"Theory for '{c['title']}' is in the note. Now active recall on it.", lvl)
+    if len(cids) > 1:
+        sess["step"] = None      # current_step now asks for the unit check
+    else:
+        lvl = 1 if (prev and prev["action"] == "reteach") else max(2, c["level"])
+        sess["step"] = step("ask", cid, f"Theory for '{c['title']}' is in the note. Now one application question.", lvl)
     render_canvas(s, sess["topic"])
     print_next(s, "Block written to the note." + (f" ({unchecked} mermaid diagram(s) not checked: Obsidian not "
                                                     "reachable; open the note to confirm it renders.)" if unchecked else ""))
+
+
+def _words(text):
+    return {w for w in re.findall(r"[a-z]{4,}", text.lower()) if w not in STOPWORDS}
+
+
+def item_problems(stem, opts, note_text="", level=1):
+    """Item-writing flaws an engine can see (Haladyna, Downing & Rodriguez 2002; NBME guide)."""
+    errs = []
+    key = next(o["text"] for o in opts if o.get("correct"))
+    dis = [o["text"] for o in opts if not o.get("correct")]
+    if not stem.rstrip().endswith("?"):
+        errs.append("the stem must be a closed question ending in '?': an expert should be able to answer it "
+                    "before seeing the options")
+    if re.search(r"\b(NOT|EXCEPT)\b|\bwhich\b.{0,40}\b(false|incorrect|not true)\b", stem):
+        errs.append("negative stem (NOT/EXCEPT/false): ask for the correct idea instead")
+    texts = [o["text"].strip().lower() for o in opts]
+    if len(set(texts)) < len(texts):
+        errs.append("two options are identical")
+    if any(re.search(r"\b(all|none|both) of the above\b", x) for x in texts):
+        errs.append("no 'all/none/both of the above'")
+    mean = sum(len(d) for d in dis) / len(dis)
+    if len(key) >= 20 and len(key) > KEY_LENGTH_RATIO * mean:
+        errs.append(f"the right option is {len(key) / mean:.1f}x longer than the others: a length cue. Make all "
+                    "options the same length and detail")
+    sw = _words(stem)
+    leak = (sw & _words(key)) - set().union(*[_words(d) for d in dis])
+    if len(leak) >= 2:
+        errs.append(f"only the right option repeats stem words ({', '.join(sorted(leak))}): a wording cue")
+    for d in dis:
+        if ABSOLUTES.search(d) and not ABSOLUTES.search(key):
+            errs.append(f"'{d[:40]}' uses an absolute word (always/never/only...) the right option lacks: a cue")
+            break
+    if level >= 2 and note_text:
+        # a copied sentence shares a long run of words; a topic's own name ("the chance of at least one") does not
+        grams = lambda x: {tuple(w[i:i + 8]) for w in [re.findall(r"[a-z0-9]+", x.lower())] for i in range(len(w) - 7)}
+        if grams(stem) & grams(note_text):
+            errs.append("the stem copies text already in the note (the lesson or an earlier question); level 2+ "
+                        "needs a new scenario")
+    return errs
+
+
+def _check_options(opts, label):
+    if len(opts) != 3:
+        raise LearnError(f"{label}: use exactly 3 options (1 right + 2 plausible distractors; Rodriguez 2005). "
+                         "'I don't know' is added automatically.")
+    if sum(bool(o.get("correct")) for o in opts) != 1:
+        raise LearnError(f"{label}: exactly one option must have \"correct\": true.")
+    for o in opts:
+        if not o.get("correct") and not str(o.get("misconception", "")).strip():
+            raise LearnError(f"Wrong option {o.get('text')!r} needs a \"misconception\": the wrong belief that leads to it.")
 
 
 def cmd_ask(s, a):
@@ -1553,8 +2009,8 @@ def cmd_ask(s, a):
     if not c["taught"] and c["status"] != "claimed":
         raise LearnError(f"'{c['title']}' has not been taught yet. Teach it first with `learn block {cid}`. "
                          "Learner rule: questions only on what was taught.")
-    if len(sess["pending"]) >= 2:
-        raise LearnError("Two questions are already waiting. Run `learn check` after the learner answers.")
+    if len(sess["pending"]) >= MAX_PENDING:
+        raise LearnError(f"{MAX_PENDING} questions are already waiting. Run `learn check` after the learner answers.")
     try:
         q = json.loads(sys.stdin.read())
     except json.JSONDecodeError as e:
@@ -1566,10 +2022,68 @@ def cmd_ask(s, a):
     level = int(q.get("level") or (sess["step"] or {}).get("level") or c["level"])
     if level not in LEVELS:
         raise LearnError("level must be 1, 2 or 3.")
+    t = topic_of(s)
+    uid, unit = unit_of(t, cid)
+    _, todo = unit_check_needed(s)
+    in_check = len(unit["concepts"]) > 1 and cid in todo
+    if in_check:
+        level = max(level, 2)
+        others = [p for p in sess["pending"].values() if p["concept"] in unit["concepts"]]
+        open_item = any(p["type"] in ("typed", "two-tier") or not p.get("source", "pattern:").startswith("pattern:")
+                        for p in others)
+        real = topic_profile(t) and not str(q.get("source") or "pattern:").startswith("pattern:")
+        if kind == "choice" and not open_item and not real and len(todo) == 1:
+            raise LearnError("A unit check needs at least one two-tier (answer + reason) or typed question with a "
+                             "rubric. Make this last one two-tier or typed (references/questions.md).")
+    note_text = note_file(s).read_text()
+    prof = topic_profile(t)
+    authentic = False
+    if prof:
+        src, marks = str(q.get("source") or "").strip(), q.get("marks")
+        if not isinstance(marks, int) or not 1 <= marks <= 20:
+            raise LearnError("Exam mode: add \"marks\": the question's mark total (a whole number).")
+        if src.lower().startswith("pattern:"):
+            pid = src.split(":", 1)[1].strip()
+            if pid not in brief_of(s)["patterns"]:
+                raise LearnError(f"Exam mode: pattern {pid!r} is not in the brief's Paper patterns.")
+        elif prof["re"].fullmatch(src):
+            paper = src.split(" Q")[0]
+            if paper not in note_text and paper not in (VAULT / t["research"]["note"]).read_text():
+                raise LearnError(f"Exam mode: {paper} is not among the brief's real questions/sources. Add it to "
+                                 "the brief (with its source row) before using it.")
+            authentic = True
+        else:
+            raise LearnError(f"Exam mode: \"source\" must be a real question cited like {prof['citation_example']} "
+                             "(quoted word for word), or \"pattern:P1\" for a generated question that follows a "
+                             "verified pattern.")
+        p_exam = {"source": src, "marks": marks}
+    if kind in ("choice", "two-tier") and authentic:   # official items are kept as printed (often 4 options)
+        opts_ = q.get("options") or []
+        if not 2 <= len(opts_) <= 5 or sum(bool(o.get("correct")) for o in opts_) != 1:
+            raise LearnError("Past-paper MCQ: copy its options exactly (2-5), mark the one right answer.")
+        for o in opts_:
+            if not o.get("correct") and not str(o.get("misconception", "")).strip():
+                raise LearnError(f"Wrong option {o.get('text')!r} needs a \"misconception\" (the examiner report or "
+                                 "the error that leads to it).")
+    elif kind in ("choice", "two-tier"):
+        _check_options(q.get("options") or [], "Answer options")
+        if kind == "two-tier":
+            _check_options(q.get("reasons") or [], "Reason options")
+        flaws = item_problems(q["question"], q["options"], note_text, level)
+        if kind == "two-tier":
+            flaws += [f"reason tier: {f}" for f in item_problems("Why?", q["reasons"]) if "stem" not in f]
+        if flaws:
+            raise LearnError("This question can be answered without understanding. Fix it (references/questions.md):"
+                             "\n- " + "\n- ".join(flaws))
     sess["qn"] += 1
     qid = f"Q{sess['qn']}"
     p = {"concept": cid, "type": kind, "level": level, "why": q["why"].strip(), "question": q["question"].strip()}
-    out = [f"### {qid} · level {level}", "", q["question"].strip(), ""]
+    tag = {"two-tier": " · two-tier", "typed": " · write it"}.get(kind, "")
+    if prof:
+        p.update(p_exam)
+        tag += (f" · {p_exam['source']}" if authentic else f" · generated, follows {p_exam['source'].split(':')[1].strip()}")
+        tag += f" · [{p_exam['marks']} mark{'s' if p_exam['marks'] > 1 else ''}]"
+    out = [f"### {qid} · level {level}{tag}", "", q["question"].strip(), ""]
     fig = str(q.get("figure") or "").strip()
     if fig:
         m = FIG_EMBED.fullmatch(fig) or FIG_EMBED.fullmatch(f"![[{fig}]]")
@@ -1577,31 +2091,39 @@ def cmd_ask(s, a):
             raise LearnError(f"\"figure\" must be an embed printed by `learn figure`, got {fig!r}.")
         out[3:3] = ["", f"![[{m.group(1)}]]"]
         p["figure"] = m.group(1)
-    if kind == "choice":
-        opts = q.get("options") or []
-        if not 2 <= len(opts) <= 5:
-            raise LearnError("A choice question needs 2-5 options (I don't know is added automatically).")
-        if sum(bool(o.get("correct")) for o in opts) != 1:
-            raise LearnError("Exactly one option must have \"correct\": true.")
-        for o in opts:
-            if not o.get("correct") and not str(o.get("misconception", "")).strip():
-                raise LearnError(f"Wrong option {o.get('text')!r} needs a \"misconception\": the wrong belief that leads to it.")
-        opts = list(opts)
-        random.Random(f"{sess['date']}{qid}{cid}").shuffle(opts)
+    if kind in ("choice", "two-tier"):
+        opts = list(q["options"])
+        if not authentic:   # past-paper keys refer to the printed letters
+            random.Random(f"{sess['date']}{qid}{cid}").shuffle(opts)
         letters = "ABCDEF"
         p["options"] = {letters[i]: o["text"].strip() for i, o in enumerate(opts)}
         p["misconceptions"] = {letters[i]: o.get("misconception", "") for i, o in enumerate(opts)}
         p["correct"] = next(letters[i] for i, o in enumerate(opts) if o.get("correct"))
         p["idk"] = letters[len(opts)]
+        if kind == "two-tier":
+            out.append("**Answer**")
         out += [f"- [ ] {L}. {txt}" for L, txt in p["options"].items()]
+        if kind == "two-tier":
+            reasons = list(q["reasons"])
+            random.Random(f"{sess['date']}{qid}{cid}r").shuffle(reasons)
+            p["reasons"] = {str(i + 1): r["text"].strip() for i, r in enumerate(reasons)}
+            p["reason_misconceptions"] = {str(i + 1): r.get("misconception", "") for i, r in enumerate(reasons)}
+            p["reason_correct"] = next(str(i + 1) for i, r in enumerate(reasons) if r.get("correct"))
+            out += ["", "**Because**"] + [f"- [ ] {k}. {txt}" for k, txt in p["reasons"].items()]
+            out.append("")
         out.append(f"- [ ] {p['idk']}. I don't know")
     elif kind == "typed":
         if not str(q.get("answer", "")).strip():
-            raise LearnError("A typed question needs \"answer\": what a good answer must contain.")
-        p["answer"] = q["answer"].strip()
+            raise LearnError("A typed question needs \"answer\": a model answer.")
+        rubric = [str(x).strip() for x in (q.get("rubric") or []) if str(x).strip()]
+        top = max(4, p.get("marks", 0))
+        if not 2 <= len(rubric) <= top and not (prof and len(rubric) == 1 == p.get("marks")):
+            raise LearnError(f"A typed question needs \"rubric\": 2-{top} key points a correct answer must contain "
+                             "(graded point by point; in exam mode, the mark-scheme points with their codes).")
+        p["answer"], p["rubric"] = q["answer"].strip(), rubric
         out += ["**Your answer** (type below this line):", ""]
     else:
-        raise LearnError("\"type\" must be \"choice\" or \"typed\".")
+        raise LearnError("\"type\" must be \"choice\", \"two-tier\" or \"typed\".")
     out.append(f"%% {qid} end %%")
     prev = current_step(s)
     label = {"review": f"> [!question] Review: '{c['title']}', last seen {c['last_seen']}. No theory first: this checks memory.",
@@ -1609,26 +2131,40 @@ def cmd_ask(s, a):
              }.get(prev.get("action") if prev.get("concept") == cid else None)
     if label:
         out = [label, ""] + out
+    if label and "Review" in label:
+        p["review"] = True
+    if prev.get("action") == "practice" and cid in units_of(t).get(prev["concept"], {}).get("concepts", []):
+        p["practice"] = prev["concept"]
     sess["pending"][qid] = p
     sess["step"] = None
+    sess["followups"] = [f for f in sess.get("followups", []) if f["concept"] != cid]
     append(s, "\n".join(out))
     notice(f"{qid} is ready in your session note")
     print(f"{qid} written to the note.")
     print("WHY: " + ("Spaced review: remembering on a later day is what makes it stick." if label and "Review" in label
                       else "A quick check instead of a lesson." if label else "Active recall right after the theory."))
-    print(f"NEXT: Tell the learner in ONE line: \"{qid} is in the note. Answer there, then send any message.\" "
+    _, todo = unit_check_needed(s)
+    if todo:
+        print(f"NEXT: Unit check not finished: also ask about {', '.join(todo)} (`learn ask <concept>`), then tell the "
+              "learner in ONE line that the questions are in the note and STOP.")
+        return
+    waiting = list(sess["pending"])
+    qs = f"{waiting[0]}-{waiting[-1]} are" if len(waiting) > 1 else f"{qid} is"
+    print(f"NEXT: Tell the learner in ONE line: \"{qs} in the note. Answer there, then send any message.\" "
           "Then STOP and wait. When they reply, run `learn check`.")
 
 
 def read_answer(s, qid, p):
     lines = note_lines(s)
     head, end = q_span(lines, qid)
-    if p["type"] == "choice":
-        picked = [m.group(2) for l in lines[head:end] if (m := re.match(r"^\s*- \[(?!\s\])(.)\] ([A-F])\.", l))]
-        return picked
+    if p["type"] in ("choice", "two-tier"):
+        letters = [m.group(2) for l in lines[head:end] if (m := re.match(r"^\s*- \[(?!\s\])(.)\] ([A-F])\.", l))]
+        if p["type"] == "choice":
+            return letters
+        digits = [m.group(2) for l in lines[head:end] if (m := re.match(r"^\s*- \[(?!\s\])(.)\] ([1-6])\.", l))]
+        return letters, digits
     start = next((i for i in range(head, end) if lines[i].startswith("**Your answer**")), None)
     return "\n".join(lines[start + 1:end]).strip() if start is not None else ""
-
 
 def cmd_check(s, a):
     sess = need_session(s)
@@ -1637,6 +2173,21 @@ def cmd_check(s, a):
         return
     for qid, p in list(sess["pending"].items()):
         ans = read_answer(s, qid, p)
+        if p["type"] == "two-tier":
+            letters, digits = ans
+            if p["idk"] in letters:
+                print(f"{qid}: I don't know -> idk. " + grade(s, qid, "idk", picked=p["idk"]))
+                continue
+            if len(letters) != 1 or len(digits) != 1:
+                print(f"{qid}: tick exactly one answer (A-C) and one reason (1-3).")
+                continue
+            ok_a, ok_r = letters[0] == p["correct"], digits[0] == p["reason_correct"]
+            result = "correct" if ok_a and ok_r else "wrong"
+            kind = None if result == "correct" else ("misconception" if not ok_r else "error")
+            what = (p["reason_misconceptions"].get(digits[0]) if not ok_r else p["misconceptions"].get(letters[0], ""))
+            reason = grade(s, qid, result, kind=kind, what=what, picked=f"{letters[0]}{digits[0]}")
+            print(f"{qid}: learner picked {letters[0]} because {digits[0]} -> {result}. {reason}")
+            continue
         if p["type"] == "choice":
             if not ans:
                 print(f"{qid}: no box ticked yet.")
@@ -1652,10 +2203,13 @@ def cmd_check(s, a):
             if not ans:
                 print(f"{qid}: nothing typed under 'Your answer' yet.")
                 continue
-            print(f"{qid} (typed) learner wrote: {ans!r}\n  A good answer must contain: {p['answer']}")
-            print(f"NEXT: Judge the meaning, not the wording. Run `learn grade {qid} correct` if the key idea is "
-                  f"there, or `learn grade {qid} wrong --kind slip|gap|misconception --what \"<the wrong belief>\"`. "
-                  f"If the learner wrote that they don't know, run `learn grade {qid} idk`.")
+            rub = p.get("rubric") or [p["answer"]]
+            print(f"{qid} (typed) learner wrote: {ans!r}\n  Rubric (one mark each):\n" +
+                  "\n".join(f"   {i}. {r}" for i, r in enumerate(rub, 1)))
+            print(f"NEXT: Mark each rubric point present or absent by meaning, not wording. All points -> "
+                  f"`learn grade {qid} correct --marks {len(rub)}/{len(rub)}`; otherwise `learn grade {qid} wrong "
+                  f"--marks <got>/{len(rub)} --kind slip|gap|misconception --what \"<what was missing or wrong>\"`; "
+                  f"\"don't know\" -> `learn grade {qid} idk`.")
             save(s)
             return
     if sess["pending"]:
@@ -1674,7 +2228,17 @@ def cmd_answer(s, a):
     p = sess["pending"][qid]
     lines = note_lines(s)
     head, end = q_span(lines, qid)
-    if p["type"] == "choice":
+    if p["type"] == "two-tier":
+        raw = (a.choice or "").strip().upper()
+        if raw in ("IDK", "?") or "DON" in raw:
+            raw = p["idk"]
+        m = re.fullmatch(r"([A-F])\W*([1-6])?", raw)
+        if not m or (m.group(1) != p["idk"] and not m.group(2)):
+            raise LearnError(f"Two-tier answer looks like 'B2' (answer letter + reason number), or 'idk'.")
+        for i in range(head, end):
+            if re.match(rf"^\s*- \[.\] {m.group(1)}\.", lines[i]) or (m.group(2) and re.match(rf"^\s*- \[.\] {m.group(2)}\.", lines[i])):
+                lines[i] = re.sub(r"\[.\]", "[x]", lines[i], count=1)
+    elif p["type"] == "choice":
         letter = (a.choice or "").strip().upper().rstrip(").")
         if letter in ("IDK", "?", "E?") or "DON" in letter:
             letter = p["idk"]
@@ -1699,8 +2263,13 @@ def cmd_grade(s, a):
         raise LearnError(f"{qid} is not waiting for a grade.")
     if sess["pending"][qid]["type"] != "typed":
         raise LearnError(f"{qid} is multiple choice; `learn check` grades it automatically.")
+    if a.marks:
+        m = re.fullmatch(r"(\d+)/(\d+)", a.marks.strip())
+        if not m:
+            raise LearnError("--marks looks like 2/3")
+        sess["pending"][qid]["marks_got"] = a.marks.strip()
     reason = grade(s, qid, a.result, kind=a.kind, what=a.what or "")
-    print(f"{qid}: {a.result}. {reason}")
+    print(f"{qid}: {a.result}" + (f" ({a.marks} marks)" if a.marks else "") + f". {reason}")
     if sess["pending"]:
         print("NEXT: Run `learn check` for the other waiting question.")
         return
@@ -1725,10 +2294,16 @@ def cmd_voice(s, a):
 
 def cmd_pref(s, a):
     text = " ".join(a.text).strip()
+    if a.topic:
+        t = topic_of(s)
+        prefs = t.setdefault("prefs", [])
+        if text and text not in prefs:
+            prefs.append(text)
+        print(f"Saved for '{t['title']}' only. {len(prefs)} topic preference(s).")
+        return
     if text and text not in s["profile"]["preferences"]:
         s["profile"]["preferences"].append(text)
     print(f"Saved. {len(s['profile']['preferences'])} preferences now apply to every session.")
-
 
 def finish(s, why_line):
     sess = s["session"]
@@ -1831,12 +2406,13 @@ def commit(msg):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    p = sub.add_parser("start"); p.add_argument("topic", nargs="+")
+    p = sub.add_parser("start"); p.add_argument("topic", nargs="+"); p.add_argument("--exam")
     p = sub.add_parser("research"); p.add_argument("--save", action="store_true")
     p = sub.add_parser("lit"); p.add_argument("action", choices=["search", "db", "resolve", "text", "guide"])
     p.add_argument("args", nargs="*"); p.add_argument("--sources"); p.add_argument("--max", type=int, default=6)
     p.add_argument("--chars", type=int, default=6000); p.add_argument("--objective")
     p = sub.add_parser("plan"); p.add_argument("--goal"); p.add_argument("--concept", action="append", default=[])
+    p.add_argument("--unit", action="append", default=[])
     p.add_argument("--known")
     p = sub.add_parser("known"); p.add_argument("concept")
     p = sub.add_parser("add"); p.add_argument("id"); p.add_argument("title", nargs="+")
@@ -1849,9 +2425,10 @@ def main(argv=None):
     sub.add_parser("check")
     p = sub.add_parser("answer"); p.add_argument("qid"); p.add_argument("choice", nargs="?"); p.add_argument("--text")
     p = sub.add_parser("grade"); p.add_argument("qid"); p.add_argument("result", choices=["correct", "wrong", "idk"])
-    p.add_argument("--kind", choices=["slip", "gap", "misconception"]); p.add_argument("--what")
+    p.add_argument("--kind", choices=["slip", "gap", "misconception", "error"]); p.add_argument("--what")
+    p.add_argument("--marks")
     sub.add_parser("next")
-    p = sub.add_parser("pref"); p.add_argument("text", nargs="+")
+    p = sub.add_parser("pref"); p.add_argument("text", nargs="+"); p.add_argument("--topic", action="store_true")
     p = sub.add_parser("end"); p.add_argument("--next-time")
     sub.add_parser("status")
     a = ap.parse_args(argv)

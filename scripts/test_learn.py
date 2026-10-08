@@ -63,6 +63,16 @@ Domain: generic
 """
 
 
+_QN = [0]
+
+
+def fresh_choice(**extra):
+    """CHOICE with a stem that shares no 6-word run with earlier questions (the engine rejects copies)."""
+    _QN[0] += 1
+    n = _QN[0]
+    return dict(CHOICE, question=f"Toss {n + 1} coins; is the chance of {n} heads above {n}0 percent?", **extra)
+
+
 class Base(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -70,7 +80,7 @@ class Base(unittest.TestCase):
         learn.STATE = root / "state" / "learner.json"
         learn.VAULT = root / "vault"
         os.environ.update(LEARN_NO_CLI="1", LEARN_NO_GIT="1", LEARN_TODAY="2026-10-03", LEARN_REQUIRE_MANIM="0",
-                          LEARN_TTS="fake")
+                          LEARN_TTS="fake", LEARN_MANIM_QUALITY="-ql")
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -124,7 +134,8 @@ class Base(unittest.TestCase):
         self.run_cmd("start", *words)
         self.research(concepts)
 
-    def teach_and_ask(self, cid, block="Short theory. [S1]" + VIS, q=CHOICE):
+    def teach_and_ask(self, cid, block="Short theory. [S1]" + VIS, q=None):
+        q = q or fresh_choice()
         self.run_cmd("block", cid, stdin=block)
         out = self.run_cmd("ask", cid, stdin=json.dumps(q))
         return re.search(r"(Q\d+) written", out).group(1)
@@ -132,7 +143,7 @@ class Base(unittest.TestCase):
     def answer(self, cid, which, teach=False, level=2):
         if teach:
             self.run_cmd("block", cid, stdin="Theory again. [S1]" + VIS)
-        q = dict(CHOICE, level=level)
+        q = fresh_choice(level=level)
         qid = re.search(r"(Q\d+) written", self.run_cmd("ask", cid, stdin=json.dumps(q))).group(1)
         return self.tick(qid, which)
 
@@ -159,7 +170,7 @@ class TestNewLearner(Base):
 
     def test_cannot_ask_before_teaching(self):
         self.start_planned()
-        out = self.run_cmd("ask", "total", stdin=json.dumps(CHOICE), ok=False)
+        out = self.run_cmd("ask", "total", stdin=json.dumps(fresh_choice()), ok=False)
         self.assertIn("has not been taught yet", out)
 
     def test_answer_key_not_in_note_until_graded(self):
@@ -170,13 +181,14 @@ class TestNewLearner(Base):
         self.tick(qid, "correct")
         self.assertIn("1 - 1/4 = 3/4", self.note())
 
-    def test_two_in_a_row_makes_solid_and_unlocks_next(self):
+    def test_one_application_answer_makes_solid_and_unlocks_next(self):
         self.start_planned()
-        self.assertIn("1 of 2", self.tick(self.teach_and_ask("total"), "correct"))
-        out = self.answer("total", "correct")
-        self.assertIn("is solid", out)
+        out = self.answer("total", "correct", teach=True, level=1)
+        self.assertIn("recall only", out)
+        out = self.answer("total", "correct", level=2)
+        self.assertIn("applied to a new scenario", out)
         c = self.concept("total")
-        self.assertEqual((c["status"], c["box"], c["next_review"], c["level"]), ("solid", 1, "2026-10-04", 2))
+        self.assertEqual((c["status"], c["box"], c["next_review"]), ("solid", 1, "2026-10-04"))
         self.assertIn("'Chance of none'", out)
 
     def test_block_word_limit(self):
@@ -186,7 +198,7 @@ class TestNewLearner(Base):
     def test_bad_question_json_is_rejected(self):
         self.start_planned()
         self.run_cmd("block", "total", stdin="x [S1]" + VIS)
-        bad = dict(CHOICE, options=[{"text": "a", "correct": True}, {"text": "b"}])
+        bad = fresh_choice(options=[{"text": "a", "correct": True}, {"text": "b"}, {"text": "c", "misconception": "x"}])
         self.assertIn("needs a \"misconception\"", self.run_cmd("ask", "total", stdin=json.dumps(bad), ok=False))
 
 
@@ -194,7 +206,7 @@ class TestNewLearner(Base):
         self.start_planned()
         self.answer("total", "correct", teach=True, level=1)
         out = self.answer("total", "correct", level=1)
-        self.assertIn("applies it to a new example (level 2)", out)
+        self.assertIn("applies it to a new scenario (level 2)", out)
         self.assertEqual(self.concept("total")["status"], "learning")
         self.answer("total", "correct", level=2)
         self.assertEqual(self.concept("total")["status"], "solid")
@@ -331,10 +343,10 @@ class TestVisuals(Base):
         self.start_planned()
         embed = re.search(r"EMBED: (!\[\[.+\]\])", self.run_cmd("figure", "q1", stdin=PNG_OK)).group(1)
         self.run_cmd("block", "total", stdin=embed + " [S1]")
-        self.run_cmd("ask", "total", stdin=json.dumps(dict(CHOICE, figure=embed)))
+        self.run_cmd("ask", "total", stdin=json.dumps(fresh_choice(figure=embed)))
         head = self.note().split("### Q1")[1]
         self.assertIn(embed, head.split("- [ ]")[0])
-        bad = dict(CHOICE, figure="![[nope.png]]")
+        bad = fresh_choice(figure="![[nope.png]]")
         self.assertIn('"figure" must be', self.run_cmd("ask", "total", stdin=json.dumps(bad), ok=False))
 
     @unittest.skipUnless(learn.MANIM.exists(), "Manim not installed (scripts/install.sh)")
@@ -460,7 +472,7 @@ class TestNarrationRules(Base):
         starts, holds, total = learn.schedule([0.0, 2.0], [5.0, 1.0], 4.0)
         self.assertEqual(holds[0][0], 2.0)               # frozen right where step 2 would start
         self.assertAlmostEqual(starts[1], 0.30 + 5.0 + 0.35)  # first mark clamps to 0.05
-        self.assertAlmostEqual(total, 4.0 + holds[0][1])
+        self.assertAlmostEqual(total, 4.0 + sum(h for _, h in holds))
 
     def test_captions_shown_together_are_spoken_back_to_back(self):
         starts, holds, _ = learn.schedule([0.0, 0.0], [3.0, 3.0], 10.0)
@@ -479,7 +491,7 @@ class TestNarrationRules(Base):
             learn.narration_of("NARRATION = [f'{x}']\n")
         for bad, msg in [(r"lambda equals \\frac v f here now", "spoken words"),
                          ("this sentence cites the brief [S1] for sure", "citation"),
-                         ("word " * 80, "4-70 words"), ("**bold** words are not speech", "markdown")]:
+                         ("word " * 80, "4-40 words"), ("**bold** words are not speech", "markdown")]:
             with self.assertRaises(learn.LearnError) as e:
                 learn.validate_narration([bad])
             self.assertIn(msg, str(e.exception))
@@ -561,6 +573,303 @@ class TestNarratedVideo(Base):
         self.assertTrue(has_audio(learn.VAULT / "Attachments/learn/probability-basics/real.mp4"))
 
 
+UNIT_BLOCK = """**Big idea:** every chance is a share of one whole, so 'none' and 'at least one' split it.
+
+**Key terms:**
+- **total**: all the ways together make 1 [S1]
+- **complement**: the ways an event does not happen [S1]
+
+### All the ways make one
+```mermaid
+flowchart LR
+  A --> B
+```
+1. List every way it can turn out.
+2. Their chances add to 1.
+
+### None and at least one
+![[FIG]]
+| case | chance |
+| --- | --- |
+| none | (5/6)^3 |
+| at least one | 1 - (5/6)^3 |
+"""
+
+TWO_TIER = {"type": "two-tier", "level": 2,
+            "question": "A bag has 3 red and 5 blue beads; what is P(not red) for one draw?",
+            "options": [{"text": "5/8", "correct": True},
+                        {"text": "3/8", "misconception": "gives P(red)"},
+                        {"text": "5/3", "misconception": "divides blue by red"}],
+            "reasons": [{"text": "All outcomes add to 1", "correct": True},
+                        {"text": "Blue beads outnumber red", "misconception": "compares counts, not shares"},
+                        {"text": "Each colour is half", "misconception": "treats colours as equally likely"}],
+            "why": "P(not red) = 1 - 3/8 = 5/8 because all outcomes add to 1."}
+
+
+MANIM_VOICE = """
+from manim import *
+NARRATION = ["First the client asks the server whether it may open a connection.",
+             "Then the server agrees and asks for a connection back."]
+class Voiced(Scene):
+    def construct(self):
+        a = Circle(); b = Square().shift(2 * RIGHT)
+        with self.voice(1):
+            self.play(Create(a), run_time=0.5)
+        with self.voice(2) as d:
+            self.play(Create(b), run_time=d)
+"""
+
+
+@unittest.skipUnless(learn.MANIM.exists(), "Manim not installed")
+class TestAudioFirst(Base):
+    def test_voice_blocks_follow_the_real_line_lengths(self):
+        self.start_planned()
+        os.environ["LEARN_DEBUG_SYNC"] = "1"
+        try:
+            out = self.run_cmd("figure", "voiced", stdin=MANIM_VOICE)
+        finally:
+            os.environ.pop("LEARN_DEBUG_SYNC")
+        self.assertIn("audio-first", out)
+        marks = [float(x) for x in re.search(r"marks=\[([^\]]*)\]", out).group(1).split(",")]
+        durs = [float(x) for x in re.search(r"durations=\[([^\]]*)\]", out).group(1).split(",")]
+        self.assertAlmostEqual(marks[1] - marks[0], durs[0] + learn.NARR_GAP, delta=0.1)   # block 1 = line 1 + gap
+        rel = "Attachments/learn/probability-basics/voiced.mp4"
+        self.assertTrue(has_audio(learn.VAULT / rel))
+
+    def test_voice_blocks_must_match_narration(self):
+        self.start_planned()
+        bad = MANIM_VOICE.replace("with self.voice(2) as d:", "with self.voice(1) as d:")
+        out = self.run_cmd("figure", "voiced", stdin=bad, ok=False)
+        self.assertIn("voice blocks", out)
+        self.assertEqual(self.state()["session"].get("manim_failures", 0), 0)
+
+
+class TestUnits(Base):
+    def plan_unit(self):
+        self.start_topic("Probability", "basics")
+        return self.run_cmd("plan", "--unit", "basics|Chance basics|total,none", "--concept", "atleast",
+                            "--known", "none")
+
+    def test_plan_groups_concepts_into_units_and_teaches_the_unit_first(self):
+        out = self.plan_unit()
+        self.assertIn("3 concepts in 2 unit(s)", out)
+        self.assertIn("Teach the whole unit 'Chance basics' in ONE block", out)
+        self.assertIn("No questions until the block is in the note", out)
+
+    def test_unit_size_is_bounded(self):
+        self.start_topic("Probability", "basics")
+        out = self.run_cmd("plan", "--unit", "big|Big|total,none,atleast,total,none,atleast", "--known", "none", ok=False)
+        self.assertIn("a unit holds 1-5", out)
+
+    def test_unit_block_needs_structure(self):
+        self.plan_unit()
+        out = self.run_cmd("block", "basics", stdin="Some words [S1]." + VIS, ok=False)
+        for msg in ("Big idea", "Key terms", "segments"):
+            self.assertIn(msg, out)
+        long_para = UNIT_BLOCK.replace("FIG", "x") + "\n" + "word " * 70 + "[S1]\n"
+        self.assertIn("-word paragraph", self.run_cmd("block", "basics", stdin=long_para, ok=False))
+
+    def test_unit_check_one_question_per_concept_with_an_open_item(self):
+        self.plan_unit()
+        self.run_cmd("block", "basics", stdin=UNIT_BLOCK.replace("![[FIG]]", VIS))
+        self.assertTrue(all(self.concept(c)["taught"] for c in ("total", "none")))
+        out = self.run_cmd("next")
+        self.assertIn("Unit check for 'Chance basics'", out)
+        q1 = re.search(r"(Q\d+) written", self.run_cmd("ask", "total", stdin=json.dumps(fresh_choice(level=2)))).group(1)
+        out = self.run_cmd("ask", "none", stdin=json.dumps(fresh_choice(level=2)), ok=False)
+        self.assertIn("at least one two-tier", out)
+        out = self.run_cmd("ask", "none", stdin=json.dumps(TWO_TIER))
+        q2 = re.search(r"(Q\d+) written", out).group(1)
+        self.assertIn("Answer there", out)
+        self.tick(q1, "correct")
+        self.run_cmd("answer", q2, "A1")
+        st = self.state()
+        self.assertIn(self.concept("total")["status"], learn.SOLID)
+
+    def test_two_tier_wrong_reason_is_a_misconception(self):
+        self.start_planned()
+        self.run_cmd("block", "total", stdin="t [S1]" + VIS)
+        qid = re.search(r"(Q\d+) written", self.run_cmd("ask", "total", stdin=json.dumps(TWO_TIER))).group(1)
+        p = self.state()["session"]["pending"][qid]
+        wrong_reason = next(k for k in p["reasons"] if k != p["reason_correct"])
+        out = self.run_cmd("answer", qid, p["correct"] + wrong_reason)
+        self.assertIn("-> wrong", out)
+        self.assertEqual(self.state()["mistakes"][-1]["kind"], "misconception")
+        self.assertIn("reason " + wrong_reason + " is the belief", self.note())
+
+    def test_wrong_answers_in_a_unit_check_queue_followups(self):
+        self.plan_unit()
+        self.run_cmd("block", "basics", stdin=UNIT_BLOCK.replace("![[FIG]]", VIS))
+        q1 = re.search(r"(Q\d+) written", self.run_cmd("ask", "total", stdin=json.dumps(fresh_choice(level=2)))).group(1)
+        q2 = re.search(r"(Q\d+) written", self.run_cmd("ask", "none", stdin=json.dumps(TWO_TIER))).group(1)
+        self.tick(q1, "wrong")
+        out = self.run_cmd("answer", q2, "idk")
+        self.assertIn("Re-teach", out)   # followups take over once the whole check is graded
+
+    def test_difficulty_band(self):
+        self.start_planned()
+        s = self.state(); s["session"]["recent"] = ["correct"] * 10; learn.STATE.write_text(json.dumps(s))
+        self.assertIn("too easy", learn.band_note(learn.load()))
+        s["session"]["recent"] = ["wrong"] * 6 + ["correct"] * 4; learn.STATE.write_text(json.dumps(s))
+        self.assertIn("too hard", learn.band_note(learn.load()))
+
+
+class TestItemFlaws(Base):
+    def opts(self, key, *dis):
+        return [{"text": key, "correct": True}] + [{"text": d, "misconception": "m"} for d in dis]
+
+    def test_each_flaw_is_caught(self):
+        f = learn.item_problems
+        self.assertIn("longer", " ".join(f("Which is right?", self.opts(
+            "It is owned by a provider for general access by anyone", "It is a hard drive", "It is local"))))
+        self.assertIn("ending in '?'", " ".join(f("Pick the right one", self.opts("aa", "bb", "cc"))))
+        self.assertIn("negative stem", " ".join(f("Which is NOT a LAN device?", self.opts("aa", "bb", "cc"))))
+        self.assertIn("of the above", " ".join(f("Which?", self.opts("aa", "all of the above", "cc"))))
+        self.assertIn("absolute word", " ".join(f("Which?", self.opts("it can vary", "it never varies", "it varies"))))
+        self.assertIn("wording cue", " ".join(f("Why does packet switching share bandwidth?", self.opts(
+            "packets share bandwidth links", "circuits reserve a line", "routers store calls"))))
+        self.assertEqual(f("What is P(not six) for one roll?", self.opts("5/6", "1/6", "6/5")), [])
+
+
+EXAM_EXTRA = """
+## Syllabus points
+- 1.2.2: express derived units as products or quotients of the SI base units [S4]
+
+## Paper patterns
+| Id | Syllabus point | Pattern | Command words | Marks | Real questions | Mark scheme |
+| --- | --- | --- | --- | --- | --- | --- |
+| P1 | 1.2.2 | equation with one unknown constant | Determine | 3 | 9702/21/M/J/23 Q1(b); 9702/22/M/J/23 Q1(b) | C1 base units, A1 answer |
+
+## Examiner-report errors
+- 9702/21/M/J/23 Q1(b): "hertz used as a base unit" (significant number) [S4]
+"""
+EXAM_SOURCES = """| S4 | 9702 syllabus 2025-2027, https://www.cambridgeinternational.org/Images/664565-2025-2027-syllabus.pdf | syllabus | high | outcomes | 2026-10-08 |
+| S5 | 9702_s23_qp_21, https://pastpapers.papacambridge.com/directories/CAIE/CAIE-pastpapers/upload/9702_s23_qp_21.pdf | past-paper | high | questions | 2026-10-08 |
+| S6 | 9702_s23_ms_21, https://pastpapers.papacambridge.com/directories/CAIE/CAIE-pastpapers/upload/9702_s23_ms_21.pdf | mark-scheme | high | marking | 2026-10-08 |
+"""
+
+
+def exam_brief():
+    b = make_brief(PROB)
+    b = b.replace("\n## Open questions", EXAM_EXTRA + "\n## Open questions")
+    return b.replace("\n\n## Open questions", "\n" + EXAM_SOURCES + "\n## Open questions", 1) \
+        if False else b.replace("| 2026-10-03 |\n\n## Syllabus", "| 2026-10-03 |\n" + EXAM_SOURCES + "\n## Syllabus", 1)
+
+
+class TestExamMode(Base):
+    def start_exam(self):
+        self.run_cmd("start", "Physics", "units", "--exam", "cambridge-as-a-level")
+        brief = exam_brief()
+        self.assertIn("9702_s23_ms_21", brief)
+        self.run_cmd("research", "--save", stdin=brief)
+        self.run_cmd("plan", "--concept", "total", "--concept", "none", "--concept", "atleast", "--known", "none")
+
+    def test_start_refuses_a_sentence_as_topic(self):
+        out = self.run_cmd("start", "probability basics. Teach the next unit and ask its unit check, then stop.", ok=False)
+        self.assertIn("looks like a message", out)
+        self.assertFalse(learn.STATE.exists())
+
+    def test_profile_and_mode(self):
+        prof = learn.exam_profile("cambridge-as-a-level")
+        self.assertTrue(prof["re"].fullmatch("9702/21/M/J/24 Q2(b)(iii)"))
+        self.assertTrue(learn.exam_profile("pearson-edexcel-ial")["re"].fullmatch("WMA11/01 June 2024 Q2(ii)"))
+        self.assertIn("No exam profile", self.run_cmd("start", "x", "--exam", "nope", ok=False))
+
+    def test_exam_brief_needs_patterns_from_real_questions(self):
+        self.run_cmd("start", "Physics", "units", "--exam", "cambridge-as-a-level")
+        out = self.run_cmd("research", "--save", stdin=make_brief(PROB), ok=False)
+        for msg in ("Syllabus points", "Paper patterns", "past-paper"):
+            self.assertIn(msg, out)
+        one_ref = exam_brief().replace("; 9702/22/M/J/23 Q1(b)", "")
+        self.assertIn("needs 2+ real past-paper questions", self.run_cmd("research", "--save", stdin=one_ref, ok=False))
+
+    def test_existing_topic_switched_to_exam_mode_must_upgrade_its_brief(self):
+        self.start_planned()
+        out = self.run_cmd("start", "Probability", "basics", "--exam", "cambridge-as-a-level")
+        self.assertIn("exam mode", out)
+        self.assertIn("Never invent a question pattern", out)
+
+    def test_exam_questions_need_a_real_source_and_marks(self):
+        self.start_exam()
+        self.run_cmd("block", "total", stdin="t [S1]" + VIS)
+        q = fresh_choice(level=2)
+        self.assertIn("\"marks\"", self.run_cmd("ask", "total", stdin=json.dumps(q), ok=False))
+        self.assertIn("must be a real question", self.run_cmd("ask", "total", stdin=json.dumps(dict(q, marks=1, source="my own")), ok=False))
+        self.assertIn("not among the brief", self.run_cmd("ask", "total", stdin=json.dumps(dict(q, marks=1, source="9702/11/O/N/19 Q4")), ok=False))
+        four = dict(q, marks=1, source="9702/21/M/J/23 Q1(b)", question="Which quantity is a base quantity",
+                    options=[{"text": "mass", "correct": True}, {"text": "force", "misconception": "derived"},
+                             {"text": "speed", "misconception": "derived"}, {"text": "charge", "misconception": "derived"}])
+        out = self.run_cmd("ask", "total", stdin=json.dumps(four))   # authentic item: kept as printed
+        self.assertIn("9702/21/M/J/23 Q1(b) · [1 mark]", self.note())
+        self.assertIn("- [ ] A. mass\n- [ ] B. force\n- [ ] C. speed\n- [ ] D. charge", self.note())  # printed order
+
+    def test_exam_unit_check_accepts_authentic_choice_items(self):
+        self.run_cmd("start", "Physics", "units", "--exam", "cambridge-as-a-level")
+        self.run_cmd("research", "--save", stdin=exam_brief())
+        self.run_cmd("plan", "--unit", "u|Units|total,none", "--known", "none")
+        self.assertIn("AUTHENTIC", self.run_cmd("block", "u", stdin=UNIT_BLOCK.replace("![[FIG]]", VIS)))
+        for cid, n in (("total", 1), ("none", 2)):
+            q = dict(fresh_choice(level=2), marks=1, source=f"9702/21/M/J/23 Q{n}(b)")
+            self.run_cmd("ask", cid, stdin=json.dumps(q))
+        self.assertEqual(len(self.state()["session"]["pending"]), 2)
+        wrong = next(L for L, t in self.state()["session"]["pending"]["Q1"]["options"].items()
+                     if L != self.state()["session"]["pending"]["Q1"]["correct"])
+        self.run_cmd("answer", "Q1", wrong)
+        self.run_cmd("answer", "Q2", self.state()["session"]["pending"]["Q2"]["correct"])
+        self.assertIn("EXAM MODE: 1 NEW question", self.run_cmd("next"))
+
+    def test_typed_exam_question_graded_by_mark_points(self):
+        self.start_exam()
+        self.run_cmd("block", "total", stdin="t [S1]" + VIS)
+        q = {"type": "typed", "level": 2, "question": "Determine the SI base units of k.", "marks": 3,
+             "source": "pattern:P1", "answer": "kg m^-3",
+             "rubric": ["C1: base units of F", "C1: base units of v", "A1: kg m^-3"], "why": "k = F / (A v^2)."}
+        qid = re.search(r"(Q\d+) written", self.run_cmd("ask", "total", stdin=json.dumps(q))).group(1)
+        self.assertIn("generated, follows P1 · [3 marks]", self.note())
+        self.run_cmd("answer", qid, "--text", "kg m-3 from F over A v squared")
+        out = self.run_cmd("grade", qid, "wrong", "--marks", "2/3", "--kind", "slip", "--what", "missed C1 for v")
+        self.assertIn("2/3 marks", out)
+        self.assertEqual(self.concept("total")["history"][-1]["marks"], "2/3")
+
+    def test_practice_share_after_a_unit_is_solid(self):
+        self.start_exam()
+        s = self.state()
+        for c in s["topics"]["physics-units"]["concepts"].values():
+            c.update(status="solid", taught=True, box=1, next_review="2099-01-01")
+        learn.STATE.write_text(json.dumps(s))
+        out = self.run_cmd("next")
+        self.assertIn("Exam practice", out)
+        self.assertIn("AUTHENTIC past-paper questions", out)
+
+    def test_topic_prefs_stay_in_their_topic_and_9702_prefs_migrate(self):
+        self.start_planned()
+        self.run_cmd("pref", "--topic", "Only", "past-paper", "questions")
+        self.assertIn("FOR THIS TOPIC ONLY", self.run_cmd("start", "Probability", "basics"))
+        self.assertNotIn("Only past-paper questions", self.run_cmd("start", "Python", "loops"))
+        s = self.state()
+        s["topics"]["phys-9702"] = {"title": "9702", "goal": "", "created": "2026-10-03", "concepts": {}}
+        s["profile"]["preferences"].append("Exam-prep: use only past papers")
+        learn.STATE.write_text(json.dumps(s))
+        s2 = learn.load()
+        self.assertNotIn("Exam-prep: use only past papers", s2["profile"]["preferences"])
+        self.assertIn("Exam-prep: use only past papers", s2["topics"]["phys-9702"]["prefs"])
+
+
+class TestGuides(Base):
+    def test_question_guide_examples_pass_the_engine(self):
+        guide = (Path(__file__).resolve().parent.parent / "skills/teach-understanding/references/questions.md").read_text()
+        blocks = [json.loads(b) for b in re.findall(r"```json\n(.*?)```", guide, re.S) if '"source"' not in b]
+        self.assertGreaterEqual(len(blocks), 3)
+        for q in blocks:
+            if q["type"] in ("choice", "two-tier"):
+                learn._check_options(q["options"], "x")
+                self.assertEqual(learn.item_problems(q["question"], q["options"], level=q["level"]), [], q["question"])
+                if q["type"] == "two-tier":
+                    learn._check_options(q["reasons"], "x")
+            else:
+                self.assertTrue(2 <= len(q["rubric"]) <= 4)
+
+
 class TestExistingKnowledge(Base):
     def test_claimed_concepts_get_a_quick_check(self):
         self.start_topic("Probability")
@@ -579,7 +888,7 @@ class TestExistingKnowledge(Base):
         out = self.answer("total", "wrong")
         self.assertIn("check says not yet", out)
         self.assertFalse(self.concept("total")["taught"])
-        self.run_cmd("ask", "total", stdin=json.dumps(CHOICE), ok=False)
+        self.run_cmd("ask", "total", stdin=json.dumps(fresh_choice()), ok=False)
 
 
     def test_plan_requires_explicit_known(self):
@@ -596,7 +905,7 @@ class TestExistingKnowledge(Base):
 
     def test_known_after_a_correct_answer_is_solid_at_once(self):
         self.start_planned()
-        self.answer("total", "correct", teach=True)
+        self.answer("total", "correct", teach=True, level=1)
         self.assertIn("so it is solid", self.run_cmd("known", "total"))
         self.assertEqual(self.concept("total")["status"], "solid")
 
@@ -614,7 +923,7 @@ class TestMistake(Base):
         out = self.tick(self.teach_and_ask("total"), "wrong")
         self.assertIn("Missed once", out)
         m = self.state()["mistakes"][0]
-        self.assertEqual(m["kind"], "misconception")
+        self.assertEqual(m["kind"], "error")   # one wrong pick shows an error, not yet a misconception
         self.assertTrue(m["what"])
         self.assertIn("[!failure]", self.note())
         self.assertIn("Why", self.note())
@@ -630,7 +939,7 @@ class TestMistake(Base):
 class TestRepeatedStruggle(Base):
     def test_two_misses_revisit_weak_prerequisite_then_return(self):
         self.start_planned()
-        self.answer("total", "correct", teach=True)  # total: learning, 1 of 2
+        self.answer("total", "correct", teach=True, level=1)  # recall only: total stays learning
         self.run_cmd("block", "none", stdin="none theory [S1]" + VIS)
         self.answer("none", "wrong")
         out = self.answer("none", "wrong")
@@ -749,13 +1058,14 @@ class TestChatAndTyped(Base):
     def test_typed_question_needs_model_grade(self):
         self.start_planned()
         q = {"type": "typed", "question": "Why 1 - none?", "answer": "the two cases fill the whole pie",
+             "rubric": ["none and at-least-one are the only two cases", "together they make the whole pie, 1"],
              "why": "None and at-least-one cover everything."}
         qid = self.teach_and_ask("total", q=q)
         self.assertIn("nothing typed", self.run_cmd("check"))
         out = self.run_cmd("answer", qid, "--text", "because it's everything else")
         self.assertIn("learn grade", out)
-        out = self.run_cmd("grade", qid, "correct")
-        self.assertIn("1 of 2", out)
+        out = self.run_cmd("grade", qid, "correct", "--marks", "2/2")
+        self.assertIn("2/2 marks", out)
         self.assertIn("[!success]", self.note())
 
     def test_preference_persists(self):
