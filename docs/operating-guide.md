@@ -16,15 +16,22 @@ the queue). A session is scratch space — only template-shaped conclusions surv
    brief to vault `Sources/<topic> research brief.md`. The engine won't let it plan or
    teach before the brief passes validation (3+ sources, at least one textbook, primary
    or review, definitions, misconceptions, examples). Every lesson cites the brief.
-2. You study in Obsidian. Each block opens with a Manim animation of how the idea works
-   (3Blue1Brown style, LaTeX formulas; plays inside the note with a spoken explanation in
-   your chosen voice, `learn voice`), then the theory, then one question on it. A folded
-   transcript of what the voice says sits under the video. Questions can show a picture, or
-   use small pictures as answer options. `Maps/<topic> map.canvas` (embedded in the
-   note) colours each concept by progress.
-   Tick a box (or type under **Your answer**), then send any message in OpenCode.
-3. `learn check` grades multiple choice itself. The agent grades typed answers. The
-   feedback, with the reason for the next step, appears under your answer.
+2. You study in Obsidian, one **unit** at a time: 2-5 linked ideas (about 15-20 minutes)
+   taught together. Each unit block has a big idea, key terms, then 2-4 segments; each segment
+   is a short narrated Manim scene (60-120 s, voice and picture in sync, `learn voice`) with
+   numbered steps or a table under it, and a worked example where there are numbers. A folded
+   transcript sits under each video. `Maps/<topic> map.canvas` colours each concept by progress.
+   After the block comes ONE unit check: one question per idea, at least one asking for the
+   reason (two-tier, "B2") or a typed explanation. Tick a box or type under **Your answer**,
+   then send any message in OpenCode.
+3. `learn check` grades multiple choice and two-tier itself. The agent grades typed answers
+   point by point (`--marks 2/3`). The feedback, with the reason for the next step, appears
+   under your answer. Missed questions come back reworded; a wrong reason gets a short
+   contrast re-teach.
+   **Exam mode** (`learn start <topic> --exam cambridge-as-a-level`): the brief adds syllabus
+   points, paper patterns and examiner-report errors from official papers; practice uses real
+   past-paper questions (cited) marked on the mark scheme. Practice share grows as units become
+   solid.
 4. Say "stop". `learn end` writes a summary into the note, rebuilds
    `Maps/Learner dashboard.md`, and commits `state/learner.json`.
 
@@ -32,9 +39,10 @@ the queue). A session is scratch space — only template-shaped conclusions surv
 
 `state/learner.json` is the memory: your preferences, every concept's status, review
 dates and mistakes. `learn start` prints all of it, so any model starts from the same
-picture. The rules (2 correct in a row, the last one applying the idea to a new example = solid; a correct answer on a later day moves a
-concept up a review box of 1/3/7/21 days; 2 misses send you back to a weak
-prerequisite; "I don't know" means re-teach) live in `scripts/learn.py` and are tested
+picture. The rules (one correct answer to a new scenario, or 2 in a row = solid; a correct answer on
+a later day moves a concept up a review box of 1/3/7/21 days; a wrong reason = contrast
+re-teach; 2 misses send you back to a weak prerequisite; "I don't know" means re-teach;
+questions aim to keep you at 70-90% correct) live in `scripts/learn.py` and are tested
 in `scripts/test_learn.py`.
 
 ## Weekly rhythm

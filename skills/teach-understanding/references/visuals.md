@@ -15,11 +15,11 @@ for LaTeX (`MathTex`, `Tex`). `learn figure` finds both itself.
 | Physical things moving: particles, waves, objects, forces | Physical | `learn figure <name>` |
 | A formula, an equation to solve, a derivation | Derivation | `learn figure <name>` |
 | A curve, a function, numbers changing | Graph | `learn figure <name>` |
-| Steps of a process or an algorithm | Process | `learn figure <name>` |
+| Steps of a process, a protocol, an algorithm | Process | `learn figure <name>` |
 | A system of parts and what flows between them | System | `learn figure <name>` (or `--still` for a picture) |
 
 Without flags you get a **narrated MP4** that plays inside the note: the scene's `NARRATION`
-is spoken by a local voice (Kokoro, via Voicebox) and synced to the numbered captions.
+is spoken by a local voice (Kokoro, via Voicebox) first, and each `self.voice(i)` block is timed to its line.
 `--still` renders the last frame as a PNG (static diagrams, picture answers; no voice).
 `--silent` makes an animation without a voice; use it only when speech would add nothing.
 
@@ -60,9 +60,9 @@ and the engine rejects it before rendering:
   draw them and move them. Boxes are only for systems of parts.
 - **Show the misconception being wrong.** If the brief lists one, make the scene
   disprove it (Physical follows one molecule to show the air stays).
-- **One idea, 5-30 seconds** (paced to the narration). End with `self.wait(1)`.
-- **Numbered captions.** One caption at the top, changed with
-  `Transform(caption, Text("2  ...").to_edge(UP))`; the block text uses the same numbers.
+- **One sub-idea per scene, 60-120 s**, paced by its voice blocks (see Narration).
+- **Short title, not captions.** One title at the top (1-5 words) and short labels on objects;
+  the voice does the explaining.
 - **Layout with relations, never raw coordinates for text:** `.to_edge(UP)`,
   `.next_to(obj, DOWN, buff=0.3)`, `VGroup(...).arrange(RIGHT, buff=0.6)`.
   `FadeOut` old text before new text takes its place.
@@ -71,42 +71,45 @@ and the engine rejects it before rendering:
 - **Words in `Text`, maths in `MathTex`.** Use raw strings: `MathTex(r"\frac{1}{f}")`.
   Units with `\,\mathrm{m/s}`. Font size 24 or more.
 - **Numbers come from the research brief.** If a number only shows the shape of the
-  idea, say "illustrative" in a caption.
+  idea, say "illustrative" in a label or in the narration.
 - **Motion from a formula** (`ValueTracker` + updaters), so it is physically right. Check
   any marker you place ("the squeeze is here") against the formula, not by eye.
 
-## Narration (every animation)
+## Narration (every animation): audio-first
 
-Each animation scene has a module-level `NARRATION` list: one spoken line per numbered
-caption, in order. The engine speaks each line with the learner's voice (`learn voice`),
-starts line N when caption N appears, and freezes the picture at a step boundary if the
-voice is still talking, so speech never runs ahead of or behind the picture.
+Each scene has a module-level `NARRATION` list, one spoken phrase per visual event, and wraps
+each event in `with self.voice(i):` (1-based, in order). `learn figure` speaks the lines FIRST,
+measures them, then renders: each voice block lasts exactly as long as its line (plus a short
+gap), so the words and the picture they describe happen together (Mayer: temporal contiguity,
+the largest effect in multimedia learning). The video ends on a 2 s hold.
 
 ```python
 NARRATION = [
-    "Before any data moves, the client asks to open a connection. It sends a SYN message ...",
+    "Before any data moves, the client asks to open a connection ...",
     "The server agrees and answers with SYN ACK ...",
-    "Finally the client acknowledges ... so data can flow in order.",
 ]
+...
+        with self.voice(1) as d:          # d = the line's real length in seconds
+            self.play(GrowArrow(syn), run_time=1.5)     # shorter is fine: the block waits for the voice
+        with self.voice(2) as d:
+            self.play(Create(curve), run_time=d)        # or stretch one animation over the whole line
 ```
 
-Write it as a teacher talking over the picture:
+Rules (research: `docs/research/teaching-quality/multimedia.md`):
 
-- **Explain what to notice and why it matters.** Never just read the caption: the engine
-  rejects a line that only repeats its caption's words.
-- **Follow the picture's order.** Line 1 talks about what step 1 shows, and so on. The
-  number of lines must equal the number of numbered captions (no captions: lines play
-  one after another, as one block).
-- **Spoken words only.** No LaTeX or symbols: "lambda equals v over f", "x squared",
-  "three hundred forty three metres per second". No citation ids, no markdown.
-- **Short.** 4-70 words per line, under 260 for the clip. Plain words, as in the block.
-- **Introduce a term the first time you use it** ("the amplitude, the height of each swing").
-- **Pace the scene to the voice.** People speak about 2.6 words per second. Give each step
-  roughly that long on screen (`run_time=`, `self.wait(...)`) so the picture keeps moving
-  while the voice talks; otherwise the engine holds the last frame of the step.
-
-If the voice engine is down, `learn figure` still saves the silent video and prints a
-WARNING; the lesson continues.
+- **One phrase, one visual event.** A line describes exactly what animates inside its block.
+  4-40 words (8-15 s). Long explanation = more lines and more blocks, not longer lines.
+- **One scene = one segment = one sub-idea, 60-120 s** (hard cap 3 min). A unit uses 2-4 scenes
+  with notes between them, never one long video.
+- **No on-screen sentences that repeat the narration.** Keep a short title, 1-4 word labels next to
+  the object they name, formulas, and arrows or highlights at the moment the voice names them.
+- **Animate only what changes over time** (processes, motion, transformations). Structures,
+  classifications and comparisons can be a still (`--still`) or a build-up with few moves.
+- **Spoken words only**: "lambda equals v over f", "three hundred forty three metres per second".
+  No LaTeX, citations or markdown in NARRATION.
+- **Explain what to notice and why**, introduce a term the first time it appears, say "you".
+- If the voice engine is down, the silent video is saved with a WARNING and the lesson continues.
+- Older scenes with numbered captions ("1  ...") and no voice blocks still work (caption sync).
 
 ## Template: Physical
 
@@ -115,10 +118,9 @@ WARNING; the lesson continues.
 from manim import *
 
 NARRATION = [
-    "Each dot is a bit of air. Watch the yellow arrows: a squeeze of crowded air is travelling to the right, "
-    "and that moving squeeze is the sound.",
-    "Now keep your eyes on the red dot. It only rocks back and forth around the dashed line and never travels "
-    "with the wave. The push moves forward, the air stays where it is.",
+    "Each dot is a bit of air. Watch the yellow arrows: a squeeze of crowded air travels to the right, and that moving squeeze is the sound.",
+    "Now follow the red dot. It only rocks back and forth around the dashed line. It never travels with the wave.",
+    "So the push moves forward while the air stays put. That is why sound needs a material to travel through.",
 ]
 
 class Physical(Scene):
@@ -126,80 +128,76 @@ class Physical(Scene):
         # --- edit below: rest positions and the motion rule ---
         xs, ys = np.linspace(-6, 6, 36), np.linspace(-1.6, 1.0, 6)
         rest = [(x, y) for x in xs for y in ys]
-        k, A = 2 * PI / 4, 0.35                    # wavelength 4 units, wobble size
+        k, A, speed = 2 * PI / 4, 0.35, PI     # wavelength 4 units, wobble size, phase per second
         t = ValueTracker(0)
         def pos(x, y):
             return [x + A * np.sin(k * x - t.get_value()), y, 0]
         dots = VGroup(*[Dot(pos(x, y), radius=0.05, color=BLUE) for x, y in rest])
-        watch = 6 * 17                              # one molecule to follow
+        watch = 6 * 17                              # one bit of air to follow
         dots[watch].set_color(RED).scale(1.8)
         dots.add_updater(lambda g: [d.move_to(pos(x, y)) for d, (x, y) in zip(g, rest)])
-        # compressions sit where k*x - t = pi (mod 2*pi): mark them with arrows that move with the wave
-        def squeezes():
+        def squeezes():                             # compressions sit where k*x - t = pi (mod 2*pi)
             c0 = ((PI + t.get_value()) / k) % 4 - 6
             return VGroup(*[Arrow([c - 0.4, 1.55, 0], [c + 0.4, 1.55, 0], buff=0, color=YELLOW)
                             for c in np.arange(c0, 6, 4)])
         arrows = always_redraw(squeezes)
-        note1 = Text("1  the squeeze travels", font_size=26, color=YELLOW).to_corner(UL)
-        self.add(dots, arrows, note1)
-        self.play(t.animate.set_value(4 * PI), run_time=6, rate_func=linear)
-        rest_line = DashedLine([xs[17], -2.0, 0], [xs[17], 1.2, 0], color=RED)
-        note2 = Text("2  the red molecule only wobbles", font_size=26, color=RED).to_edge(DOWN)
-        self.play(FadeIn(note2), Create(rest_line))
-        self.play(t.animate.set_value(8 * PI), run_time=6, rate_func=linear)
+        self.add(dots, arrows, Text("Sound in air", font_size=30).to_edge(UP))
+        with self.voice(1) as d:                    # the voice block lasts exactly as long as line 1
+            self.play(t.animate.increment_value(speed * d), run_time=d, rate_func=linear)
+        with self.voice(2) as d:
+            line = DashedLine([xs[17], -2.0, 0], [xs[17], 1.2, 0], color=RED)
+            tag = Text("one bit of air", font_size=24, color=RED).next_to(line, DOWN, buff=0.1)
+            self.play(Create(line), FadeIn(tag), run_time=1)
+            self.play(t.animate.increment_value(speed * (d - 1)), run_time=max(0.5, d - 1), rate_func=linear)
+        with self.voice(3) as d:
+            self.play(t.animate.increment_value(speed * d), run_time=d, rate_func=linear)
 ```
 
 ## Template: Derivation
 
 ```python
-# TEMPLATE: a formula built step by step (LaTeX). Matching pieces glide into place.
+# TEMPLATE: a formula built step by step (LaTeX). Matching pieces glide into place while the voice explains each move.
 from manim import *
 
 NARRATION = [
-    "Speed equals frequency times wavelength: how many waves pass each second, times how long each wave is.",
+    "Speed equals frequency times wavelength: how many waves pass each second, times the length of one wave.",
     "We want the wavelength on its own, so we divide both sides by the frequency.",
-    "Sound in air travels at about three hundred forty three metres per second. Put that in, with a "
-    "frequency of three hundred forty three hertz.",
-    "The units cancel to metres: each wave of this sound is exactly one metre long.",
+    "Sound in air travels at about three hundred forty three metres per second. Put that in, with a frequency of three hundred forty three hertz.",
+    "The units cancel to metres. One wave of this sound is exactly one metre long.",
 ]
 
 class Derivation(Scene):
     def construct(self):
-        # --- edit below: the steps; one argument per piece, so equal pieces glide into place ---
-        steps = [
-            MathTex(r"v", r"=", r"f", r"\lambda"),
-            MathTex(r"\lambda", r"=", r"\frac{v}{f}"),
-            MathTex(r"\lambda", r"=", r"\frac{343\,\mathrm{m/s}}{343\,\mathrm{Hz}}"),
-            MathTex(r"\lambda", r"=", r"1\,\mathrm{m}"),
-        ]
-        why = ["1  speed = waves per second x length of one wave",
-               "2  divide both sides by f",
-               "3  put in the numbers",
-               "4  one wave is one metre long"]
+        # --- edit below: the steps (one argument per piece, so equal pieces glide) and a 1-3 word tag each ---
+        steps = [MathTex(r"v", r"=", r"f", r"\lambda"),
+                 MathTex(r"\lambda", r"=", r"\frac{v}{f}"),
+                 MathTex(r"\lambda", r"=", r"\frac{343\,\mathrm{m/s}}{343\,\mathrm{Hz}}"),
+                 MathTex(r"\lambda", r"=", r"1\,\mathrm{m}")]
+        tags = ["the wave equation", "divide by f", "put in numbers", "result"]
         for s in steps:
             s.scale(1.4)
-        caption = Text(why[0], font_size=28).to_edge(UP)
-        self.play(Write(steps[0]), FadeIn(caption))
-        self.wait(1)
+        self.add(Text("Wavelength from speed", font_size=30).to_edge(UP))
+        tag = Text(tags[0], font_size=26, color=YELLOW).to_edge(DOWN)
+        with self.voice(1):
+            self.play(Write(steps[0]), FadeIn(tag))
         for i in range(1, len(steps)):
-            self.play(TransformMatchingTex(steps[i - 1], steps[i]),
-                      Transform(caption, Text(why[i], font_size=28).to_edge(UP)))
-            self.wait(1)
-        self.play(Circumscribe(steps[-1], color=YELLOW))
-        self.wait(1)
+            with self.voice(i + 1):
+                new_tag = Text(tags[i], font_size=26, color=YELLOW).to_edge(DOWN)
+                self.play(TransformMatchingTex(steps[i - 1], steps[i]), Transform(tag, new_tag), run_time=1.5)
+                if i == len(steps) - 1:
+                    self.play(Circumscribe(steps[i], color=YELLOW))
 ```
 
 ## Template: Graph
 
 ```python
-# TEMPLATE: a curve with what matters marked (LaTeX labels). No numbered captions: narration plays as one block.
+# TEMPLATE: a curve with what matters marked (LaTeX labels). Each feature appears as the voice names it.
 from manim import *
 
 NARRATION = [
     "This curve is the air pressure at your ear over one second: it rises above normal, falls below, and repeats.",
     "The yellow arrow is the amplitude, the height of each swing. A bigger swing means a louder sound.",
-    "The green arrow spans one period, half a second here. So two waves arrive every second: a frequency of "
-    "two hertz, which we hear as pitch.",
+    "The green arrow spans one period, half a second here. So two waves arrive every second: a frequency of two hertz, which we hear as pitch.",
 ]
 
 class Graph(Scene):
@@ -210,32 +208,29 @@ class Graph(Scene):
                     y_axis_config={"include_numbers": True, "font_size": 24}).shift(0.4 * DOWN)
         labels = axes.get_axis_labels(Tex("time (s)", font_size=28), Tex("pressure", font_size=28))
         wave = axes.plot(lambda t: A * np.sin(2 * PI * f * t), color=BLUE)
-        title = MathTex(r"p(t) = A \sin(2\pi f t)", font_size=40).to_edge(UP)
-        self.play(Write(title), Create(axes), Write(labels))
-        self.play(Create(wave), run_time=4)
-        amp = DoubleArrow(axes.c2p(0.125, 0), axes.c2p(0.125, A), buff=0, color=YELLOW)
-        amp_t = MathTex(r"A", color=YELLOW).next_to(amp, LEFT, buff=0.15)
-        self.play(GrowFromCenter(amp), Write(amp_t))
-        self.wait(4)
-        per = DoubleArrow(axes.c2p(0.125, 1.25), axes.c2p(0.625, 1.25), buff=0, color=GREEN)  # peak to peak
-        per_t = MathTex(r"T = \tfrac{1}{f} = 0.5\,\mathrm{s}", color=GREEN, font_size=34).next_to(per, UP, buff=0.1)
-        self.play(GrowFromCenter(per), Write(per_t))
-        self.wait(6)
+        self.add(MathTex(r"p(t) = A \sin(2\pi f t)", font_size=40).to_edge(UP))
+        with self.voice(1) as d:
+            self.play(Create(axes), Write(labels), run_time=1)
+            self.play(Create(wave), run_time=max(1, d - 1))
+        with self.voice(2):
+            amp = DoubleArrow(axes.c2p(0.125, 0), axes.c2p(0.125, A), buff=0, color=YELLOW)
+            self.play(GrowFromCenter(amp), Write(MathTex(r"A", color=YELLOW).next_to(amp, LEFT, buff=0.15)))
+        with self.voice(3):
+            per = DoubleArrow(axes.c2p(0.125, 1.25), axes.c2p(0.625, 1.25), buff=0, color=GREEN)  # peak to peak
+            self.play(GrowFromCenter(per), Write(MathTex(r"T = \tfrac{1}{f} = 0.5\,\mathrm{s}", color=GREEN,
+                                                          font_size=34).next_to(per, UP, buff=0.1)))
 ```
 
 ## Template: Process
 
 ```python
-# TEMPLATE: a process step by step. Messages travel between parties; a caption names each step.
+# TEMPLATE: a process step by step. Each message travels while the voice explains that step.
 from manim import *
 
 NARRATION = [
-    "Before any data moves, the client asks to open a connection. It sends a SYN message carrying its own "
-    "starting sequence number.",
-    "The server agrees and answers with SYN ACK: it acknowledges the client's number and sends a starting "
-    "number of its own.",
-    "Finally the client acknowledges the server's number with an ACK. Both sides now know each other's "
-    "numbers, so data can flow in order.",
+    "Before any data moves, the client asks to open a connection. It sends a SYN message carrying its own starting number.",
+    "The server agrees and answers with SYN ACK: it confirms the client's number and sends a starting number of its own.",
+    "Finally the client confirms the server's number with an ACK. Both sides now know where counting starts, so data can flow in order.",
 ]
 
 class Process(Scene):
@@ -245,23 +240,17 @@ class Process(Scene):
                         Text("client", font_size=28)).to_edge(LEFT, buff=1.0)
         server = VGroup(RoundedRectangle(corner_radius=0.15, width=2.4, height=1.0, color=GREEN),
                         Text("server", font_size=28)).to_edge(RIGHT, buff=1.0)
-        self.add(client, server)
-        steps = [("1  client: may I connect?", "SYN", client, server, -0.2),
-                 ("2  server: yes, and may I?", "SYN-ACK", server, client, -1.1),
-                 ("3  client: yes. Connected", "ACK", client, server, -2.0)]
-        caption = None
-        for text, label, src, dst, y in steps:
-            new_cap = Text(text, font_size=30).to_edge(UP)
-            start = [src.get_center()[0] + (1.3 if src is client else -1.3), y, 0]
-            end = [dst.get_center()[0] + (1.3 if dst is client else -1.3), y - 0.5, 0]
-            arrow = Arrow(start, end, buff=0, color=YELLOW)
-            tag = Text(label, font_size=26, color=YELLOW).next_to(arrow, UP, buff=0.1)
-            self.play(Write(new_cap) if caption is None else Transform(caption, new_cap))
-            caption = caption or new_cap
-            self.play(GrowArrow(arrow), FadeIn(tag), run_time=1.2)
-            self.wait(0.5)
+        self.add(Text("TCP three-way handshake", font_size=30).to_edge(UP), client, server)
+        steps = [("SYN  seq=100", client, server, 1.2), ("SYN-ACK  seq=300 ack=101", server, client, 0.0),
+                 ("ACK  ack=301", client, server, -1.2)]
+        for i, (label, src, dst, y) in enumerate(steps, 1):
+            with self.voice(i):
+                start = [src.get_center()[0] + (1.3 if src is client else -1.3), y, 0]
+                end = [dst.get_center()[0] + (1.3 if dst is client else -1.3), y - 0.5, 0]
+                arrow = Arrow(start, end, buff=0, color=YELLOW)
+                self.play(GrowArrow(arrow), FadeIn(Text(label, font_size=24, color=YELLOW).next_to(arrow, UP, buff=0.1)),
+                          run_time=1.5)
         self.play(Indicate(client), Indicate(server))
-        self.wait(1)
 ```
 
 ## Template: System (animated; `--still` gives a picture)
@@ -273,30 +262,26 @@ from manim import *
 NARRATION = [
     "It starts with your voice: tiny ups and downs in air pressure travel out from your mouth.",
     "Those pressure changes push the microphone's thin diaphragm back and forth, copying the wave.",
-    "The moving diaphragm makes a changing voltage, so the sound has become an electrical signal "
-    "a computer can measure.",
+    "The moving diaphragm makes a changing voltage, so the sound has become an electrical signal a computer can measure.",
 ]
 
 class SystemDiagram(Scene):
     def construct(self):
-        # --- edit below: the parts, left to right ---
+        # --- edit below: the parts, left to right, and a 1-3 word label each ---
         names = ["voice:\nair pressure", "microphone:\ndiaphragm moves", "signal:\nvoltage over time"]
-        steps = ["1  sound pushes air", "2  air pushes diaphragm", "3  motion becomes voltage"]
+        tags = ["1  air pushes", "2  diaphragm moves", "3  voltage"]
         colors = [BLUE, YELLOW, GREEN]
-        parts = VGroup(*[
-            VGroup(RoundedRectangle(corner_radius=0.2, width=3.4, height=1.6, color=c),
-                   Text(n, font_size=26, line_spacing=0.8))
-            for n, c in zip(names, colors)
-        ]).arrange(RIGHT, buff=1.0)
+        parts = VGroup(*[VGroup(RoundedRectangle(corner_radius=0.2, width=3.4, height=1.6, color=c),
+                                Text(n, font_size=26, line_spacing=0.8)) for n, c in zip(names, colors)]
+                       ).arrange(RIGHT, buff=1.0)
         arrows = [Arrow(a.get_right(), b.get_left(), buff=0.1, color=GREY) for a, b in zip(parts[:-1], parts[1:])]
-        labels = [Text(s, font_size=24, color=c).next_to(p, UP, buff=0.35) for s, c, p in zip(steps, colors, parts)]
+        labels = [Text(s, font_size=24, color=c).next_to(p, UP, buff=0.35) for s, c, p in zip(tags, colors, parts)]
         self.add(Text("How a microphone hears you", font_size=36).to_edge(UP))
         for i, (part, label) in enumerate(zip(parts, labels)):
-            if i:
-                self.play(GrowArrow(arrows[i - 1]), run_time=0.6)
-            self.play(Create(part[0]), Write(part[1]), FadeIn(label))
-            self.wait(0.8)
-        self.wait(1)
+            with self.voice(i + 1):
+                if i:
+                    self.play(GrowArrow(arrows[i - 1]), run_time=0.6)
+                self.play(Create(part[0]), Write(part[1]), FadeIn(label))
 ```
 
 ## Questions about a picture
@@ -328,7 +313,7 @@ still per option with `--still`, same axes and scale, and use the embed with a w
 ## Re-teach visuals
 
 When NEXT says re-teach, animate the step the learner got wrong, alone and slower: one
-object, one change, one caption. Not the same scene again.
+object, one change, one voice line. Not the same scene again.
 
 ## Fallback only: matplotlib (after 3 failed Manim attempts in a row)
 

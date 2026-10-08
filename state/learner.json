@@ -1,0 +1,2677 @@
+{
+  "version": 1,
+  "profile": {
+    "preferences": [
+      "Theory first, then questions. Only ask about what was just taught in this note.",
+      "Very easy words. Short sentences. One idea per sentence. A concrete example before any formula.",
+      "Everything the learner reads goes into the Obsidian session note. Chat replies are 1-2 lines that point to the note.",
+      "If the learner says they are lost, restart from the most basic idea, from zero.",
+      "Always say why a step exists before showing how to do it.",
+      "One note per session. Never send the learner to another file mid-session.",
+      "Visual learner: every idea gets a Manim animation of how it works (3Blue1Brown style), plus normal text.",
+      "Start each new idea from the everyday problem, and explain what each part is and why it exists before going into details.",
+      "Each visual must show the full idea being taught, including every case such as all classes A, B and C, before any questions are asked on it."
+    ]
+  },
+  "topics": {
+    "voice-ai-audio-basics": {
+      "title": "voice ai audio basics",
+      "goal": "Understand how a computer stores and streams sound well enough to reason about audio formats, sizes and latency in a real-time voice agent (Speko internship prep)",
+      "created": "2026-10-03",
+      "concepts": {
+        "wave": {
+          "title": "Sound is a wave: frequency and amplitude",
+          "prereqs": [],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-03",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-03",
+              "q": "Q1",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q2",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q3",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q1",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "sample": {
+          "title": "Sampling: measure the wave many times a second (sample rate)",
+          "prereqs": [
+            "wave"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-03",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-03",
+              "q": "Q4",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q5",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q6",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q2",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "nyquist": {
+          "title": "The highest frequency you can capture is half the sample rate",
+          "prereqs": [
+            "sample"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-03",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-03",
+              "q": "Q7",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q8",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q9",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q3",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "quantize": {
+          "title": "Bit depth: each measurement is stored as a whole number",
+          "prereqs": [
+            "sample"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-03",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-03",
+              "q": "Q10",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q11",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-03",
+              "q": "Q12",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q4",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "pcm": {
+          "title": "Raw PCM audio: sample rate x bytes per sample x channels = bytes per second",
+          "prereqs": [
+            "quantize",
+            "nyquist"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q5",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q6",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q7",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "chunk": {
+          "title": "Streaming sends audio in small chunks; chunk length in ms sets samples and bytes",
+          "prereqs": [
+            "pcm"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": "2026-10-07",
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q8",
+              "result": "wrong",
+              "level": 1,
+              "kind": null
+            }
+          ]
+        }
+      },
+      "research": {
+        "note": "Sources/voice ai audio basics research brief.md",
+        "date": "2026-10-03",
+        "sources": 7
+      }
+    },
+    "communication-and-networking-technologies-cambridge-as-cs-9608-ch2": {
+      "title": "Communication and networking technologies (Cambridge AS CS 9608 Ch2)",
+      "goal": "Learn, retain and be able to apply the exact content of Chapter 2 of the Cambridge International AS & A Level Computer Science coursebook (printed pp. 26-50), including textbook terminology and exam-style reasoning (Cambridge 9608 questions).",
+      "created": "2026-10-05",
+      "concepts": {
+        "wan-lan": {
+          "title": "WAN and LAN: what each is, who owns it, what it connects",
+          "prereqs": [],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q2",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q3",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q4",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q45",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "internet-www": {
+          "title": "The Internet is an internetwork; the WWW is an application on it",
+          "prereqs": [
+            "wan-lan"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q5",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q6",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q7",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q46",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "client-server": {
+          "title": "Client-server model, thin-client and thick-client",
+          "prereqs": [
+            "wan-lan"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q8",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q9",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q10",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q47",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "p2p": {
+          "title": "Peer-to-peer versus client-server for file sharing",
+          "prereqs": [
+            "client-server"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 2,
+          "level": 1,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q1",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q48",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "comm-modes": {
+          "title": "Five parts of data communication; simplex, half and full duplex; unicast, multicast, broadcast",
+          "prereqs": [
+            "wan-lan"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q11",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q12",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q13",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q49",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "topologies": {
+          "title": "Point-to-point, bus, star, mesh and hybrid topologies",
+          "prereqs": [
+            "comm-modes",
+            "bus-star"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q17",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q18",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q19",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q50",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "cable-media": {
+          "title": "Twisted pair, coaxial and fibre-optic cable compared",
+          "prereqs": [
+            "topologies",
+            "signal-basics"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q20",
+              "result": "idk",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q24",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q25",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q26",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q51",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "bus-star": {
+          "title": "Point-to-point, bus and star topologies",
+          "prereqs": [
+            "comm-modes"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q14",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q15",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q16",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q52",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "signal-basics": {
+          "title": "Bandwidth, attenuation and interference in plain words",
+          "prereqs": [
+            "topologies"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q21",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q22",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q23",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q53",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "wireless-media": {
+          "title": "Radio, microwave and infrared; wired versus wireless",
+          "prereqs": [
+            "cable-media",
+            "wireless-types"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q30",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q31",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q32",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q54",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "satellites": {
+          "title": "GEO, MEO and LEO satellites and transmission delay",
+          "prereqs": [
+            "wireless-media"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q33",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q34",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q35",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q55",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "lan-hardware": {
+          "title": "NIC, repeater, bridge, hub, switch, WAP and WNIC",
+          "prereqs": [
+            "topologies",
+            "cable-media",
+            "lan-wired"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q39",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q40",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q41",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q56",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "ethernet-csmacd": {
+          "title": "Ethernet, collisions and CSMA/CD, switched Ethernet",
+          "prereqs": [
+            "lan-hardware",
+            "ethernet-collision"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q59",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q60",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q61",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "isp-router": {
+          "title": "ISP tiers, IXPs and routers as Internet nodes",
+          "prereqs": [
+            "internet-www",
+            "lan-hardware"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q63",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q64",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q65",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "pstn-cell": {
+          "title": "PSTN, modem, leased line, WiFi hotspot and cell phone network access",
+          "prereqs": [
+            "isp-router"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q66",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q67",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q68",
+              "result": "wrong",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q69",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q70",
+              "result": "idk",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q71",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q72",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q73",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "cloud": {
+          "title": "Public and private cloud, infrastructure/platform/software provision",
+          "prereqs": [
+            "client-server",
+            "internet-www"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q74",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q75",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q76",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "wireless-types": {
+          "title": "Radio, microwave and infrared compared",
+          "prereqs": [
+            "cable-media",
+            "signal-basics"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q27",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q28",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q29",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q57",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "lan-wired": {
+          "title": "NIC, terminators, repeater and bridge on a wired LAN",
+          "prereqs": [
+            "topologies",
+            "cable-media",
+            "signal-basics"
+          ],
+          "status": "mastered",
+          "taught": true,
+          "streak": 4,
+          "level": 3,
+          "box": 2,
+          "next_review": "2026-10-09",
+          "solid_date": "2026-10-05",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-05",
+              "q": "Q36",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q37",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-05",
+              "q": "Q38",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q58",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ]
+        },
+        "ethernet-collision": {
+          "title": "Ethernet, IEEE 802.3 and why collisions happen",
+          "prereqs": [
+            "lan-hardware"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q42",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q43",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q44",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "bit-streaming": {
+          "title": "Bit stream, on-demand versus real-time, buffer, bit rate and water marks",
+          "prereqs": [
+            "internet-www",
+            "cable-media"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q77",
+              "result": "idk",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q78",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q79",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q80",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "ipv4": {
+          "title": "IPv4 address: 32 bits, netID and hostID, classes A B C, dotted decimal",
+          "prereqs": [
+            "isp-router"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q81",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q82",
+              "result": "idk",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q83",
+              "result": "wrong",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q84",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q85",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q86",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "cidr": {
+          "title": "CIDR: suffix gives the number of netID bits",
+          "prereqs": [
+            "ipv4"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q87",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q88",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q89",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "subnetting": {
+          "title": "Sub-netting: structure inside the hostID",
+          "prereqs": [
+            "cidr"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q90",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q91",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q92",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "nat-private": {
+          "title": "Private addresses and network address translation (NAT)",
+          "prereqs": [
+            "ipv4"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-07",
+          "solid_date": "2026-10-06",
+          "promoted": "2026-10-06",
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q93",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q94",
+              "result": "wrong",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q95",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q96",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q97",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "static-dynamic": {
+          "title": "Static and dynamic IP addresses",
+          "prereqs": [
+            "ipv4"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "ipv6": {
+          "title": "IPv6: 128 bits, colon hexadecimal, abbreviations",
+          "prereqs": [
+            "ipv4"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 2,
+          "level": 2,
+          "box": 0,
+          "next_review": "2026-10-07",
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q98",
+              "result": "wrong",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q99",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-06",
+              "q": "Q100",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            }
+          ]
+        },
+        "dns-url": {
+          "title": "URL, domain names and DNS name resolution",
+          "prereqs": [
+            "ipv4"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "voip": {
+          "title": "PSTN calls versus VoIP calls: circuit versus packet switching",
+          "prereqs": [
+            "pstn-cell"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "scripting": {
+          "title": "JavaScript client-side and PHP server-side",
+          "prereqs": [
+            "client-server"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        }
+      },
+      "research": {
+        "note": "Sources/Communication and networking technologies (Cambridge AS CS 9608 Ch2) research brief.md",
+        "date": "2026-10-06",
+        "sources": 6
+      }
+    },
+    "computer-science-chapter-two-preparation": {
+      "title": "Computer Science chapter two preparation",
+      "goal": "",
+      "created": "2026-10-06",
+      "concepts": {}
+    },
+    "remainder-theorem-find-k-binomial-expansion": {
+      "title": "remainder-theorem-find-k binomial-expansion",
+      "goal": "solve A-level type questions where a remainder is given to find unknown k, expand (a - bx)^n, and find gradient at x=0; especially part A show k=2/5",
+      "created": "2026-10-06",
+      "concepts": {
+        "remainder": {
+          "title": "Remainder theorem for divisor x minus a",
+          "prereqs": [],
+          "status": "learning",
+          "taught": true,
+          "streak": 1,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": "2026-10-06",
+          "history": [
+            {
+              "date": "2026-10-06",
+              "q": "Q1",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            }
+          ]
+        },
+        "divisor-axb": {
+          "title": "Remainder when dividing by a x minus b",
+          "prereqs": [
+            "remainder"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "find-k": {
+          "title": "Use a known remainder to find unknown k",
+          "prereqs": [
+            "divisor-axb"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "binomial": {
+          "title": "Binomial expansion of a plus b x to power n",
+          "prereqs": [],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "gradient": {
+          "title": "Gradient of a curve at a point by differentiating",
+          "prereqs": [
+            "binomial"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        }
+      },
+      "research": {
+        "note": "Sources/remainder-theorem-find-k binomial-expansion research brief.md",
+        "date": "2026-10-06",
+        "sources": 6
+      }
+    },
+    "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy": {
+      "title": "Cambridge A-Level Physics 9702 exam prep - quantities, kinematics, dynamics, energy",
+      "goal": "Pass the 9702 test today (MCQ + structured) aiming for grade A; topics 1, 2, 3, 5 of the syllabus; learner already studied them, needs exam-readiness through past-paper practice.",
+      "created": "2026-10-07",
+      "concepts": {
+        "units-errors-vectors": {
+          "title": "Units, homogeneity, uncertainties, scalars and vectors (syllabus 1.1-1.4)",
+          "prereqs": [],
+          "status": "solid",
+          "taught": true,
+          "streak": 2,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-08",
+          "solid_date": "2026-10-07",
+          "promoted": "2026-10-07",
+          "last_seen": "2026-10-07",
+          "history": [
+            {
+              "date": "2026-10-07",
+              "q": "Q1",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q2",
+              "result": "wrong",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q3",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q4",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q5",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q6",
+              "result": "idk",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q7",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q8",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "kinematics": {
+          "title": "Graphs and uniformly accelerated motion, free fall, projectiles (syllabus 2.1)",
+          "prereqs": [
+            "units-errors-vectors"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": "2026-10-08",
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": "2026-10-07",
+          "history": [
+            {
+              "date": "2026-10-07",
+              "q": "Q9",
+              "result": "wrong",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q10",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q11",
+              "result": "wrong",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q12",
+              "result": "idk",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "dynamics": {
+          "title": "Newton's laws, momentum, collisions, drag and terminal velocity (syllabus 3.1-3.3)",
+          "prereqs": [
+            "kinematics"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "work-energy-power": {
+          "title": "Work, energy conservation, efficiency, power, GPE and KE (syllabus 5.1-5.2)",
+          "prereqs": [
+            "dynamics"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        }
+      },
+      "research": {
+        "note": "Sources/Cambridge A-Level Physics 9702 exam prep - quantities, kinematics, dynamics, energy research brief.md",
+        "date": "2026-10-07",
+        "sources": 4
+      },
+      "prefs": [
+        "For the 9702 exam-prep session: big blocks (one block per syllabus section, not tiny subtopics), 20% theory / 80% practice, questions taken from real 9702 past papers, every animation narrated with audio.",
+        "Exam-prep: use only material tied to past-paper questions and the attached syllabus; do not add extras."
+      ]
+    },
+    "trigonometry-for-a-level-maths-pure-1-p1-papers": {
+      "title": "trigonometry for A level maths Pure 1 P1 papers",
+      "goal": "Score full marks on the trigonometry questions of Edexcel IAL Pure Mathematics 1 (WMA11/01) papers. Board assumed from the learner's own files (WMA11 May 2022 paper, IAL Oct 2019 P2 in Downloads); the learner did not say what they already know, so every concept starts as new and quick checks decide.",
+      "created": "2026-10-07",
+      "concepts": {
+        "radian": {
+          "title": "Radians: an angle measured by arc length over radius, and pi radians = 180 degrees",
+          "prereqs": [],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-08",
+          "solid_date": "2026-10-07",
+          "promoted": "2026-10-07",
+          "last_seen": "2026-10-07",
+          "history": [
+            {
+              "date": "2026-10-07",
+              "q": "Q1",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q2",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q3",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "arc-sector": {
+          "title": "Arc length s = r*theta and sector area A = (1/2) r^2 theta (theta in radians)",
+          "prereqs": [
+            "radian"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-08",
+          "solid_date": "2026-10-07",
+          "promoted": "2026-10-07",
+          "last_seen": "2026-10-07",
+          "history": [
+            {
+              "date": "2026-10-07",
+              "q": "Q4",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q5",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q6",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "sine-rule": {
+          "title": "The sine rule, and the ambiguous case (the same sine gives an acute and an obtuse angle)",
+          "prereqs": [],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-08",
+          "solid_date": "2026-10-07",
+          "promoted": "2026-10-07",
+          "last_seen": "2026-10-07",
+          "history": [
+            {
+              "date": "2026-10-07",
+              "q": "Q7",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q8",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q9",
+              "result": "wrong",
+              "level": 2,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q10",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q11",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q12",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "cosine-rule-area": {
+          "title": "The cosine rule, and triangle area = (1/2) a b sin C",
+          "prereqs": [],
+          "status": "solid",
+          "taught": true,
+          "streak": 3,
+          "level": 3,
+          "box": 1,
+          "next_review": "2026-10-08",
+          "solid_date": "2026-10-07",
+          "promoted": "2026-10-07",
+          "last_seen": "2026-10-07",
+          "history": [
+            {
+              "date": "2026-10-07",
+              "q": "Q13",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q14",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            },
+            {
+              "date": "2026-10-07",
+              "q": "Q15",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ]
+        },
+        "compound-shape": {
+          "title": "Perimeter and area of a shape made of a sector and a triangle",
+          "prereqs": [
+            "arc-sector",
+            "cosine-rule-area"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 1,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": "2026-10-07",
+          "history": [
+            {
+              "date": "2026-10-07",
+              "q": "Q16",
+              "result": "correct",
+              "level": 1,
+              "kind": null
+            }
+          ]
+        },
+        "wave-graph": {
+          "title": "Graphs of sin, cos: shape, period, maximum and minimum points",
+          "prereqs": [
+            "radian"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "wave-transform": {
+          "title": "Shifted, stretched and squashed waves: y = a sin x + k, y = cos(x + c), y = sin(bx)",
+          "prereqs": [
+            "wave-graph"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        }
+      },
+      "research": {
+        "note": "Sources/trigonometry for A level maths Pure 1 P1 papers research brief.md",
+        "date": "2026-10-07",
+        "sources": 4
+      }
+    },
+    "kazakh-history-from-nomadic-society-to-imperial-rule": {
+      "title": "Kazakh history from nomadic society to imperial rule",
+      "goal": "Answer 7 exam questions in English (with Russian understanding), remember all dates and key terms. Scope and structure follow the learner-provided 7-section guide; external sources corroborate the same facts.",
+      "created": "2026-10-08",
+      "concepts": {
+        "nomad-migration": {
+          "title": "Seasonal migration and Adat/Biys society before Russian rule",
+          "prereqs": [],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": "2026-10-09",
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": "2026-10-08",
+          "history": [
+            {
+              "date": "2026-10-08",
+              "q": "Q1",
+              "result": "idk",
+              "level": 2,
+              "kind": null
+            }
+          ],
+          "checked": true
+        },
+        "dzungar-anyrakay": {
+          "title": "1723 disaster causes and recovery via 1726 Ordabasy unity to Bulanty and Anyrakay",
+          "prereqs": [
+            "nomad-migration"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": "2026-10-09",
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": "2026-10-08",
+          "history": [
+            {
+              "date": "2026-10-08",
+              "q": "Q2",
+              "result": "idk",
+              "level": 3,
+              "kind": null
+            }
+          ],
+          "checked": true
+        },
+        "forts-strip": {
+          "title": "1731 oath turning into territorial restriction via forts and 10-verst strip",
+          "prereqs": [
+            "dzungar-anyrakay"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "charter-1822": {
+          "title": "Speransky Charter 1822 replacing khanate with okrugs, volosts, auls and Aga Sultans",
+          "prereqs": [
+            "forts-strip"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "kenesary-reforms": {
+          "title": "Kenesary 1837-1847 uprising reforms: admin, financial, military, legal; elected Khan 1841",
+          "prereqs": [
+            "charter-1822"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "great-game": {
+          "title": "Great Game rivalry driving Russian expansion into South Kazakhstan 1853-1865",
+          "prereqs": [
+            "forts-strip"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "statutes-stolypin": {
+          "title": "Steppe Statutes 1886/1891 and Stolypin 1906-1912: izlishki land loss and Zhataks",
+          "prereqs": [
+            "charter-1822"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        }
+      },
+      "research": {
+        "note": "Sources/Kazakh history from nomadic society to imperial rule research brief.md",
+        "date": "2026-10-08",
+        "sources": 3,
+        "exam": null
+      },
+      "units": {
+        "steppe-roots": {
+          "title": "Steppe roots: migration and Dzungar recovery",
+          "concepts": [
+            "nomad-migration",
+            "dzungar-anyrakay"
+          ]
+        },
+        "russian-admin": {
+          "title": "Russian control: forts, charter, Kenesary",
+          "concepts": [
+            "forts-strip",
+            "charter-1822",
+            "kenesary-reforms"
+          ]
+        },
+        "empire-late": {
+          "title": "Late empire: Great Game and land loss",
+          "concepts": [
+            "great-game",
+            "statutes-stolypin"
+          ]
+        }
+      }
+    }
+  },
+  "session": null,
+  "history": [
+    {
+      "date": "2026-10-03",
+      "topics": [
+        "voice-ai-audio-basics"
+      ],
+      "note": "Sessions/2026-10-03 voice ai audio basics.md",
+      "correct": 12,
+      "wrong": 0,
+      "idk": 0,
+      "next_time": null,
+      "next_by_topic": {
+        "voice-ai-audio-basics": "Start with 'Sound is a wave: frequency and amplitude': 'Sound is a wave: frequency and amplitude' is due for review (box 1, last seen 2026-10-03)."
+      }
+    },
+    {
+      "date": "2026-10-05",
+      "topics": [
+        "communication-and-networking-technologies-cambridge-as-cs-9608-ch2"
+      ],
+      "note": "Sessions/2026-10-05 Communication and networking technologies (Cambridge AS CS 9608 Ch2).md",
+      "correct": 60,
+      "wrong": 0,
+      "idk": 1,
+      "next_time": "Chapter 2 (Cambridge 9608/9618). Start by answering Q62 (ISP and router, 1 of 2 recall). Then reviews due 2026-10-07 (ethernet-collision, ethernet-csmacd), then teach pstn-cell and cloud, then plan batch 3: bit-streaming, ipv4, cidr, subnetting, nat-private, static-dynamic, ipv6, dns-url. Last: cumulative chapter review + final mastery check. Narrated Manim is now required (NARRATION list per figure).",
+      "next_by_topic": {
+        "communication-and-networking-technologies-cambridge-as-cs-9608-ch2": "Start with 'ISP tiers, IXPs and routers as Internet nodes': 'ISP tiers, IXPs and routers as Internet nodes' is not solid yet (0 of 2 correct in a row). Note: Chapter 2 (Cambridge 9608/9618). Start by answering Q62 (ISP and router, 1 of 2 recall). Then reviews due 2026-10-07 (ethernet-collision, ethernet-csmacd), then teach pstn-cell and cloud, then plan batch 3: bit-streaming, ipv4, cidr, subnetting, nat-private, static-dynamic, ipv6, dns-url. Last: cumulative chapter review + final mastery check. Narrated Manim is now required (NARRATION list per figure)."
+      }
+    },
+    {
+      "date": "2026-10-06",
+      "topics": [
+        "voice-ai-audio-basics",
+        "computer-science-chapter-two-preparation",
+        "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+        "remainder-theorem-find-k-binomial-expansion"
+      ],
+      "note": "Sessions/2026-10-05 Communication and networking technologies (Cambridge AS CS 9608 Ch2).md",
+      "correct": 33,
+      "wrong": 4,
+      "idk": 3,
+      "next_time": "math remainder-theorem moved to dedicated note; continue networking NAT next",
+      "next_by_topic": {
+        "voice-ai-audio-basics": "Start with 'Streaming sends audio in small chunks; chunk length in ms sets samples and bytes': 'Streaming sends audio in small chunks; chunk length in ms sets samples and bytes' is not solid yet (0 of 2 correct in a row).",
+        "computer-science-chapter-two-preparation": "'Computer Science chapter two preparation' has no research brief yet. Research comes before any teaching.",
+        "communication-and-networking-technologies-cambridge-as-cs-9608-ch2": "Start with 'Private addresses and network address translation (NAT)': 'Private addresses and network address translation (NAT)' is not solid yet (0 of 2 correct in a row).",
+        "remainder-theorem-find-k-binomial-expansion": "Start with 'Remainder theorem for divisor x minus a': 'Remainder theorem for divisor x minus a' is not solid yet (0 of 2 correct in a row). Note: math remainder-theorem moved to dedicated note; continue networking NAT next"
+      }
+    },
+    {
+      "date": "2026-10-06",
+      "topics": [
+        "remainder-theorem-find-k-binomial-expansion",
+        "communication-and-networking-technologies-cambridge-as-cs-9608-ch2"
+      ],
+      "note": "Sessions/2026-10-05 Communication and networking technologies (Cambridge AS CS 9608 Ch2).md",
+      "correct": 6,
+      "wrong": 1,
+      "idk": 0,
+      "next_time": null,
+      "next_by_topic": {
+        "remainder-theorem-find-k-binomial-expansion": "Start with 'Remainder theorem for divisor x minus a': 'Remainder theorem for divisor x minus a' is not solid yet (1 of 2 correct in a row).",
+        "communication-and-networking-technologies-cambridge-as-cs-9608-ch2": "Start with 'Ethernet, collisions and CSMA/CD, switched Ethernet': 'Ethernet, collisions and CSMA/CD, switched Ethernet' is due for review (box 1, last seen 2026-10-06)."
+      }
+    },
+    {
+      "date": "2026-10-07",
+      "topics": [
+        "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy",
+        "trigonometry-for-a-level-maths-pure-1-p1-papers"
+      ],
+      "note": "Sessions/2026-10-07 Cambridge A-Level Physics 9702 exam prep - quantities, kinematics, dynamics, energy.md",
+      "correct": 7,
+      "wrong": 3,
+      "idk": 2,
+      "next_time": "Physics 9702: answer Q13 (acceleration from a tangent on a v-t curve), then continue kinematics. Trigonometry (Edexcel IAL P1) has its own note.",
+      "next_by_topic": {
+        "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy": "Start with 'Graphs and uniformly accelerated motion, free fall, projectiles (syllabus 2.1)': 'Graphs and uniformly accelerated motion, free fall, projectiles (syllabus 2.1)' is not solid yet (0 of 2 correct in a row).",
+        "trigonometry-for-a-level-maths-pure-1-p1-papers": "'trigonometry for A level maths Pure 1 P1 papers' has a research brief but no plan yet. Note: Physics 9702: answer Q13 (acceleration from a tangent on a v-t curve), then continue kinematics. Trigonometry (Edexcel IAL P1) has its own note."
+      }
+    },
+    {
+      "date": "2026-10-07",
+      "topics": [
+        "trigonometry-for-a-level-maths-pure-1-p1-papers"
+      ],
+      "note": "Sessions/2026-10-07 trigonometry for A level maths Pure 1 P1 papers.md",
+      "correct": 15,
+      "wrong": 1,
+      "idk": 0,
+      "next_time": null,
+      "next_by_topic": {
+        "trigonometry-for-a-level-maths-pure-1-p1-papers": "Start with 'Radians: an angle measured by arc length over radius, and pi radians = 180 degrees': 'Radians: an angle measured by arc length over radius, and pi radians = 180 degrees' is due for review (box 1, last seen 2026-10-07)."
+      }
+    },
+    {
+      "date": "2026-10-08",
+      "topics": [
+        "kazakh-history-from-nomadic-society-to-imperial-rule",
+        "voice-ai-audio-basics"
+      ],
+      "note": "Sessions/2026-10-08 Kazakh history from nomadic society to imperial rule.md",
+      "correct": 0,
+      "wrong": 0,
+      "idk": 2,
+      "next_time": "Kazakh history: Q1 and Q2 were skipped as 'I don't know' (Adat/Biy society and 1723/1726 unity). Re-teach both before asking again.",
+      "next_by_topic": {
+        "kazakh-history-from-nomadic-society-to-imperial-rule": "Start with 'Seasonal migration and Adat/Biys society before Russian rule': 'I don't know' on 'Seasonal migration and Adat/Biys society before Russian rule': teaching it again, simpler, before asking.",
+        "voice-ai-audio-basics": "Start with 'Raw PCM audio: sample rate x bytes per sample x channels = bytes per second': 'Raw PCM audio: sample rate x bytes per sample x channels = bytes per second' is due for review (box 1, last seen 2026-10-06). Note: Kazakh history: Q1 and Q2 were skipped as 'I don't know' (Adat/Biy society and 1723/1726 unity). Re-teach both before asking again."
+      }
+    }
+  ],
+  "mistakes": [
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "cable-media",
+      "date": "2026-10-05",
+      "q": "Q20",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": "2026-10-06"
+    },
+    {
+      "topic": "voice-ai-audio-basics",
+      "concept": "chunk",
+      "date": "2026-10-06",
+      "q": "Q8",
+      "kind": "misconception",
+      "what": "Found the bytes in a whole second and forgot to cut to 20 ms",
+      "closed": null
+    },
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "pstn-cell",
+      "date": "2026-10-06",
+      "q": "Q68",
+      "kind": "misconception",
+      "what": "A leased line is a fixed wired link between two points, not a mobile connection",
+      "closed": null
+    },
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "pstn-cell",
+      "date": "2026-10-06",
+      "q": "Q70",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": null
+    },
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "bit-streaming",
+      "date": "2026-10-06",
+      "q": "Q77",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": null
+    },
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "ipv4",
+      "date": "2026-10-06",
+      "q": "Q82",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": null
+    },
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "ipv4",
+      "date": "2026-10-06",
+      "q": "Q83",
+      "kind": "misconception",
+      "what": "Confuses the Class A network count with the 256 hosts of a Class C network",
+      "closed": null
+    },
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "nat-private",
+      "date": "2026-10-06",
+      "q": "Q94",
+      "kind": "misconception",
+      "what": "Mixes up incoming handling with outgoing handling",
+      "closed": null
+    },
+    {
+      "topic": "communication-and-networking-technologies-cambridge-as-cs-9608-ch2",
+      "concept": "ipv6",
+      "date": "2026-10-06",
+      "q": "Q98",
+      "kind": "misconception",
+      "what": "Compresses the zero run but keeps the leading zeros",
+      "closed": null
+    },
+    {
+      "topic": "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy",
+      "concept": "units-errors-vectors",
+      "date": "2026-10-07",
+      "q": "Q2",
+      "kind": "misconception",
+      "what": "Thinks calibration faults are random",
+      "closed": null
+    },
+    {
+      "topic": "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy",
+      "concept": "units-errors-vectors",
+      "date": "2026-10-07",
+      "q": "Q6",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": null
+    },
+    {
+      "topic": "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy",
+      "concept": "kinematics",
+      "date": "2026-10-07",
+      "q": "Q9",
+      "kind": "misconception",
+      "what": "Confused average velocity with speed throughout",
+      "closed": null
+    },
+    {
+      "topic": "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy",
+      "concept": "kinematics",
+      "date": "2026-10-07",
+      "q": "Q11",
+      "kind": "misconception",
+      "what": "Divided the speed at 3 s by the time ($6/3$)",
+      "closed": null
+    },
+    {
+      "topic": "cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy",
+      "concept": "kinematics",
+      "date": "2026-10-07",
+      "q": "Q12",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": null
+    },
+    {
+      "topic": "trigonometry-for-a-level-maths-pure-1-p1-papers",
+      "concept": "sine-rule",
+      "date": "2026-10-07",
+      "q": "Q9",
+      "kind": "misconception",
+      "what": "Gave the sharp angle from the calculator and ignored that $AB$ is the longest side",
+      "closed": null
+    },
+    {
+      "topic": "kazakh-history-from-nomadic-society-to-imperial-rule",
+      "concept": "nomad-migration",
+      "date": "2026-10-08",
+      "q": "Q1",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": null
+    },
+    {
+      "topic": "kazakh-history-from-nomadic-society-to-imperial-rule",
+      "concept": "dzungar-anyrakay",
+      "date": "2026-10-08",
+      "q": "Q2",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": null
+    }
+  ],
+  "figures": {
+    "Attachments/learn/voice-ai-audio-basics/wave-frequency-amplitude.mp4": "manim",
+    "Attachments/learn/voice-ai-audio-basics/q-two-waves.png": "manim",
+    "Attachments/learn/voice-ai-audio-basics/sampling.mp4": "manim",
+    "Attachments/learn/voice-ai-audio-basics/nyquist-aliasing.mp4": "manim",
+    "Attachments/learn/voice-ai-audio-basics/quantization.mp4": "manim",
+    "Attachments/learn/voice-ai-audio-basics/pcm-bytes.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/wan-lan.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/internet-www.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/client-server.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/comm-modes.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/bus-star.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/topologies.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/cable-media.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/signal-basics.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/wireless-types.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/wireless-media.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/satellites.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/lan-wired.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/lan-hardware.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ethernet-collision.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/csma-cd.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/isp-router.mp4": "manim",
+    "Attachments/learn/voice-ai-audio-basics/pcm-retaught.mp4": "manim",
+    "Attachments/learn/voice-ai-audio-basics/chunks.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/pstn-modem.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/pstn-dialup.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/cloud-flow.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/bitstream-buffer.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/bitstream-basics.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv4-address.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv4-classes.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv4-decide.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/cidr-split.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/subnet-split.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/nat-box.mp4": "manim",
+    "Attachments/learn/remainder-theorem-find-k-binomial-expansion/remainder-basic.mp4": "manim",
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv6-compress.mp4": "manim",
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/units-errors-vectors.mp4": "manim",
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/errors-systematic-random.mp4": "manim",
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/vectors-resolving.mp4": "manim",
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/kinematics-full.mp4": "manim",
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/kinematics-reteach.mp4": "manim",
+    "Attachments/learn/trigonometry-for-a-level-maths-pure-1-p1-papers/radian.mp4": "manim",
+    "Attachments/learn/trigonometry-for-a-level-maths-pure-1-p1-papers/arc-sector.mp4": "manim",
+    "Attachments/learn/trigonometry-for-a-level-maths-pure-1-p1-papers/sine-rule.mp4": "manim",
+    "Attachments/learn/trigonometry-for-a-level-maths-pure-1-p1-papers/cosine-rule.mp4": "manim",
+    "Attachments/learn/trigonometry-for-a-level-maths-pure-1-p1-papers/compound-shape.mp4": "manim",
+    "Attachments/learn/kazakh-history-from-nomadic-society-to-imperial-rule/seasonal-cycle.mp4": "manim",
+    "Attachments/learn/kazakh-history-from-nomadic-society-to-imperial-rule/dzungar-unity.mp4": "manim"
+  },
+  "narrations": {
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/csma-cd.mp4": [
+      "Before sending, a computer on a shared cable first listens. If someone is already transmitting, there is a voltage on the cable, and the computer can detect it. Here B is sending, so A senses activity.",
+      "Because the cable is busy, A does not talk over B. It waits a random amount of time, and then listens again. The wait is random so that two waiting computers do not both jump in at the same moment.",
+      "Now the cable is quiet, so A starts sending. But it keeps paying attention: it checks the cable the whole time, in case another computer starts sending too.",
+      "Here D also started sending, and the two signals clash in the middle. That is a collision. A notices, stops, and sends a jamming signal to warn every other computer. Then A and D each wait a random time and try again.",
+      "Modern Ethernet is switched. Each computer has its own full duplex link to the switch, so a collision cannot happen on that link. The switch holds an incoming message in a buffer until the cable is free. So the old procedure, C S M A C D, is no longer needed."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/isp-router.mp4": [
+      "At the bottom are people and companies. They reach the Internet through an access ISP, the company that gives them their connection. Notice that each ISP is itself just a network.",
+      "Access ISPs connect upward to middle tier, or regional, ISPs, and those connect to tier one ISPs, the backbone at the top. Where ISPs meet to pass traffic to each other, they use Internet exchange points, the small yellow squares.",
+      "The busiest connections are fibre optic cables under the sea and across land. Together they form a mesh, and every place where cables join is called a node.",
+      "At every node sits a router. Each router connects to several others, and its job is to choose the best route for the data. Watch the dot pick one path through the mesh instead of the others."
+    ],
+    "Attachments/learn/voice-ai-audio-basics/pcm-retaught.mp4": [
+      "Start with one sample. With sixteen bit audio, the height of this one measurement is stored using sixteen little boxes, and each box holds a zero or a one.",
+      "The computer counts storage in bytes, and one byte is eight of these boxes. So sixteen boxes are exactly two bytes. To get bytes from bits, divide by eight.",
+      "Now count the channels. Mono has one stream, so each moment needs one sample, two bytes. Stereo has two streams, so each moment needs two samples, four bytes. One moment of all channels is called a frame.",
+      "Finally, time. The microphone makes sixteen thousand frames every second, and each frame is two bytes. Multiply them and one second of audio is thirty two thousand bytes. This is the number you use to size buffers."
+    ],
+    "Attachments/learn/voice-ai-audio-basics/chunks.mp4": [
+      "A microphone never stops. Sound keeps arriving, so there is no moment when the recording is finished. If we waited for the end of the sentence, the listener would wait too.",
+      "So we cut the stream into equal small pieces called chunks. Here each chunk is twenty milliseconds long. That length is only an example, real systems choose their own.",
+      "Each chunk holds a known number of samples, and that gives its size in bytes. At sixteen thousand samples per second, twenty milliseconds is three hundred twenty samples. With two bytes each, that is six hundred forty bytes.",
+      "Now chunks travel one by one. Each is sent as soon as it is ready, so the listener can start working on the first chunk while you are still talking. This is what streaming means."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/pstn-modem.mp4": [
+      "A computer works with digital bits, ones and zeros. But the old telephone network was built for analogue voice, a signal that changes smoothly.",
+      "So a modem converts the digital bits into an analogue signal the phone line can carry. Modem is short for modulator demodulator.",
+      "The analogue signal travels along the phone line, the same kind of line that carries ordinary phone calls.",
+      "At the far end a second modem does the reverse. It turns the analogue signal back into digital bits the receiving computer can read."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/pstn-dialup.mp4": [
+      "To go online, the computer dials the ISP, just like making a phone call.",
+      "A modem converts the digital bits into an analogue signal the phone line can carry.",
+      "The call shares the phone line with ordinary calls, so the speed is modest and shared.",
+      "The ISP answers and gives a modest-speed connection, only while the call lasts."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/cloud-flow.mp4": [
+      "A user opens a browser on any device, in any location. The cloud is reached over the Internet, not from a local hard drive.",
+      "The request travels over the Internet to the cloud provider.",
+      "The cloud runs on large mainframe computers or server farms, so it has far more power and storage than a single machine.",
+      "The services it offers are one of three kinds: infrastructure for power and storage, platform for developing and testing software, or software that runs heavy applications."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/bitstream-buffer.mp4": [
+      "The media server sends the compressed bit stream into a buffer on your computer.",
+      "The buffer fills faster than the player drains it, because input is sent at a higher rate than the display rate.",
+      "When the level reaches the high-water mark, the player tells the server to pause input, so the buffer never overflows.",
+      "When the level drops to the low-water mark, input restarts. The player keeps the level between the two marks, so playback never runs dry."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/bitstream-basics.mp4": [
+      "The whole video sits on a server, far away. You do not download it all first.",
+      "Data arrives over the Internet into a buffer, a temporary store on your computer.",
+      "The media player, the software that shows the video, takes data from the buffer and plays it.",
+      "The buffer keeps a little ahead of the player, so playback stays smooth even if the network slows."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv4-address.mp4": [
+      "An I P version four address, the address of a device on the Internet, is thirty two ones and zeros, shown as four groups of eight.",
+      "The first part names the network. Routers read this part first, to send the message toward the right network.",
+      "The last part names the device on that network. It is only read when the message arrives at the network.",
+      "Machines send the bits, but people read numbers. Each group of eight bits is written as one ordinary number, with dots between the groups."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv4-classes.mp4": [
+      "The first one, two, or three bits say which class an address belongs to. The class fixes where the split between network and device sits.",
+      "Class A starts with a single zero. Seven bits name the network and twenty four name the device, so there are only one hundred twenty eight Class A networks, but each holds millions of devices.",
+      "Class B starts with one zero. Fourteen bits name the network and sixteen name the device.",
+      "Class C starts with one one zero. Twenty one bits name the network and eight name the device: about two million networks with two hundred fifty six devices each."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv4-decide.mp4": [
+      "Read the very first bit. If it is a zero, stop: the address is Class A, with seven network bits and twenty four device bits.",
+      "If the first bit is a one, read the second bit too. If the two are one zero, the address is Class B, with fourteen network bits and sixteen device bits.",
+      "Otherwise the first three bits are one one zero, and the address is Class C, with twenty one network bits and eight device bits."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/cidr-split.mp4": [
+      "Classes lock the split in place, which wastes addresses. Classless routing lets the split move to suit need. A short suffix at the end of the address says how many bits name the network.",
+      "Here the suffix is twenty one, so the first twenty one bits name the network.",
+      "The remaining eleven bits name the devices on it: two to the eleven gives two thousand forty eight host addresses."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/subnet-split.mp4": [
+      "One Class C network serves the whole company: the first three groups name the company network, leaving eight bits for everything inside it.",
+      "The top three of those bits name the department LAN. Zero zero zero is the head office LAN.",
+      "The last five bits name the workstation on that LAN. Zero one one one zero is workstation fourteen, so this address reaches computer fourteen on the head office LAN."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/nat-box.mp4": [
+      "Inside the company network, computers use private addresses, like one ninety two dot one sixty eight dot one dot one. Any company can use the same addresses, because they are never seen on the Internet.",
+      "The NAT box holds the single address the Internet sees. Every message leaving or entering passes through it.",
+      "Its software examines each transmission, and can run a security check before an incoming message reaches the right inside computer."
+    ],
+    "Attachments/learn/remainder-theorem-find-k-binomial-expansion/remainder-basic.mp4": [
+      "Dividing a polynomial leaves a quotient plus a leftover number, because the divisor is only degree one.",
+      "If we put x equals a, the quotient part vanishes, because a minus a is zero.",
+      "What is left is the remainder, so the remainder is just the polynomial evaluated at a."
+    ],
+    "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/ipv6-compress.mp4": [
+      "An eye pea version six address is one hundred twenty eight bits, written as eight groups of four hexadecimal digits. That is long to write.",
+      "So one run of zero groups, and only one, is replaced by a double colon. Here six zero groups vanish into one double colon.",
+      "Two double colons would be ambiguous: nobody could tell how many zeros each one stands for. That is why the rule allows it only once."
+    ],
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/units-errors-vectors.mp4": [
+      "First, units. To check an equation, turn every quantity into base units, kilograms, metres and seconds. Force is mass times acceleration, so newton becomes kilogram metre per second squared. If both sides end up with the same base units, the equation is homogeneous, which means it can be right.",
+      "Second, uncertainty. When you multiply or divide measurements, add their percentage uncertainties. Here one percent plus five percent makes six percent. When you add or subtract, add the absolute uncertainties instead. A power multiplies the percentage, so a squared quantity doubles it.",
+      "Third, vectors. A vector has size and direction, so you add it tip to tail. The yellow arrow is the sum of the blue and green ones. To use a vector, split it into two perpendicular parts: the horizontal part is F cosine theta, the vertical part is F sine theta. Remember, cosine goes with the side next to the angle."
+    ],
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/errors-systematic-random.mp4": [
+      "Every measurement can go wrong in two ways, and the exam wants you to name which one. Here are four targets. Each will get five readings.",
+      "On the left, the dots sit on the centre and close together. That is precise and accurate. This is what a good experiment looks like.",
+      "Next, the dots are tight together but away from the centre. Precise, but not accurate. This is the signature of a systematic error.",
+      "Third, the dots scatter around the centre. Accurate on average, but not precise. This is the signature of a random error.",
+      "Last, spread out and off centre: neither precise nor accurate. Now let us look at each error type in turn, starting with systematic.",
+      "A systematic error pushes every reading the same way. Imagine a ruler with a worn end. It reads one more than the true length, which is five.",
+      "Every reading comes out close to six. They agree with each other, so the instrument looks precise. But they are all wrong in the same direction.",
+      "The shift is the zero error, here plus one. The cure is to subtract it. Repeating the measurement does not help, because every repeat is wrong in the same way.",
+      "A random error is different. Readings scatter above and below the true value, from reaction time, or from reading a scale at slightly different angles.",
+      "Averaging helps here. High errors and low errors cancel, so the mean lands close to the true value. That is why we repeat measurements.",
+      "Now the classic exam setting, measuring g. A ball hangs from an electromagnet above a trapdoor. You measure the distance P Q, from the magnet to the trapdoor.",
+      "But the ball only falls a distance shorter than P Q, by its own diameter. So every run has exactly the same wrong distance.",
+      "A constant offset is a systematic error, not a random one. The fix is to correct the distance. Repeating the drop will not fix it.",
+      "Now uncertainty. Rule one: when you multiply or divide, add the percentage uncertainties.",
+      "Rule two: when a quantity is raised to a power, multiply its percentage uncertainty by that power. A square doubles it, a cube triples it.",
+      "Rule three: when you add or subtract, add the absolute uncertainties. Always check whether the question wants a percentage or an absolute uncertainty.",
+      "Example: the density of a sphere. Mass is thirty two point five grams, give or take zero point one. That is zero point three percent.",
+      "The diameter is one point eight seven, give or take zero point zero four. That is two point one percent. Volume goes as diameter cubed, so we count it three times, which gives six point three.",
+      "Add the mass part: about six point seven percent. The cube is the trap. Examiners love it, so always look for powers.",
+      "Example: the pendulum. Rearrange first. g equals four pi squared l over T squared. The length has zero point two four percent uncertainty.",
+      "The period has seven point seven percent. It is squared, so that becomes fifteen point four. Add them: about sixteen percent.",
+      "If the formula has a root, such as v equals the cube root of P over b, divide the combined percentage by three. Never multiply.",
+      "Checklist. Name the error type. Averaging cures only random error. Add percentages and multiply by every power. Convert units before squaring. Absolute uncertainty is percentage times value."
+    ],
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/vectors-resolving.mp4": [
+      "Why did the aeroplane question feel hard? It needs one skill, splitting a slanted vector. First the basics. A scalar has size only, like speed, distance, energy, power and mass.",
+      "A vector has size and direction. Velocity, displacement, force, acceleration and momentum are all vectors. Direction matters, so a sign or an angle must be given.",
+      "Adding vectors means tip to tail. Walk three metres east. That is the first arrow.",
+      "Now walk four metres north. Start the second arrow where the first one ended. The distance walked is seven metres.",
+      "The displacement is the straight arrow from start to finish. By Pythagoras, that is five metres. Distance seven, displacement five.",
+      "A semicircle of radius one metre is the same idea. The distance is pi, about three point one metres. The displacement is the diameter, two metres, with a direction.",
+      "Now the key skill, splitting a vector. Take a force F at angle theta above the horizontal. Draw a right triangle around it.",
+      "The side next to the angle is F cosine theta. This is the horizontal part.",
+      "The side opposite the angle is F sine theta. This is the vertical part.",
+      "A quick check: if theta is zero, the whole force is horizontal, and cosine of zero is one. So the horizontal part is always the cosine part.",
+      "On a slope, the angle is measured from the horizontal, and the weight always points straight down. Draw the slope and the weight.",
+      "The part of the weight along the slope is W sine theta. This is the part that pulls the object down the slope.",
+      "The part pressing into the slope is W cosine theta. That is why a smooth slope gives acceleration g sine theta, not g.",
+      "Now the aeroplane, climbing at constant speed. Forces balance in both directions. Along the path: thrust forward, resistance backward, and the weight component W sine theta backward. So thrust equals R plus W sine theta.",
+      "Across the path, lift balances W cosine theta. Same triangle as the slope, so constant velocity means no resultant force.",
+      "Projectiles use the same split. A ball kicked at fifteen metres per second at sixty degrees has a horizontal part of fifteen cosine sixty, which is seven point five, and a vertical part of fifteen sine sixty, which is thirteen.",
+      "The horizontal part never changes, because no horizontal force acts. The vertical part is slowed by g and reaches zero at the top, after thirteen over nine point eight one, about one point three seconds.",
+      "One last exam move: a change in a vector. A ball hits a wall at seven point five metres per second and leaves at four point three the other way. Choose right as positive.",
+      "So the change in velocity has size eleven point eight. Multiply by the mass, zero point four, for a change in momentum of four point seven. Reversed direction means you add the speeds, you never subtract them."
+    ],
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/kinematics-full.mp4": [
+      "Kinematics starts with three definitions. Velocity is rate of change of displacement. Acceleration is rate of change of velocity. Displacement is distance in a given direction, so it is a vector, while distance and speed are scalars.",
+      "Exam trap: a toy car goes round a circular track at a constant zero point five metres per second, taking forty seconds per lap. After a full lap its distance is twenty metres, but its displacement is zero, so the average velocity is zero. After half a lap, the displacement is the diameter, giving zero point three two.",
+      "On a displacement time graph, the gradient is the velocity. A steeper line means faster. A flat line means at rest. A line sloping down means moving backwards.",
+      "On a velocity time graph, two rules. The gradient is the acceleration. The area under the graph is the displacement. These two rules answer most graph questions in the exam.",
+      "Watch the sign. In this real exam graph the car starts at minus ten metres per second, passes zero at four seconds, and reaches twenty at twelve. The area below the axis counts as negative displacement. Subtract it, and the displacement at twelve seconds is sixty metres, not the total area.",
+      "If the graph is curved, the gradient at one moment needs a tangent: a straight line that just touches the curve at that point. Draw it clearly, because the mark scheme gives a mark for the line itself. Then take rise over run on that tangent.",
+      "Now the equations of uniformly accelerated motion. They apply only when the acceleration is constant and the motion is in a straight line. Learn the four: v equals u plus a t; s equals u t plus half a t squared; v squared equals u squared plus two a s; and s equals half u plus v, times t.",
+      "To choose, list what you know and what you want. The one quantity that is neither known nor wanted tells you which equation to use. Missing s, use v equals u plus a t. Missing v, use s equals u t plus half a t squared. Missing t, use v squared equals u squared plus two a s.",
+      "Signs matter. Choose a direction as positive and stay with it. If up is positive, then g is minus nine point eight one. A stone thrown up at fifteen metres per second: at the top v is zero, so v squared equals u squared plus two a s gives s equals fifteen squared over two times nine point eight one, about eleven metres.",
+      "On a frictionless slope at thirty degrees, only the part of the weight along the slope accelerates the object. So a is g sine thirty, four point nine. In zero point eight seconds from rest, s is half times four point nine times zero point eight squared, one point six metres. The mass does not matter.",
+      "Overtaking questions: a goods train passes at ten metres per second while an express starts from rest, accelerating at zero point five. The express overtakes when the displacements are equal, not the speeds. Half times zero point five times t squared equals ten t, so t is forty seconds. Twenty seconds is just when the speeds match.",
+      "Another pattern: a stone dropped down a well, and you hear the splash later. The total time is the fall time plus the sound travel time. Seventy eight metres: fall time root of two s over g, three point nine nine seconds. Sound takes seventy eight over three hundred thirty, zero point two four. Total four point two two.",
+      "Projectile motion is two separate motions. Horizontally there is no force, so the velocity is constant. Vertically the acceleration is g downward. Time is the link between them, and it always comes from the vertical motion or from the horizontal distance over the horizontal speed.",
+      "Real example. A ball is kicked at nine point five metres per second horizontally and seven point four vertically, toward a wall nine metres away. Time to the wall is nine over nine point five, zero point nine five seconds. Then the height is seven point four times zero point nine five, minus half g t squared, two point six metres.",
+      "Speed after a time needs both components. On the Moon, a ball starts with vertical eight and horizontal four, g is one point six two. After nine seconds the vertical component is eight minus one point six two times nine, minus six point five eight. Speed is the root of six point five eight squared plus four squared, seven point seven.",
+      "Finally, the experiment to find g. Drop a ball, measure the height s and the time t. Then s equals half g t squared, so a graph of s against t squared is a straight line with gradient g over two. For the uncertainty in g, add the percentage in s to twice the percentage in t. A missing ball diameter in the height is a systematic error.",
+      "Checklist. Gradient of s t is velocity. Gradient of v t is acceleration. Area under v t is displacement, negative below the axis. Draw tangents on curves. Use the four equations only for constant acceleration, with a sign convention. Overtaking means equal displacement. Projectiles: split horizontal and vertical."
+    ],
+    "Attachments/learn/cambridge-a-level-physics-9702-exam-prep-quantities-kinematics-dynamics-energy/kinematics-reteach.mp4": [
+      "Two steps went wrong, so let us slow right down. First: how to read a gradient from a graph. Second: how to find the speed of a projectile using both components. Smaller numbers, one step at a time.",
+      "Step A. On a straight line, pick two points far apart. Here from zero comma two, to four comma ten. The rise is ten minus two, which is eight. The run is four. So the gradient is eight over four, which is two. On a velocity time graph, that two is the acceleration in metres per second squared.",
+      "Now a curve. The slope changes all along it, so the gradient at one moment needs a tangent. A tangent is a straight line that just touches the curve at that one point. Draw it with a ruler. Use the chord from the origin and you get the average gradient, which is the wrong answer.",
+      "Now read the tangent like any straight line. Choose two points on the tangent, far apart. Here it rises from about four point two to seven point eight, over a run of two point eight seconds. Three point six over two point eight is about one point three metres per second squared.",
+      "Step B. A projectile is moving sideways and up and down at the same time. The sideways velocity, called v x, never changes, because nothing pushes sideways. The vertical velocity v y changes, because gravity pulls down. Watch the arrows at four moments along the path.",
+      "At the start the vertical arrow is long and up. Later it is shorter. At the top it is zero. After the top it points down and gets longer. But the horizontal arrow, in blue, stays exactly the same length every time.",
+      "To find the speed at some time, find each component separately. Horizontal: it is just the starting value. Vertical: use v equals u plus a t, with a equal to minus g. On the Moon, g is one point six two. After nine seconds the vertical part is eight minus fourteen point five eight, which is minus six point five eight. Minus means moving down.",
+      "Now combine them. The two components are at right angles, so use Pythagoras. Speed is the square root of six point five eight squared plus four squared, which is seven point seven. Do not add six point five eight and four. That gives ten point six, which is a wrong option in the real question.",
+      "So remember. A: pick two far apart points on a straight line or tangent, then rise over run. B: find vx, find vy with v equals u plus a t, then Pythagoras. Never add components straight."
+    ],
+    "Attachments/learn/trigonometry-for-a-level-maths-pure-1-p1-papers/radian.mp4": [
+      "Take a piece of string exactly as long as the radius of this circle, and lay it along the edge. The curve it covers is called an arc. Now look at the angle it makes at the centre. That angle is one radian.",
+      "Keep laying the same string round the circle. Six pieces fit, and a small gap is left, less than one more piece. So the whole way round is about six point two eight radians. That number is two pi.",
+      "Half way round is pi radians, and half a turn is also one hundred eighty degrees. So pi radians equals one hundred eighty degrees. This one fact lets you switch between the two units."
+    ],
+    "Attachments/learn/trigonometry-for-a-level-maths-pure-1-p1-papers/arc-sector.mp4": [
+      "Last time we saw that one radian covers an arc as long as the radius. So an angle of one point two radians covers one point two of those strings. With a radius of five kilometres, the arc is five times one point two, which is six kilometres.",
+      "For the area, the sector is a slice of the whole circle. The whole circle is two pi radians, so this slice is theta over two pi of it. Multiply by pi r squared and the pi cancels, leaving half r squared theta. Here that is half of twenty five times one point two, fifteen square kilometres.",
+      "The edge of the sector has three parts: two straight radii and the curved arc. Add them up: five plus five plus six makes sixteen kilometres. Notice that the arc uses r theta and the area uses half r squared theta. Do not swap them."
+    ],
+    "Attachments/learn/trigonometry-for-a-level-maths-pure-1-p1-papers/sine-rule.mp4": [
+      "The sine rule links each side of a triangle with the angle opposite it. Divide a side by the sine of its opposite angle and you get the same number for all three pairs. Here the side of thirteen faces the twenty five degree angle, and the side of twenty one faces the angle x.",
+      "Put the known pair on one side, thirteen over sine twenty five degrees, and the pair with x on the other. Rearrange to get sine x alone: twenty one times sine twenty five, over thirteen. The calculator says point six eight two seven.",
+      "A sine value fits two angles: a sharp one, and a wide one that makes one hundred eighty with it. Swing the thirteen side round point B and it meets the base twice, so two triangles fit. The calculator gives only the sharp angle. But AB is the longest side, so its opposite angle is the biggest. Take the wide one."
+    ],
+    "Attachments/learn/trigonometry-for-a-level-maths-pure-1-p1-papers/cosine-rule.mp4": [
+      "Here we know two sides and the angle between them. The sine rule cannot help, because we have no matching pair. The cosine rule can. The third side squared is the other two squared and added, minus two times those sides times the cosine of the angle between them. At ninety degrees the cosine is zero, so you are back to Pythagoras.",
+      "Put in fifteen and twenty five for the two sides, and one hundred forty seven point seven seven degrees for the angle. Be careful: the cosine of a wide angle is negative, so the minus sign turns into a plus. We get one thousand four hundred eighty four point four. The square root is thirty eight point five centimetres.",
+      "For the area, drop a line from B straight down to the base line. Its height is fifteen times the sine of the angle. The area is half the base times the height, which makes half times fifteen times twenty five times the sine of the angle. Again: two sides and the angle between them."
+    ],
+    "Attachments/learn/trigonometry-for-a-level-maths-pure-1-p1-papers/compound-shape.mp4": [
+      "This is the shape of many P1 questions: a big sector joined to a triangle. Cut it into those two pieces. The triangle has an angle of one point eight four seven at the centre. The sector takes the rest of the full turn, two pi minus one point eight four seven, which is four point four three six radians. Notice that this sector is bigger than a half circle.",
+      "Now add the areas. The sector is half times fifteen squared times four point four three six, about four hundred ninety nine. The triangle uses half times two sides times the sine of the angle between them: half times fifteen times seventeen times sine one point eight four seven, about one hundred twenty three. Together that is six hundred twenty two square metres.",
+      "For the perimeter, walk round the outside only. First the curved arc: fifteen times four point four three six, sixty six point five. Then the straight edge A C, which needs the cosine rule: twenty five point six. Then the short piece B C, two metres. The radii inside the shape are not on the edge. The total is ninety four point one metres."
+    ],
+    "Attachments/learn/kazakh-history-from-nomadic-society-to-imperial-rule/seasonal-cycle.mp4": [
+      "You are a Kazakh herder and your animals need fresh grass all year, so you never stay in one place.",
+      "In winter you shelter in Qystau, in spring you move to Kokteu, in summer you climb to Zhailau where animals fatten fast.",
+      "In autumn you return through Kuzeu toward winter shelter, following water, so grass is never eaten to bare ground.",
+      "Because all clans move on the same tracks, you must agree who grazes where, and Biys judge by Adat when you disagree."
+    ],
+    "Attachments/learn/kazakh-history-from-nomadic-society-to-imperial-rule/dzungar-unity.mp4": [
+      "In seventeen twenty three the Dzungars attack in spring when your auls are spread wide, and they are free on their other border, so many families flee in the Great Disaster.",
+      "In seventeen twenty six the three Zhuzes meet at Ordabasy and unite under Abulkhair Khan with Batyrs Bogenbai, Kabanbai and Raiymbek.",
+      "One united army can now plan together, so you win at Bulanty and then at Anyrakay, and the invasion is turned back."
+    ]
+  }
+}

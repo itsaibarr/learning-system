@@ -7,11 +7,14 @@ Works from **OpenCode** (primary): `/learn <topic>` from any folder. `scripts/le
 (on PATH as `learn`) holds the learner state and the teaching rules; the agent writes
 the content and follows the engine's `NEXT:` lines. Every new topic is researched first
 (PRAXIST method, source-backed brief in vault `Sources/`); lessons cite that brief.
-Every idea is taught with a Manim animation of how it works, 3Blue1Brown style, with
-LaTeX formulas (`learn figure`, rendered locally with Manim Community + TinyTeX and
-checked before the learner sees it) and narrated by a local voice (Voicebox server running the
-Kokoro-82M engine; synced to the animation's numbered captions; no paid API; see
-`docs/voiceover.md`), plus a live progress map (canvas) per topic.
+Topics are taught in **units** (2-5 linked ideas, ~15-20 min): one structured block with a short
+Manim animation per segment (3Blue1Brown style, LaTeX formulas, `learn figure`, rendered
+locally with Manim Community + TinyTeX and checked before the learner sees it), narrated by a
+local voice (Voicebox server running Kokoro-82M; audio-first sync, each line starts at its
+visual event; no paid API; see `docs/voiceover.md`), then one unit check of questions the
+engine screens for answer cues. **Exam mode** (`--exam cambridge-as-a-level` /
+`pearson-edexcel-ial`) adds syllabus points, real past-paper questions and mark-scheme
+grading. A live progress map (canvas) per topic.
 
 Install on a machine: `bash scripts/install.sh` (idempotent). `scripts/anki_push.py` pushes
 approved cards.

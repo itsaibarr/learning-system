@@ -56,9 +56,12 @@ Crossref, Semantic Scholar, PubMed, Europe PMC). PRAXIST's own run commands
 
 ## What a good brief has
 
-- **Concepts**: 4-10 rows, each a single teachable idea with what it builds on. Roots
-  are definitions or facts with no "usually". This table becomes the plan, so the
-  order of ideas comes from the sources, not from you.
+- **Concepts**: the ideas the learner needs, each with what it builds on, grouped into
+  **units** in the `Unit` column: a unit is 2-5 ideas that only make sense together (one
+  schema, ~15-20 min, usually one syllabus sub-section). Do not split a topic into crumbs:
+  an isolated fact belongs inside the unit it serves, not in its own row. A chapter worth
+  two school lessons is about 2-4 units. Roots are definitions or facts with no "usually".
+  This table becomes the plan, so the order and grouping come from the sources.
 - **Definitions**: exact wording from the best source, cited. Simplify later, in the
   lesson, never here.
 - **Misconceptions**: errors the sources say learners actually make. These become the
@@ -80,3 +83,21 @@ Crossref, Semantic Scholar, PubMed, Europe PMC). PRAXIST's own run commands
   (PRAXIST resource policy). Note it as an open question if it matters.
 - If `learn lit` fails (no network, PRAXIST missing), continue with web search and say so
   in Open questions.
+
+## Exam mode (`learn start <topic> --exam <profile>`)
+
+The brief also needs three sections (`learn research` prints them) and exam source types
+(`syllabus`, `past-paper`, `mark-scheme`, `examiner-report`). Read the profile first
+(`exams/<profile>.md`): it lists the approved sites, URL patterns, citation format, command
+words and mark-scheme codes.
+
+1. **Syllabus points**: the learning outcomes being taught, quoted with their codes.
+2. **Paper patterns**: one row per question pattern, built from at least 4 real questions
+   from at least 2 exam series (2+ cited in the row). Keep only features 3+ of them share.
+   Never invent a pattern.
+3. **Examiner-report errors**: quoted common errors with the question they come from. These
+   become distractors and grading traps.
+
+Download only from the approved sites and check every file really is a PDF (PapaCambridge
+returns an HTML page with status 200 for missing files). Never use GCE Guide.
+

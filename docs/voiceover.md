@@ -6,11 +6,12 @@ Every lesson animation is narrated by a local voice. Nothing calls a paid API.
 learn figure <name>   (agent pipes a Manim scene with a NARRATION list)
   1. old-ManimGL check              learn.py OLD_MANIM_API
   2. NARRATION parsed + checked      narration_of(), validate_narration()
-  3. Manim render, checked           render_manim() + MANIM_HARNESS
-       harness also records when each numbered caption ("1  ...", "2  ...") appears
-  4. lines aligned to captions       align_narration()   (one line per caption, no label-reading)
-  5. each line spoken                tts_lines()  -> Voicebox server -> Kokoro-82M -> WAV
-  6. timeline planned                schedule()   (freeze the picture where the voice needs more time)
+  3. each line spoken FIRST          tts_lines()  -> Voicebox server -> Kokoro-82M -> WAV
+       (leading silence trimmed; each line's real length measured)
+  4. Manim render, checked           render_manim() + MANIM_HARNESS
+       `with self.voice(i):` starts line i there and pads the block to the line's length
+       (old scenes without voice blocks: numbered-caption marks, align_narration())
+  5. timeline planned                schedule(exact=True)  (lines start at their voice marks)
   7. audio + video mixed             compose()    (ffmpeg: freezes, EBU R128 -16 LUFS, AAC)
   8. saved to the vault              save_figure() -> Attachments/learn/<topic>/<name>.mp4
 learn block <concept>                adds a folded "Narration" transcript under each narrated video
@@ -50,12 +51,18 @@ for each line. Nothing else depends on Voicebox.
 
 ## Sync
 
-The Manim harness records the time each numbered caption first appears (`self.add`, or as
-the target of `Write`/`FadeIn`/`Transform`...). Line N starts when caption N appears. If
-line N-1 is still being spoken, the video is frozen at that moment (`tpad` clone) until the
-voice is done, so speech never runs ahead of or behind the picture. Captions that appear
-together are spoken back to back. A scene without numbered captions plays its lines one
-after another from the start. If speech outlasts the video, the last frame is held.
+**Audio-first (default).** `learn figure` speaks every NARRATION line before rendering and
+passes the measured lengths to the harness. In the scene, `with self.voice(i):` marks where
+line i starts; the harness pads the block with a wait so it lasts as long as the line plus a
+0.35 s gap. The voice therefore starts exactly at its event and the picture never runs ahead.
+One line = one visual event (4-40 words), so a 3-minute scene stays in sync line by line.
+Measured with the real voice: speech onset within 0.03 s of each voice mark.
+
+**Fallback (scenes without voice blocks, or TTS off).** The harness records when each
+numbered caption first appears; line N starts there, and the picture freezes (`tpad`) while
+line N-1 is still being spoken. If speech outlasts the video, the last frame is held.
+
+Scene length: 2-180 s (target 60-120 s); a unit uses one scene per segment.
 
 ## Mixing
 
@@ -72,6 +79,7 @@ needed; with freezes it is re-encoded once (libx264 veryfast, CRF 20).
 | NARRATION missing | rejected before rendering (use `--silent` to opt out deliberately) |
 | NARRATION has LaTeX, citations, markdown, wrong length | rejected before rendering, with the fix |
 | Line count != numbered captions, or a line only reads its caption | rejected after rendering, with the fix |
+| Voice blocks used, but not one per NARRATION line | rejected after rendering, with the fix |
 
 Rejections are not counted as failed Manim attempts.
 
