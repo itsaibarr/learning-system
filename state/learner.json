@@ -203,15 +203,15 @@
             "quantize",
             "nyquist"
           ],
-          "status": "solid",
+          "status": "learning",
           "taught": true,
-          "streak": 3,
-          "level": 3,
-          "box": 1,
-          "next_review": "2026-10-07",
+          "streak": 0,
+          "level": 2,
+          "box": 0,
+          "next_review": "2026-10-09",
           "solid_date": "2026-10-06",
           "promoted": "2026-10-06",
-          "last_seen": "2026-10-06",
+          "last_seen": "2026-10-08",
           "history": [
             {
               "date": "2026-10-06",
@@ -233,8 +233,16 @@
               "result": "correct",
               "level": 2,
               "kind": null
+            },
+            {
+              "date": "2026-10-08",
+              "q": "Q1",
+              "result": "wrong",
+              "level": 3,
+              "kind": null
             }
-          ]
+          ],
+          "checked": true
         },
         "chunk": {
           "title": "Streaming sends audio in small chunks; chunk length in ms sets samples and bytes",
@@ -2137,6 +2145,92 @@
           ]
         }
       }
+    },
+    "quadratics-discriminant": {
+      "title": "quadratics-discriminant",
+      "goal": "solve A-level style \"curve y=x^2+2cx+4 meets line y=4x+c at two distinct points, find c\" by equating, forming a quadratic, using discriminant > 0, and solving the inequality in c",
+      "created": "2026-10-08",
+      "concepts": {
+        "equate": {
+          "title": "Intersection means one x satisfies both y values, so equate curve and line",
+          "prereqs": [],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "combined": {
+          "title": "Rearrange to one quadratic ax^2+bx+c=0 in standard form before reading a,b,c",
+          "prereqs": [
+            "equate"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "disc": {
+          "title": "Discriminant D=b^2-4ac tells how many real solutions: >0 two distinct, =0 one repeated, <0 none",
+          "prereqs": [
+            "combined"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "ineq": {
+          "title": "Solve D>0 as a quadratic inequality in c with critical values and a sketch",
+          "prereqs": [
+            "disc"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        }
+      },
+      "research": {
+        "note": "Sources/quadratics-discriminant research brief.md",
+        "date": "2026-10-08",
+        "sources": 4,
+        "exam": null
+      },
+      "units": {
+        "two-points": {
+          "title": "Line meets curve twice",
+          "concepts": [
+            "equate",
+            "combined",
+            "disc",
+            "ineq"
+          ]
+        }
+      }
     }
   },
   "session": null,
@@ -2249,6 +2343,22 @@
       "next_by_topic": {
         "kazakh-history-from-nomadic-society-to-imperial-rule": "Start with 'Seasonal migration and Adat/Biys society before Russian rule': 'I don't know' on 'Seasonal migration and Adat/Biys society before Russian rule': teaching it again, simpler, before asking.",
         "voice-ai-audio-basics": "Start with 'Raw PCM audio: sample rate x bytes per sample x channels = bytes per second': 'Raw PCM audio: sample rate x bytes per sample x channels = bytes per second' is due for review (box 1, last seen 2026-10-06). Note: Kazakh history: Q1 and Q2 were skipped as 'I don't know' (Adat/Biy society and 1723/1726 unity). Re-teach both before asking again."
+      }
+    },
+    {
+      "date": "2026-10-08",
+      "topics": [
+        "voice-ai-audio-basics",
+        "quadratics-discriminant"
+      ],
+      "note": "Sessions/2026-10-06 voice ai audio basics.md",
+      "correct": 0,
+      "wrong": 1,
+      "idk": 0,
+      "next_time": "start fresh quadratics-discriminant session",
+      "next_by_topic": {
+        "voice-ai-audio-basics": "Start with 'Raw PCM audio: sample rate x bytes per sample x channels = bytes per second': 'Raw PCM audio: sample rate x bytes per sample x channels = bytes per second' was forgotten since last time: short re-teach, then a new question.",
+        "quadratics-discriminant": "Next unit: 'Line meets curve twice' (4 linked ideas taught together), because it needs nothing else, so it is a starting point. Note: start fresh quadratics-discriminant session"
       }
     }
   ],
@@ -2404,6 +2514,15 @@
       "q": "Q2",
       "kind": "gap",
       "what": "said I don't know",
+      "closed": null
+    },
+    {
+      "topic": "voice-ai-audio-basics",
+      "concept": "pcm",
+      "date": "2026-10-08",
+      "q": "Q1",
+      "kind": "error",
+      "what": "Divides sample rate and bits but forgets channels",
       "closed": null
     }
   ],
