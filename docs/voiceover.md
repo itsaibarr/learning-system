@@ -3,7 +3,10 @@
 Every lesson animation is narrated by a local voice. Nothing calls a paid API.
 
 ```
-learn figure <name>   (agent pipes a Manim scene with a NARRATION list)
+learn figure <name>   (agent pipes a Manim scene with a NARRATION list, or a HyperFrames HTML scene)
+  HyperFrames path (HTML on stdin): narration from <script id="narration"> -> tts_lines() -> hf_prepare() writes
+  LEARN.start/dur/total, T(i,f) and the <audio> tags -> `hyperframes check` -> `hyperframes render` -> save_figure().
+  Details: references/hyperframes.md. The Manim path below is for formula-driven maths only.
   1. old-ManimGL check              learn.py OLD_MANIM_API
   2. NARRATION parsed + checked      narration_of(), validate_narration()
   3. each line spoken FIRST          tts_lines()  -> Voicebox server -> Kokoro-82M -> WAV

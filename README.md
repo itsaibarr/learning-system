@@ -8,13 +8,19 @@ Works from **OpenCode** (primary): `/learn <topic>` from any folder. `scripts/le
 the content and follows the engine's `NEXT:` lines. Every new topic is researched first
 (PRAXIST method, source-backed brief in vault `Sources/`); lessons cite that brief.
 Topics are taught in **units** (2-5 linked ideas, ~15-20 min): one structured block with a short
-Manim animation per segment (3Blue1Brown style, LaTeX formulas, `learn figure`, rendered
-locally with Manim Community + TinyTeX and checked before the learner sees it), narrated by a
+narrated animation per segment, drawn for the topic and checked before the learner sees it: Manim
+Community + TinyTeX for maths (3Blue1Brown style, LaTeX formulas), HyperFrames (HTML scenes rendered to video)
+for everything else; `learn figure` runs both. Narrated by a
 local voice (Voicebox server running Kokoro-82M; audio-first sync, each line starts at its
 visual event; no paid API; see `docs/voiceover.md`), then one unit check of questions the
 engine screens for answer cues. **Exam mode** (`--exam cambridge-as-a-level` /
 `pearson-edexcel-ial`) adds syllabus points, real past-paper questions and mark-scheme
 grading. A live progress map (canvas) per topic.
+
+**Papers.** Give `/learn` a paper link (arXiv, DOI, PDF, open article) or an attached file (PDF, HTML, text) and say "teach this paper":
+`learn paper <url-or-file>` fetches it, records how much was really read, and the same loop teaches it concept-first with
+drawn, narrated visuals; `learn report` ends with a 10-part visual report in vault `Papers/` (claims typed as the
+authors' claim, evidence or interpretation; every figure labelled sourced, argued, illustrative or hypothetical).
 
 Install on a machine: `bash scripts/install.sh` (idempotent). `scripts/anki_push.py` pushes
 approved cards.

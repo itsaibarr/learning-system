@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #12161b; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #eef1f4; }
+      #stage { position: absolute; inset: 0; }
+      .abs { position: absolute; display: block; }
+      #sky { inset: 0; background: linear-gradient(#12161b 0%, #1a2230 55%, #2b2a22 100%); }
+      #ground { left: 0; top: 640px; width: 1920px; height: 120px; background: linear-gradient(#3a3522, #2a2618); }
+      .title { left: 160px; top: 44px; font-size: 40px; font-weight: 600; color: #8892a0; white-space: nowrap; }
+      .caption { left: 160px; top: 110px; width: 1600px; font-size: 56px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+      .tag { font-size: 34px; font-weight: 600; white-space: nowrap; }
+      .yurt { width: 126px; height: 84px; }
+      .yurt svg { width: 126px; height: 84px; display: block; }
+      .arrow { width: 150px; height: 60px; color: #ff6b5e; }
+      .arrow svg { width: 150px; height: 60px; display: block; transform: scaleX(-1); }
+      .link { height: 4px; background: #8892a0; transform-origin: left center; border-radius: 2px; }
+      #axis { left: 160px; top: 880px; width: 1600px; height: 4px; background: #5b6675; border-radius: 2px; }
+      .tick { width: 3px; height: 22px; background: #5b6675; top: 871px; }
+      .yr { top: 898px; width: 90px; text-align: center; font-size: 24px; color: #8892a0; }
+      .dot { width: 34px; height: 34px; border-radius: 17px; top: 865px; }
+      .evt { width: 340px; text-align: center; top: 770px; line-height: 1.15; }
+      .evt b { display: block; font-size: 44px; }
+      .evt span { font-size: 28px; }
+      .brace { height: 8px; top: 946px; border-radius: 4px; transform-origin: left center; background: #ffd166; }
+
+      .tok { width: 190px; height: 90px; border-radius: 18px; background: #1d2530; border: 3px solid #5b6675; font-size: 36px; font-weight: 600; text-align: center; line-height: 84px; }
+      .baton { width: 54px; height: 54px; border-radius: 27px; background: #ffd166; }
+      .badge { width: 44px; height: 44px; border-radius: 22px; background: #ffd166; color: #12161b; font-size: 26px; font-weight: 700; text-align: center; line-height: 44px; }
+      .arcbox { pointer-events: none; }
+      .cell { width: 40px; height: 60px; border-radius: 8px; background: #ff6b5e; }
+      .blk { height: 60px; border-radius: 14px; background: #6ee7a0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="LEARN_TOTAL" data-width="1920" data-height="1080">
+      <div id="stage" class="clip" data-start="0" data-duration="LEARN_TOTAL" data-track-index="0">
+        <div id="sky" class="abs"></div>
+        <svg width="0" height="0" style="position:absolute">
+          <symbol id="yurt-s" viewBox="0 0 90 60"><path d="M8 60 L8 36 A37 32 0 0 1 82 36 L82 60 Z" fill="currentColor"/><rect x="38" y="40" width="14" height="20" fill="#12161b"/><rect x="43" y="0" width="4" height="8" fill="currentColor"/></symbol>
+          <symbol id="arrow-s" viewBox="0 0 150 60"><path d="M0 18 H100 V0 L150 30 L100 60 V42 H0 Z" fill="currentColor"/></symbol>
+        </svg>
+        <div id="layer"></div>
+        <script type="application/json" id="narration">["A recurrent network reads a sentence one word at a time, passing a memory along, so each step has to wait for the one before it.", "Attention is different. Every word can look at every other word in a single step, so nothing has to wait.", "For a thirty word sentence, the recurrent layer needs thirty steps in a row, while self-attention needs a constant number of steps, so the work can run in parallel."]</script>
+        <div id="basis" class="abs" style="right:80px; top:1020px; font-size:22px; color:#8892a0;">Basis: Section 1 and Table 1 of the paper [S1]. The sentence and word positions are illustrative.</div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const X = (y) => 160 + (y - 1720) * (1600 / 12);
+      const yurtSvg = '<svg><use href="#yurt-s"/></svg>';
+      const arrowSvg = '<svg><use href="#arrow-s"/></svg>';
+      const GY = 556, DIM = 0.3;
+
+      // ===== ENGINE (keep as is): the item registry =====
+      // ---------- item registry: every visible thing is an item with a kind and a scene ----------
+      // kind "s" = shape (dims to 30% when not in focus); "t" = text (disappears when not in focus)
+      const items = {};
+      function item(id, scene, kind, cls, css, html) {
+        const d = document.createElement("div");
+        d.id = id; d.className = "abs " + cls;
+        Object.assign(d.style, css);
+        if (html) d.innerHTML = html;
+        document.getElementById("layer").appendChild(d);
+        gsap.set(d, { opacity: 0 });
+        items[id] = { el: d, scene, kind, seen: false };
+        return d;
+      }
+
+      // ===== CONTENT (rewrite for your topic): items, captions =====
+
+      const WORDS = ["The", "animal", "did", "not", "cross", "the", "street"];
+      const WX = WORDS.map((_, i) => 230 + i * 235), TY = 520;
+      WORDS.forEach((w, i) => item("w" + i, "s1", "s", "tok", { left: WX[i] + "px", top: TY + "px" }, w));
+      item("baton", "s1", "t", "baton", { left: WX[0] + 68 + "px", top: TY - 96 + "px" });
+      WORDS.forEach((w, i) => item("n" + i, "s1", "s", "badge", { left: WX[i] + 73 + "px", top: TY + 112 + "px" }, String(i + 1)));
+      const arc = (i, j, c, w) => {
+        const x1 = WX[i] + 95, x2 = WX[j] + 95, cy = TY - 8 - 46 * Math.abs(i - j);
+        return `<svg width="1920" height="1080" style="position:absolute;left:0;top:0"><path d="M ${x1} ${TY - 6} Q ${(x1 + x2) / 2} ${cy} ${x2} ${TY - 6}" stroke="${c}" stroke-width="${w}" fill="none" stroke-linecap="round"/></svg>`;
+      };
+      const ARC6 = [], ARCS = [];
+      for (let i = 0; i < 7; i++) for (let j = i + 1; j < 7; j++) {
+        const id = "arc" + i + "_" + j, to6 = j === 6;
+        item(id, "s1", "s", "arcbox", { left: "0px", top: "0px", width: "1920px", height: "1080px" }, arc(i, j, to6 ? "#ffd166" : "#5ec8f0", to6 ? 6 : 3));
+        (to6 ? ARC6 : ARCS).push(id);
+      }
+      const CELLS = [];
+      for (let i = 0; i < 30; i++) { item("cell" + i, "s2", "t", "cell", { left: 240 + i * 50 + "px", top: "520px" }); CELLS.push("cell" + i); gsap.set("#cell" + i, { scale: 0 }); }
+      item("rowA", "s2", "t", "tag", { left: "240px", top: "440px", color: "#ff6b5e" }, "recurrent: 30 steps in a row");
+      item("blk", "s2", "s", "blk", { left: "240px", top: "700px", width: "1450px" });
+      item("rowB", "s2", "t", "tag", { left: "240px", top: "630px", color: "#6ee7a0" }, "self-attention: one step for all 30 words");
+
+      const CAP = [["c1", "A recurrent network reads one word at a time."], ["c2", "Each step waits for the step before it."],
+        ["c3", "Attention: every word can look at every other word."], ["c4", "All those links happen at the same time."],
+        ["c5", "A 30 word sentence: 30 steps, one after another."], ["c6", "Self-attention: one step covers all 30 words."],
+        ["c7", "So the work can run in parallel."]];
+      CAP.forEach(([id, text]) => item(id, "cap", "t", "caption", {}, text));
+
+      // Beat times come from the narration: T(line, fraction) = the moment that part of the spoken line is said.
+      const TOK = WORDS.map((_, i) => "w" + i);
+      const BEATS = [
+        [T(0, 0), "c1", [...TOK, "baton"], []],
+        [T(0, 0.5), "c2", [...TOK, "baton"], []],
+        [T(1, 0), "c3", [...TOK, ...ARC6], []],
+        [T(1, 0.5), "c4", [...TOK, ...ARC6, ...ARCS], []],
+        [T(2, 0), "c5", [...CELLS, "rowA"], []],
+        [T(2, 0.5), "c6", ["blk", "rowB"], CELLS],
+        [T(2, 0.82), "c7", ["blk", "rowB"], CELLS],
+      ];
+
+      // ===== ENGINE (keep as is): the beat loop. One focus per beat; the rest dims or disappears =====
+      const sceneOf = (id) => items[id].scene;
+      BEATS.forEach(([t, cap, focus, context]) => {
+        const f = new Set([...focus, cap]), c = new Set(context);
+        const activeScenes = new Set([...f, ...c].map(sceneOf).filter((s) => s !== "tl" && s !== "cap"));
+        Object.keys(items).forEach((id) => {
+          const it = items[id];
+          if (f.has(id)) {
+            tl.to(it.el, { opacity: 1, duration: 0.35 }, t);
+            if (!it.seen && it.kind === "s") tl.fromTo(it.el, { scale: 0.92 }, { scale: 1, duration: 0.35, ease: "back.out(2)" }, t);
+            it.seen = true;
+          } else if (c.has(id)) {
+            tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+            it.seen = true;
+          } else if (it.seen) {
+            if (it.scene === "cap") tl.to(it.el, { opacity: 0, duration: 0.2 }, t - 0.05);
+            else if (it.scene === "tl") tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+            else if (it.kind === "t" || !activeScenes.has(it.scene)) tl.to(it.el, { opacity: 0, duration: 0.3 }, t);
+            else tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+          }
+        });
+      });
+      [["Reading in order", T(0, 0), T(1, 0) - 0.2], ["Reading all at once", T(1, 0), T(2, 0) - 0.2], ["The cost of waiting", T(2, 0), LEARN.total]].forEach(([txt, a, b], i) => {
+        const el = item("title" + i, "cap", "t", "title", {}, txt);
+        tl.to(el, { opacity: 1, duration: 0.3 }, a);
+        if (i < 2) tl.to(el, { opacity: 0, duration: 0.2 }, b);
+      });
+
+      // ===== CONTENT: motion inside beats =====
+
+      const hop = (T(0, 0.93) - T(0, 0.06)) / 6;
+      tl.to("#n0", { opacity: 1, duration: 0.2 }, T(0, 0.04));
+      for (let i = 1; i < 7; i++) {
+        tl.to("#baton", { x: i * 235, duration: Math.min(0.5, hop * 0.7), ease: "power2.inOut" }, T(0, 0.06) + (i - 1) * hop);
+        tl.to("#n" + i, { opacity: 1, duration: 0.2 }, T(0, 0.06) + (i - 1) * hop + Math.min(0.5, hop * 0.7));
+      }
+      tl.to(WORDS.map((_, i) => "#n" + i), { opacity: 0, duration: 0.3 }, T(1, 0) - 0.3);
+      tl.to(CELLS.map((c) => "#" + c), { scale: 1, stagger: (T(2, 0.48) - T(2, 0.04)) / 30, duration: 0.15, ease: "power2.out" }, T(2, 0.04));
+
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

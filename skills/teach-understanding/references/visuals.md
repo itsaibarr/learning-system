@@ -1,26 +1,25 @@
-# Visuals: Manim, the 3Blue1Brown way
+# Visuals: draw the picture that fits the topic
 
-The learner understands pictures far better than text. Every theory block needs a
-**Manim** visual of how the idea works (the engine refuses blocks without one). Manim is
-the animation engine behind 3Blue1Brown: things move, formulas transform, the eye
-follows the idea. Stock photos and AI-generated images are never used.
+The learner understands pictures far better than text, and a picture only helps when it fits the idea.
+Every theory block needs an engine-checked, narrated animation of how the idea works. Stock photos, image
+libraries and AI-generated images are never used. Two renderers, chosen by the idea, never by habit:
 
-Installed locally and free: Manim Community 0.21 in its own environment, plus TinyTeX
-for LaTeX (`MathTex`, `Tex`). `learn figure` finds both itself.
-
-## Pick the template
-
-| The idea is about | Template | Command |
+| The idea is about | Renderer | How |
 | --- | --- | --- |
-| Physical things moving: particles, waves, objects, forces | Physical | `learn figure <name>` |
-| A formula, an equation to solve, a derivation | Derivation | `learn figure <name>` |
-| A curve, a function, numbers changing | Graph | `learn figure <name>` |
-| Steps of a process, a protocol, an algorithm | Process | `learn figure <name>` |
-| A system of parts and what flows between them | System | `learn figure <name>` (or `--still` for a picture) |
+| A formula, an equation to solve, a derivation | Manim | `learn figure <name>` with a Manim script (Derivation) |
+| A curve, a function, numbers changing | Manim | Graph template below |
+| Motion that comes from a formula (waves, forces, projectiles) | Manim | Physical template below |
+| Everything else: history, people, places, events and their causes, arguments, systems, architectures, processes, protocols, comparisons, how a mechanism works | HyperFrames | `learn figure <name>` with an HTML scene: `references/hyperframes.md` |
 
-Without flags you get a **narrated MP4** that plays inside the note: the scene's `NARRATION`
-is spoken by a local voice (Kokoro, via Voicebox) first, and each `self.voice(i)` block is timed to its line.
-`--still` renders the last frame as a PNG (static diagrams, picture answers; no voice).
+The engine enforces this. A Manim script with no formula in it (no `MathTex`, `Axes`, `NumberPlane`,
+`ValueTracker`, `plot`...) is rejected: boxes with words in them teach little. Everything else is HTML.
+Read `references/hyperframes.md` before drawing anything that is not maths.
+
+## Manim, for math only
+
+Manim Community 0.21 and TinyTeX (LaTeX) are installed locally. `learn figure` finds both itself. Without flags you get
+a **narrated MP4**: the scene's `NARRATION` is spoken by a local voice (Kokoro, via Voicebox) first, and each
+`self.voice(i)` block is timed to its line. `--still` renders the last frame as a PNG (picture answers; no voice).
 `--silent` makes an animation without a voice; use it only when speech would add nothing.
 
 ## How to make one
@@ -28,13 +27,13 @@ is spoken by a local voice (Kokoro, via Voicebox) first, and each `self.voice(i)
 1. Copy the closest template below. Change only the part under `--- edit`.
 2. `learn figure <short-name> <<'EOF'` ... `EOF` (add `--still` for a picture).
 3. If it is rejected, read the reason, fix that one thing, re-run with the same name.
-   The engine checks, in this order: old-Manim code, the render itself (Python and
+   The engine checks, in this order: old-Manim code, that the scene is maths, the render itself (Python and
    LaTeX errors, with LaTeX's own message), text that overlaps other text or is cut off
    at the frame edge (checked after EVERY play/wait), length 2-90 s, size.
 4. Paste the printed `EMBED:` line into the theory block, right after "Why we need this".
    `learn block` adds a folded transcript of the narration under the video by itself.
 
-After 3 failed Manim attempts in a row the engine also accepts the matplotlib fallback
+After 3 failed attempts in a row the engine also accepts the matplotlib fallback
 at the end of this file. Use it only then.
 
 ## Manim Community only (your training data has old code)
@@ -54,10 +53,20 @@ and the engine rejects it before rendering:
 | `FadeInFrom(x, DOWN)` | `FadeIn(x, shift=DOWN)` |
 | `InteractiveScene`, `self.embed()` | `Scene`, remove it |
 
+## House style (the engine applies it; do not fight it)
+
+Manim scenes and HyperFrames scenes must look like one set. The engine already gives every Manim scene the navy
+gradient background, Inter for all `Text`, sans-serif maths, and the shared palette: `BLUE`, `YELLOW`, `GREEN`, `RED`,
+`PURPLE`, `GREY` and `WHITE` are remapped to the HyperFrames colours. So:
+
+- Use the named colours. Never hard-code another hex colour or another font.
+- The title is bold, 40 pt, in the top-left corner: `Text("...", font_size=40, weight=BOLD).to_corner(UL, buff=0.6)`.
+- Keep colour meaning the same as in HyperFrames: BLUE the main thing, YELLOW what to look at, GREEN the result, RED the wrong idea.
+- Do not add a background, a frame or a gradient of your own.
+
 ## Rules for a scene that teaches
 
-- **Draw the thing, not a box with its name.** Molecules, a wave, a robot arm, a vector:
-  draw them and move them. Boxes are only for systems of parts.
+- **Draw the thing, not a box with its name.** A wave, a vector, a curve: draw it and move it by its formula.
 - **Show the misconception being wrong.** If the brief lists one, make the scene
   disprove it (Physical follows one molecule to show the air stays).
 - **One sub-idea per scene, 60-120 s**, paced by its voice blocks (see Narration).
@@ -141,7 +150,7 @@ class Physical(Scene):
             return VGroup(*[Arrow([c - 0.4, 1.55, 0], [c + 0.4, 1.55, 0], buff=0, color=YELLOW)
                             for c in np.arange(c0, 6, 4)])
         arrows = always_redraw(squeezes)
-        self.add(dots, arrows, Text("Sound in air", font_size=30).to_edge(UP))
+        self.add(dots, arrows, Text("Sound in air", font_size=40, weight=BOLD).to_corner(UL, buff=0.6))
         with self.voice(1) as d:                    # the voice block lasts exactly as long as line 1
             self.play(t.animate.increment_value(speed * d), run_time=d, rate_func=linear)
         with self.voice(2) as d:
@@ -176,7 +185,7 @@ class Derivation(Scene):
         tags = ["the wave equation", "divide by f", "put in numbers", "result"]
         for s in steps:
             s.scale(1.4)
-        self.add(Text("Wavelength from speed", font_size=30).to_edge(UP))
+        self.add(Text("Wavelength from speed", font_size=40, weight=BOLD).to_corner(UL, buff=0.6))
         tag = Text(tags[0], font_size=26, color=YELLOW).to_edge(DOWN)
         with self.voice(1):
             self.play(Write(steps[0]), FadeIn(tag))
@@ -208,7 +217,7 @@ class Graph(Scene):
                     y_axis_config={"include_numbers": True, "font_size": 24}).shift(0.4 * DOWN)
         labels = axes.get_axis_labels(Tex("time (s)", font_size=28), Tex("pressure", font_size=28))
         wave = axes.plot(lambda t: A * np.sin(2 * PI * f * t), color=BLUE)
-        self.add(MathTex(r"p(t) = A \sin(2\pi f t)", font_size=40).to_edge(UP))
+        self.add(MathTex(r"p(t) = A \sin(2\pi f t)", font_size=40).to_corner(UL, buff=0.6))
         with self.voice(1) as d:
             self.play(Create(axes), Write(labels), run_time=1)
             self.play(Create(wave), run_time=max(1, d - 1))
@@ -219,69 +228,6 @@ class Graph(Scene):
             per = DoubleArrow(axes.c2p(0.125, 1.25), axes.c2p(0.625, 1.25), buff=0, color=GREEN)  # peak to peak
             self.play(GrowFromCenter(per), Write(MathTex(r"T = \tfrac{1}{f} = 0.5\,\mathrm{s}", color=GREEN,
                                                           font_size=34).next_to(per, UP, buff=0.1)))
-```
-
-## Template: Process
-
-```python
-# TEMPLATE: a process step by step. Each message travels while the voice explains that step.
-from manim import *
-
-NARRATION = [
-    "Before any data moves, the client asks to open a connection. It sends a SYN message carrying its own starting number.",
-    "The server agrees and answers with SYN ACK: it confirms the client's number and sends a starting number of its own.",
-    "Finally the client confirms the server's number with an ACK. Both sides now know where counting starts, so data can flow in order.",
-]
-
-class Process(Scene):
-    def construct(self):
-        # --- edit below: the two parties and the messages, in order ---
-        client = VGroup(RoundedRectangle(corner_radius=0.15, width=2.4, height=1.0, color=BLUE),
-                        Text("client", font_size=28)).to_edge(LEFT, buff=1.0)
-        server = VGroup(RoundedRectangle(corner_radius=0.15, width=2.4, height=1.0, color=GREEN),
-                        Text("server", font_size=28)).to_edge(RIGHT, buff=1.0)
-        self.add(Text("TCP three-way handshake", font_size=30).to_edge(UP), client, server)
-        steps = [("SYN  seq=100", client, server, 1.2), ("SYN-ACK  seq=300 ack=101", server, client, 0.0),
-                 ("ACK  ack=301", client, server, -1.2)]
-        for i, (label, src, dst, y) in enumerate(steps, 1):
-            with self.voice(i):
-                start = [src.get_center()[0] + (1.3 if src is client else -1.3), y, 0]
-                end = [dst.get_center()[0] + (1.3 if dst is client else -1.3), y - 0.5, 0]
-                arrow = Arrow(start, end, buff=0, color=YELLOW)
-                self.play(GrowArrow(arrow), FadeIn(Text(label, font_size=24, color=YELLOW).next_to(arrow, UP, buff=0.1)),
-                          run_time=1.5)
-        self.play(Indicate(client), Indicate(server))
-```
-
-## Template: System (animated; `--still` gives a picture)
-
-```python
-# TEMPLATE: a system of parts, built up one part at a time (also works with --still for a picture).
-from manim import *
-
-NARRATION = [
-    "It starts with your voice: tiny ups and downs in air pressure travel out from your mouth.",
-    "Those pressure changes push the microphone's thin diaphragm back and forth, copying the wave.",
-    "The moving diaphragm makes a changing voltage, so the sound has become an electrical signal a computer can measure.",
-]
-
-class SystemDiagram(Scene):
-    def construct(self):
-        # --- edit below: the parts, left to right, and a 1-3 word label each ---
-        names = ["voice:\nair pressure", "microphone:\ndiaphragm moves", "signal:\nvoltage over time"]
-        tags = ["1  air pushes", "2  diaphragm moves", "3  voltage"]
-        colors = [BLUE, YELLOW, GREEN]
-        parts = VGroup(*[VGroup(RoundedRectangle(corner_radius=0.2, width=3.4, height=1.6, color=c),
-                                Text(n, font_size=26, line_spacing=0.8)) for n, c in zip(names, colors)]
-                       ).arrange(RIGHT, buff=1.0)
-        arrows = [Arrow(a.get_right(), b.get_left(), buff=0.1, color=GREY) for a, b in zip(parts[:-1], parts[1:])]
-        labels = [Text(s, font_size=24, color=c).next_to(p, UP, buff=0.35) for s, c, p in zip(tags, colors, parts)]
-        self.add(Text("How a microphone hears you", font_size=36).to_edge(UP))
-        for i, (part, label) in enumerate(zip(parts, labels)):
-            with self.voice(i + 1):
-                if i:
-                    self.play(GrowArrow(arrows[i - 1]), run_time=0.6)
-                self.play(Create(part[0]), Write(part[1]), FadeIn(label))
 ```
 
 ## Questions about a picture

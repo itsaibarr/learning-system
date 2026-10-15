@@ -1,6 +1,6 @@
 ---
 name: teach-understanding
-description: Run a learning session — research the topic from sources first (PRAXIST method), then teach it in the learner's Obsidian session note in units (2-5 linked ideas at a time) with short narrated Manim scenes, structured notes, and one round of questions that test understanding, with a script that tracks mastery. Exam mode adds syllabus, real past-paper questions and mark-scheme grading. Use whenever the user wants to learn, study, revise, prepare for an exam, or be quizzed on anything ("teach me X", "I want to learn X", "explain X", "quiz me", "/learn"). Takes precedence over the global teach skill. Adapted from amosblomqvist/learn.
+description: Run a learning session — research the topic from sources first (PRAXIST method), then teach it in the learner's Obsidian session note in units (2-5 linked ideas at a time) with short narrated Manim scenes, structured notes, and one round of questions that test understanding, with a script that tracks mastery. Exam mode adds syllabus, real past-paper questions and mark-scheme grading. Also teaches a research paper from a link or an attached file ("teach me this paper", an arXiv or DOI link, an attached PDF): fetches it, records how much was really read, teaches it concept-first with drawn narrated visuals, and ends with a visual report. Use whenever the user wants to learn, study, revise, prepare for an exam, or be quizzed on anything ("teach me X", "I want to learn X", "explain X", "quiz me", "/learn", "teach me this paper"). Takes precedence over the global teach skill. Adapted from amosblomqvist/learn.
 ---
 
 # Teaching session
@@ -36,8 +36,18 @@ profile NEXT names (`exams/<board>.md`).
 8. **Research before teaching. No source, no fact.** Lessons use only facts from the brief and
    cite them. The engine enforces it. In exam mode, no invented question patterns: every pattern
    cites real past-paper questions.
-9. **Every segment gets a narrated Manim scene of how it works**, audio-first
-   (`with self.voice(i):`), 60-120 s, one spoken phrase per visual event (`references/visuals.md`).
+9. **Every segment gets a narrated animation drawn for its topic.** Maths with a formula: a Manim scene
+   (`references/visuals.md`). Everything else, including every history, science-of-things, systems and
+   process topic: a HyperFrames HTML scene (`references/hyperframes.md`), one focus per beat and one caption
+   that says what happened. The engine rejects a Manim scene with no formula in it. Audio-first either way.
+
+## Papers
+
+A link to a paper (arXiv, DOI, PDF, article page) or an attached file (PDF, HTML, text; the chat gives its path) plus
+"teach me this paper" starts `learn paper <url-or-file-path>`, not `learn start`. It records how much of the paper was really read (`FIDELITY`), opens a paper topic, and the usual loop runs
+(research brief with typed claims, plan, units, checks). When everything is solid, `learn report` makes the visual report
+in vault `Papers/`. Read `references/papers.md` first. Every picture needs `--basis sourced|argued|illustrative|hypothetical`.
+Never present an abstract as the paper.
 
 ## The loop
 

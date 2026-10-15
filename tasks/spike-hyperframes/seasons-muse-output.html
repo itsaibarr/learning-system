@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #12161b; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #eef1f4; }
+      #stage { position: absolute; inset: 0; }
+      .abs { position: absolute; display: block; }
+      #sky { inset: 0; background: linear-gradient(#12161b 0%, #1a2230 55%, #2b2a22 100%); }
+      #ground { left: 0; top: 640px; width: 1920px; height: 120px; background: linear-gradient(#3a3522, #2a2618); }
+      .title { left: 160px; top: 44px; font-size: 40px; font-weight: 600; color: #8892a0; white-space: nowrap; }
+      .caption { left: 160px; top: 110px; width: 1600px; font-size: 56px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+      .tag { font-size: 34px; font-weight: 600; white-space: nowrap; }
+      .tag.sm { font-size: 28px; }
+      .yurt { width: 126px; height: 84px; }
+      .yurt svg { width: 126px; height: 84px; display: block; }
+      .sheep { width: 110px; height: 66px; }
+      .sheep svg { width: 110px; height: 66px; display: block; }
+      .grass { border-radius: 45px; }
+      .sprout { width: 36px; height: 36px; border-radius: 18px; background: #6ee7a0; }
+      .mount { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+      .river { border-radius: 23px; background: #5ec8f0; }
+      .hay { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); background: #ffd166; }
+      .link { height: 6px; background: #8892a0; transform-origin: left center; border-radius: 3px; }
+      .zone { border-radius: 30px; }
+      .head { border-radius: 50%; background: #eef1f4; }
+      .robe { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); background: #b69cff; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="32.9" data-width="1920" data-height="1080">
+      <div id="stage" class="clip" data-start="0" data-duration="32.9" data-track-index="0">
+        <div id="sky" class="abs"></div>
+        <div id="ground" class="abs"></div>
+        <svg width="0" height="0" style="position:absolute">
+          <symbol id="yurt-s" viewBox="0 0 90 60"><path d="M8 60 L8 36 A37 32 0 0 1 82 36 L82 60 Z" fill="currentColor"/><rect x="38" y="40" width="14" height="20" fill="#12161b"/><rect x="43" y="0" width="4" height="8" fill="currentColor"/></symbol>
+          <symbol id="sheep-s" viewBox="0 0 110 66"><ellipse cx="45" cy="34" rx="34" ry="22" fill="currentColor"/><circle cx="86" cy="30" r="12" fill="currentColor"/><rect x="24" y="50" width="7" height="14" fill="currentColor"/><rect x="42" y="50" width="7" height="14" fill="currentColor"/><rect x="60" y="50" width="7" height="14" fill="currentColor"/></symbol>
+        </svg>
+        <div id="layer"></div>
+        <div id="basis" class="abs" style="right:80px; top:1020px; font-size:24px; color:#8892a0;">Source: e-history.kz [S1][S2]. Distances and layout illustrative, not to scale.</div>
+      </div>
+      <audio id="v1" src="audio/line0.wav" data-start="0.4" data-duration="6.15" data-track-index="10" data-volume="1"></audio>
+      <audio id="v2" src="audio/line1.wav" data-start="7.05" data-duration="7.92" data-track-index="11" data-volume="1"></audio>
+      <audio id="v3" src="audio/line2.wav" data-start="15.48" data-duration="7.42" data-track-index="12" data-volume="1"></audio>
+      <audio id="v4" src="audio/line3.wav" data-start="23.4" data-duration="7.5" data-track-index="13" data-volume="1"></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const GY = 556, DIM = 0.3;
+      const yurtSvg = '<svg><use href="#yurt-s"/></svg>';
+      const sheepSvg = '<svg><use href="#sheep-s"/></svg>';
+
+      // ---------- item registry: every visible thing is an item with a kind and a scene ----------
+      // kind "s" = shape (dims to 30% when not in focus); "t" = text (disappears when not in focus)
+      const items = {};
+      function item(id, scene, kind, cls, css, html) {
+        const d = document.createElement("div");
+        d.id = id; d.className = "abs " + cls;
+        Object.assign(d.style, css);
+        if (html) d.innerHTML = html;
+        document.getElementById("layer").appendChild(d);
+        gsap.set(d, { opacity: 0 });
+        items[id] = { el: d, scene, kind, seen: false };
+        return d;
+      }
+
+      // ---------- scene s1: one meadow, stay or move ----------
+      item("mGrass", "s1", "s", "grass", { left: "460px", top: "560px", width: "1000px", height: "140px", background: "#6ee7a0" });
+      ["s1h0", "s1h1", "s1h2", "s1h3"].forEach((id, i) => item(id, "s1", "s", "sheep", { left: (620 + i * 170) + "px", top: "486px", color: "#eef1f4" }, sheepSvg));
+      item("lGrass", "s1", "t", "tag", { left: "620px", top: "380px", color: "#6ee7a0" }, "fresh grass feeds them");
+      item("lBare", "s1", "t", "tag", { left: "640px", top: "380px", color: "#ff6b5e" }, "staying eats it bare");
+      item("lMove", "s1", "t", "tag", { left: "680px", top: "380px", color: "#eef1f4" }, "moving keeps you fed");
+
+      // ---------- scene s2: four seasonal pastures ----------
+      item("grassQ", "s2", "s", "grass", { left: "200px", top: "660px", width: "280px", height: "44px", background: "#8a7a4a" });
+      item("qYurt", "s2", "s", "yurt", { left: "260px", top: GY + "px", color: "#ffd166" }, yurtSvg);
+      item("qHay", "s2", "s", "hay", { left: "420px", top: "576px", width: "110px", height: "80px" });
+      item("grassK", "s2", "s", "grass", { left: "620px", top: "660px", width: "300px", height: "44px", background: "#6ee7a0" });
+      ["kS0", "kS1", "kS2"].forEach((id, i) => item(id, "s2", "s", "sprout", { left: (700 + i * 70) + "px", top: "600px" }));
+      item("zM1", "s2", "s", "mount", { left: "1000px", top: "330px", width: "280px", height: "220px", background: "#3d4a5c" });
+      item("zM2", "s2", "s", "mount", { left: "1230px", top: "370px", width: "240px", height: "180px", background: "#46566c" });
+      item("zGrass", "s2", "s", "grass", { left: "1000px", top: "580px", width: "470px", height: "90px", background: "#6ee7a0" });
+      ["h0", "h1", "h2", "h3"].forEach((id, i) => item(id, "s2", "s", "sheep", { left: (300 + i * 90) + "px", top: "500px", color: "#eef1f4" }, sheepSvg));
+      item("river", "s2", "s", "river", { left: "160px", top: "800px", width: "1600px", height: "46px" });
+      item("grassKu", "s2", "s", "grass", { left: "1380px", top: "660px", width: "280px", height: "44px", background: "#6ee7a0" });
+      item("kuPost", "s2", "s", "sprout", { left: "1500px", top: "560px", background: "#ffd166" });
+      item("lQ", "s2", "t", "tag", { left: "220px", top: "430px", color: "#ffd166" }, "Qystau: winter shelter");
+      item("lHay", "s2", "t", "tag sm", { left: "220px", top: "480px", color: "#ffd166" }, "hay feeds weak animals");
+      item("lK", "s2", "t", "tag", { left: "600px", top: "430px", color: "#6ee7a0" }, "Kokteu: spring grass");
+      item("lZ", "s2", "t", "tag", { left: "990px", top: "272px", color: "#6ee7a0" }, "Zhailau: rich summer grass");
+      item("lFat", "s2", "t", "tag", { left: "1040px", top: "700px", color: "#eef1f4" }, "herds fatten fast");
+      item("lKu", "s2", "t", "tag", { left: "1330px", top: "430px", color: "#ffd166" }, "Kuzeu: autumn return");
+      item("lWater", "s2", "t", "tag", { left: "700px", top: "870px", color: "#5ec8f0" }, "water keeps grass alive");
+
+      // ---------- scene s3: shared tracks, agreement, judges ----------
+      item("track", "s3", "s", "link", { left: "400px", top: "620px", width: "1120px" });
+      item("a0", "s3", "s", "yurt", { left: "560px", top: GY + "px", color: "#5ec8f0" }, yurtSvg);
+      item("a1", "s3", "s", "yurt", { left: "700px", top: GY + "px", color: "#5ec8f0" }, yurtSvg);
+      item("b0", "s3", "s", "yurt", { left: "1060px", top: GY + "px", color: "#ffd166" }, yurtSvg);
+      item("b1", "s3", "s", "yurt", { left: "1200px", top: GY + "px", color: "#ffd166" }, yurtSvg);
+      item("zoneA", "s3", "s", "zone", { left: "400px", top: "690px", width: "550px", height: "60px", background: "#5ec8f0" });
+      item("zoneB", "s3", "s", "zone", { left: "970px", top: "690px", width: "550px", height: "60px", background: "#ffd166" });
+      item("biyRobe", "s3", "s", "robe", { left: "900px", top: "470px", width: "120px", height: "150px" });
+      item("biyHead", "s3", "s", "head", { left: "930px", top: "410px", width: "60px", height: "60px" });
+      item("lClans", "s3", "t", "tag", { left: "700px", top: "380px", color: "#eef1f4" }, "same tracks, shared grass");
+      item("lAul", "s3", "t", "tag sm", { left: "700px", top: "430px", color: "#8892a0" }, "aul: family camp");
+      item("lAgree", "s3", "t", "tag", { left: "700px", top: "380px", color: "#ffd166" }, "agree who grazes where");
+      item("lBiy", "s3", "t", "tag", { left: "830px", top: "330px", color: "#b69cff" }, "Biy judges by Adat");
+      item("lAdat", "s3", "t", "tag sm", { left: "830px", top: "380px", color: "#8892a0" }, "Adat: old custom law");
+
+      // ---------- captions: one plain sentence per beat ----------
+      const CAP = [
+        ["c1", "You herd animals that need fresh grass."],
+        ["c2", "They eat it bare if you stay."],
+        ["c3", "So you keep moving all year."],
+        ["c4", "Winter shelter keeps weak animals alive."],
+        ["c5", "Spring brings fresh grass close by."],
+        ["c6", "Summer climbs high where herds fatten fast."],
+        ["c7", "Autumn walks back toward winter shelter."],
+        ["c8", "Following water leaves no bare ground."],
+        ["c9", "All clans share the same tracks."],
+        ["c10", "You must agree who grazes where."],
+        ["c11", "Biys judge by Adat in disputes."],
+      ];
+      CAP.forEach(([id, text]) => item(id, "cap", "t", "caption", {}, text));
+
+      // ---------- beats: at time t, show caption, put focus items at 100%, dim or hide the rest ----------
+      // Each beat: [t, captionId, focusIds[], contextIds[] (shown at 30% with no spotlight)]
+      const BEATS = [
+        [0.4, "c1", ["mGrass", "s1h0", "s1h1", "s1h2", "s1h3", "lGrass"], []],
+        [1.94, "c2", ["mGrass", "s1h0", "s1h1", "lBare"], ["s1h2", "s1h3"]],
+        [4.4, "c3", ["s1h0", "s1h1", "s1h2", "s1h3", "lMove"], ["mGrass"]],
+        [7.05, "c4", ["qYurt", "qHay", "grassQ", "lQ", "lHay"], []],
+        [9.21, "c5", ["grassK", "kS0", "kS1", "kS2", "lK"], ["qYurt", "qHay"]],
+        [11.37, "c6", ["zM1", "zM2", "zGrass", "h0", "h1", "lZ", "lFat"], ["grassK"]],
+        [15.48, "c7", ["h0", "h1", "h2", "h3", "grassKu", "kuPost", "lKu"], ["zM1", "zM2"]],
+        [19.0, "c8", ["river", "grassQ", "grassK", "grassKu", "lWater"], ["zGrass"]],
+        [23.4, "c9", ["track", "a0", "a1", "b0", "b1", "lClans", "lAul"], []],
+        [26.13, "c10", ["zoneA", "zoneB", "lAgree"], ["track", "a0", "b0"]],
+        [28.17, "c11", ["biyRobe", "biyHead", "lBiy", "lAdat"], ["zoneA", "zoneB"]],
+      ];
+      const sceneOf = (id) => items[id].scene;
+      BEATS.forEach(([t, cap, focus, context]) => {
+        const f = new Set([...focus, cap]), c = new Set(context);
+        const activeScenes = new Set([...f, ...c].map(sceneOf).filter((s) => s !== "tl" && s !== "cap"));
+        Object.keys(items).forEach((id) => {
+          const it = items[id];
+          if (f.has(id)) {
+            tl.to(it.el, { opacity: 1, duration: 0.35 }, t);
+            if (!it.seen && it.kind === "s") tl.fromTo(it.el, { scale: 0.92 }, { scale: 1, duration: 0.35, ease: "back.out(2)" }, t);
+            it.seen = true;
+          } else if (c.has(id)) {
+            tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+            it.seen = true;
+          } else if (it.seen) {
+            if (it.scene === "cap") tl.to(it.el, { opacity: 0, duration: 0.2 }, t - 0.05);
+            else if (it.scene === "tl") tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+            else if (it.kind === "t" || !activeScenes.has(it.scene)) tl.to(it.el, { opacity: 0, duration: 0.3 }, t);
+            else tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+          }
+        });
+      });
+      [["Part 1: always moving", 0.4, 6.9], ["Part 2: four pastures", 7.05, 22.9], ["Part 3: shared tracks", 23.4, 32.9]].forEach(([txt, a, b], i) => {
+        const el = item("title" + i, "cap", "t", "title", {}, txt);
+        tl.to(el, { opacity: 1, duration: 0.3 }, a);
+        if (i < 2) tl.to(el, { opacity: 0, duration: 0.2 }, b);
+      });
+
+      // ---------- motion inside beats ----------
+      tl.to(["#s1h0", "#s1h1", "#s1h2", "#s1h3"], { y: -18, duration: 0.5, ease: "power1.out" }, 0.5);
+      tl.to("#mGrass", { backgroundColor: "#8a6d4b", duration: 1.2 }, 2.0);
+      tl.to(["#s1h0", "#s1h1", "#s1h2", "#s1h3"], { x: 420, duration: 1.6, ease: "power1.inOut" }, 4.5);
+      tl.to(["#h0", "#h1", "#h2", "#h3"], { x: 380, y: -30, duration: 1.6, ease: "power2.out" }, 7.2);
+      tl.to(["#kS0", "#kS1", "#kS2"], { scale: 1.5, duration: 0.5, ease: "back.out(2)" }, 9.3);
+      tl.to(["#h0", "#h1", "#h2", "#h3"], { x: 760, y: -120, duration: 2.0, ease: "power2.inOut" }, 11.5);
+      tl.to(["#h0", "#h1"], { scale: 1.25, duration: 0.6 }, 12.8);
+      tl.to(["#h0", "#h1", "#h2", "#h3"], { x: 1100, y: 60, duration: 1.8, ease: "power2.inOut" }, 15.6);
+      tl.to("#river", { x: 120, duration: 2.0, ease: "power1.inOut" }, 19.1);
+      tl.to(["#grassQ", "#grassK", "#grassKu"], { backgroundColor: "#6ee7a0", duration: 1.0 }, 19.2);
+      tl.to(["#a0", "#a1"], { x: 120, duration: 1.2, ease: "power2.out" }, 23.5);
+      tl.to(["#b0", "#b1"], { x: -120, duration: 1.2, ease: "power2.out" }, 23.5);
+      tl.to(["#zoneA", "#zoneB"], { scale: 1.08, duration: 0.5, ease: "back.out(2)" }, 26.2);
+      tl.to(["#biyRobe", "#biyHead"], { scale: 1.2, duration: 0.5, ease: "back.out(2)" }, 28.3);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -17,6 +17,8 @@ clone() {  # clone <url> <dir>, or fast-forward if present
 chmod +x "$REPO/scripts/learn.py"
 link "$REPO/scripts/learn.py" "$HOME/.local/bin/learn"
 link "$REPO/skills/teach-understanding" "$OC/skills/teach-understanding"
+# Claude Code sessions (T3 Code, the terminal) get the same teaching skill, so "teach me this paper" works there too.
+[ -d "$HOME/.claude" ] && link "$REPO/skills/teach-understanding" "$HOME/.claude/skills/teach-understanding"
 link "$REPO/opencode/commands/learn.md" "$OC/commands/learn.md"
 
 clone https://github.com/kepano/obsidian-skills "$HOME/repos/obsidian-skills"
@@ -37,11 +39,22 @@ command -v pkg-config >/dev/null || brew install -q pkgconf          # pycairo b
 [ -x "$TEX_BIN/latex" ] || curl -sL "https://yihui.org/tinytex/install-bin-unix.sh" | sh || true   # PATH step may ask for sudo; not needed
 "$TEX_BIN/tlmgr" install amsmath babel-english cbfonts-fd cm-super count1to ctex doublestroke dvisvgm everysel \
   fontspec frcursive fundus-calligra gnu-freefont jknapltx latex-bin mathastext microtype multitoc physics preview \
-  prelim2e ragged2e relsize rsfs setspace standalone tipa wasy wasysym xcolor xetex xkeyval >/dev/null
+  prelim2e ragged2e relsize rsfs setspace standalone tipa wasy wasysym xcolor xetex xkeyval psnfss helvetic >/dev/null \
+  || echo "warning: tlmgr could not install the LaTeX packages (it may need: tlmgr update --self). Already-installed ones keep working."
 SMOKE="$(mktemp -d)"
 printf 'from manim import *\nclass S(Scene):\n    def construct(self):\n        self.add(MathTex(r"f = \\frac{1}{T}"))\n' > "$SMOKE/s.py"
 PATH="$TEX_BIN:$PATH" "$MANIM_VENV/bin/manim" -ql -s --disable_caching --media_dir "$SMOKE/m" "$SMOKE/s.py" S >/dev/null 2>&1 \
   && echo "manim + LaTeX: ok" || echo "warning: manim + LaTeX smoke render failed (run it by hand: $SMOKE/s.py)"
+
+# Visuals for everything that is not maths: HyperFrames (HeyGen, Apache-2.0), run through npx at the version pinned in
+# learn.py (HF_VERSION). Needs Node 22+ and ffmpeg; the first run downloads its own headless Chromium.
+HF_VERSION="$(sed -n 's/^HF_VERSION = "\(.*\)"/\1/p' "$(dirname "$0")/learn.py")"
+if command -v node >/dev/null && [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 22 ] && command -v ffmpeg >/dev/null; then
+  npx --yes "hyperframes@$HF_VERSION" --version >/dev/null 2>&1 && echo "hyperframes $HF_VERSION: ok" \
+    || echo "warning: hyperframes $HF_VERSION did not start (try: npx hyperframes@$HF_VERSION doctor)"
+else
+  echo "warning: HyperFrames needs Node 22+ and ffmpeg (brew install node ffmpeg); non-maths visuals will not render"
+fi
 
 # Narration: Voicebox (jamiepine/voicebox, MIT) server pinned to v0.5.0, Kokoro-82M engine only (slim deps),
 # Python 3.12 venv via uv (Voicebox pins numba<0.61). Kokoro weights (~313 MB) go to the Hugging Face cache.

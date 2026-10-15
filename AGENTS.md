@@ -11,6 +11,7 @@ Pick the single cheapest mode that serves the request. Do not chain modes unaske
 | User intent sounds like | Mode | What you do |
 |---|---|---|
 | "explain / teach / why / how does X work / I want to learn X" | **Teach** | Run a session: `/learn <topic>` (or load `teach-understanding` and run `learn start <topic>`). New topics are researched first (`references/research.md`, PRAXIST method). Theory first, then recall. Follow every `NEXT:` line. |
+| a paper link (arXiv, DOI, PDF, article page) or an attached paper file + "teach me this paper" | **Teach a paper** | `/learn <url-or-file>` (or `learn paper <url-or-file>`), then follow every `NEXT:` line. Read `references/papers.md`. Ends with `learn report`, a visual report in vault `Papers/`. |
 | "is this true / find sources / what's the current state of X" | **Research** | Verify against primary sources (research skill / researcher subagent). Output: source-register entries + a brief, never a report. |
 | "help me plan my study / prep for exam / new subject" | **Plan** | Pick the matching playbook in `workflows.md`; fill the templates it names. |
 | "quiz me / test me / do I actually know X" | **Quiz** | Same session loop: `learn start <topic>`. Due reviews come first; questions go into the session note via `learn ask`. |
