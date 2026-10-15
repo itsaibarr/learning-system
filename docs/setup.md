@@ -48,6 +48,9 @@ Idempotent. It sets up:
   engine writes files directly and uses the CLI to open notes).
 - Tests: `python3 -m unittest discover scripts`.
 
+- Papers and non-maths visuals need Node 22+ and ffmpeg (`brew install node ffmpeg`). `install.sh` checks them and pre-fetches the pinned
+  HyperFrames. It also links the teaching skill into `~/.claude/skills` so Claude Code sessions can teach a paper too.
+
 ## 3. Terminal + subagents
 
 - **cmux** is the terminal app (`brew install --cask cmux`) — tabs host sessions.

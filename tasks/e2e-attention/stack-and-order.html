@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #12161b; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #eef1f4; }
+      #stage { position: absolute; inset: 0; }
+      .abs { position: absolute; display: block; }
+      #sky { inset: 0; background: linear-gradient(#12161b 0%, #1a2230 55%, #2b2a22 100%); }
+      #ground { left: 0; top: 640px; width: 1920px; height: 120px; background: linear-gradient(#3a3522, #2a2618); }
+      .title { left: 160px; top: 44px; font-size: 40px; font-weight: 600; color: #8892a0; white-space: nowrap; }
+      .caption { left: 160px; top: 110px; width: 1600px; font-size: 56px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+      .tag { font-size: 34px; font-weight: 600; white-space: nowrap; }
+      .yurt { width: 126px; height: 84px; }
+      .yurt svg { width: 126px; height: 84px; display: block; }
+      .arrow { width: 150px; height: 60px; color: #ff6b5e; }
+      .arrow svg { width: 150px; height: 60px; display: block; transform: scaleX(-1); }
+      .link { height: 4px; background: #8892a0; transform-origin: left center; border-radius: 2px; }
+      #axis { left: 160px; top: 880px; width: 1600px; height: 4px; background: #5b6675; border-radius: 2px; }
+      .tick { width: 3px; height: 22px; background: #5b6675; top: 871px; }
+      .yr { top: 898px; width: 90px; text-align: center; font-size: 24px; color: #8892a0; }
+      .dot { width: 34px; height: 34px; border-radius: 17px; top: 865px; }
+      .evt { width: 340px; text-align: center; top: 770px; line-height: 1.15; }
+      .evt b { display: block; font-size: 44px; }
+      .evt span { font-size: 28px; }
+      .brace { height: 8px; top: 946px; border-radius: 4px; transform-origin: left center; background: #ffd166; }
+
+      .layer { width: 420px; height: 74px; border-radius: 12px; overflow: hidden; }
+      .arcbox { pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="LEARN_TOTAL" data-width="1920" data-height="1080">
+      <div id="stage" class="clip" data-start="0" data-duration="LEARN_TOTAL" data-track-index="0">
+        <div id="sky" class="abs"></div>
+        <svg width="0" height="0" style="position:absolute">
+          <symbol id="yurt-s" viewBox="0 0 90 60"><path d="M8 60 L8 36 A37 32 0 0 1 82 36 L82 60 Z" fill="currentColor"/><rect x="38" y="40" width="14" height="20" fill="#12161b"/><rect x="43" y="0" width="4" height="8" fill="currentColor"/></symbol>
+          <symbol id="arrow-s" viewBox="0 0 150 60"><path d="M0 18 H100 V0 L150 30 L100 60 V42 H0 Z" fill="currentColor"/></symbol>
+        </svg>
+        <div id="layer"></div>
+        <script type="application/json" id="narration">["The encoder is a stack of six identical layers. Each layer has two parts: self-attention first, then a small feed-forward network.", "The decoder also has six layers, with a third part that attends over the encoder's output, and a mask so a word cannot look at the words after it.", "Nothing reads in order any more, so position signals made from sines and cosines are added to the word vectors, and the model knows where each word sits."]</script>
+        <div id="basis" class="abs" style="right:80px; top:1020px; font-size:22px; color:#8892a0;">Basis: N = 6 layers, sub-layers, masking and sinusoidal positions are from Section 3 and Figure 1 [S1]. Wave shapes are illustrative.</div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const X = (y) => 160 + (y - 1720) * (1600 / 12);
+      const yurtSvg = '<svg><use href="#yurt-s"/></svg>';
+      const arrowSvg = '<svg><use href="#arrow-s"/></svg>';
+      const GY = 556, DIM = 0.3;
+
+      // ===== ENGINE (keep as is): the item registry =====
+      // ---------- item registry: every visible thing is an item with a kind and a scene ----------
+      // kind "s" = shape (dims to 30% when not in focus); "t" = text (disappears when not in focus)
+      const items = {};
+      function item(id, scene, kind, cls, css, html) {
+        const d = document.createElement("div");
+        d.id = id; d.className = "abs " + cls;
+        Object.assign(d.style, css);
+        if (html) d.innerHTML = html;
+        document.getElementById("layer").appendChild(d);
+        gsap.set(d, { opacity: 0 });
+        items[id] = { el: d, scene, kind, seen: false };
+        return d;
+      }
+
+      // ===== CONTENT (rewrite for your topic): items, captions =====
+
+      const LH = 74, GAP = 10, BASE = 740;           // layer height, gap, bottom of the stacks
+      const EX = 330, DX = 1030, LW = 420;            // encoder and decoder x, layer width
+      const EL = [], DL = [];
+      for (let i = 0; i < 6; i++) {
+        const top = BASE - (i + 1) * (LH + GAP) + GAP;
+        item("el" + i, "s1", "s", "layer", { left: EX + "px", top: top + "px" }, `<div style="height:50%;background:#5ec8f0"></div><div style="height:50%;background:#6ee7a0"></div>`);
+        item("dl" + i, "s2", "s", "layer", { left: DX + "px", top: top + "px" }, `<div style="height:33.4%;background:#5ec8f0"></div><div style="height:33.3%;background:#b69cff"></div><div style="height:33.3%;background:#6ee7a0"></div>`);
+        EL.push("el" + i); DL.push("dl" + i);
+      }
+      item("elab", "s1", "t", "tag", { left: EX + LW + 24 + "px", top: BASE - 60 + "px", color: "#5ec8f0", fontSize: "30px" }, "self-attention");
+      item("elab2", "s1", "t", "tag", { left: EX + LW + 24 + "px", top: BASE - 28 + "px", color: "#6ee7a0", fontSize: "30px" }, "feed-forward");
+      item("encT", "s1", "t", "tag", { left: EX + "px", top: "192px", width: LW + "px", textAlign: "center", color: "#eef1f4" }, "encoder, 6 layers");
+      item("decT", "s2", "t", "tag", { left: DX + "px", top: "192px", width: LW + "px", textAlign: "center", color: "#eef1f4" }, "decoder, 6 layers");
+      // the encoder stays visible (dimmed) while the decoder is explained
+      item("cross", "s2", "s", "arcbox", { left: "0px", top: "0px", width: "1920px", height: "1080px" },
+        `<svg width="1920" height="1080" style="position:absolute;left:0;top:0"><path d="M ${EX + LW} 300 C 900 300, 900 ${BASE - 3 * (LH + GAP) + 40}, ${DX} ${BASE - 3 * (LH + GAP) + 40}" stroke="#b69cff" stroke-width="8" fill="none" stroke-linecap="round"/></svg>`);
+      item("crossT", "s2", "t", "tag", { left: "770px", top: "520px", color: "#b69cff", fontSize: "28px", width: "250px", textAlign: "center" }, "reads the encoder");
+      let grid = "";
+      for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) grid += `<rect x="${c * 62}" y="${r * 62}" width="56" height="56" rx="8" fill="${c <= r ? "#b69cff" : "none"}" stroke="#b69cff" stroke-width="3" opacity="${c <= r ? 1 : 0.5}"/>`;
+      item("mask", "s3", "s", "arcbox", { left: "800px", top: "380px", width: "320px", height: "320px" }, `<svg width="320" height="320">${grid}</svg>`);
+      item("maskT", "s3", "t", "tag", { left: "620px", top: "310px", width: "680px", textAlign: "center", color: "#b69cff" }, "a word sees only itself and earlier words");
+      // positions: three sine waves added to the word vectors
+      const wave = (f, c, y) => { let d = ""; for (let x = 0; x <= 1000; x += 8) d += (x ? "L" : "M") + (x + 460) + " " + (y + 30 * Math.sin(x / 1000 * f * 2 * Math.PI)) + " "; return `<path d="${d}" stroke="${c}" stroke-width="5" fill="none"/>`; };
+      item("waves", "s4", "s", "arcbox", { left: "0px", top: "0px", width: "1920px", height: "1080px" },
+        `<svg width="1920" height="1080" style="position:absolute;left:0;top:0">${wave(2, "#5ec8f0", 440)}${wave(5, "#ffd166", 540)}${wave(11, "#ff6b5e", 640)}</svg>`);
+      item("posT", "s4", "t", "tag", { left: "460px", top: "360px", color: "#eef1f4" }, "position signal: a different wave for every dimension");
+      item("sumT", "s4", "t", "tag", { left: "460px", top: "720px", color: "#8892a0", fontSize: "30px" }, "added to each word vector, at the bottom of both stacks");
+
+      const CAP = [["c1", "Six identical layers form the encoder."], ["c2", "Each layer: self-attention, then a feed-forward network."],
+        ["c3", "The decoder has six layers and a third part."], ["c4", "A mask stops a word looking at later words."],
+        ["c5", "No reading order, so positions are added."], ["c6", "Sine and cosine waves tell each word where it sits."]];
+      CAP.forEach(([id, text]) => item(id, "cap", "t", "caption", {}, text));
+      // Beat times come from the narration: T(line, fraction) = the moment that part of the spoken line is said.
+      const BEATS = [
+        [T(0, 0), "c1", [...EL, "encT"], []],
+        [T(0, 0.4), "c2", ["el0", "elab", "elab2"], EL.slice(1)],
+        [T(1, 0), "c3", [...DL, "decT", "cross", "crossT"], EL],
+        [T(1, 0.5), "c4", ["mask", "maskT"], []],
+        [T(2, 0), "c5", ["waves", "posT"], []],
+        [T(2, 0.5), "c6", ["waves", "posT", "sumT"], []],
+      ];
+
+      // ===== ENGINE (keep as is): the beat loop. One focus per beat; the rest dims or disappears =====
+      const sceneOf = (id) => items[id].scene;
+      BEATS.forEach(([t, cap, focus, context]) => {
+        const f = new Set([...focus, cap]), c = new Set(context);
+        const activeScenes = new Set([...f, ...c].map(sceneOf).filter((s) => s !== "tl" && s !== "cap"));
+        Object.keys(items).forEach((id) => {
+          const it = items[id];
+          if (f.has(id)) {
+            tl.to(it.el, { opacity: 1, duration: 0.35 }, t);
+            if (!it.seen && it.kind === "s") tl.fromTo(it.el, { scale: 0.92 }, { scale: 1, duration: 0.35, ease: "back.out(2)" }, t);
+            it.seen = true;
+          } else if (c.has(id)) {
+            tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+            it.seen = true;
+          } else if (it.seen) {
+            if (it.scene === "cap") tl.to(it.el, { opacity: 0, duration: 0.2 }, t - 0.05);
+            else if (it.scene === "tl") tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+            else if (it.kind === "t" || !activeScenes.has(it.scene)) tl.to(it.el, { opacity: 0, duration: 0.3 }, t);
+            else tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+          }
+        });
+      });
+      [["The encoder", T(0, 0), T(1, 0) - 0.2], ["The decoder", T(1, 0), T(2, 0) - 0.2], ["Word order", T(2, 0), LEARN.total]].forEach(([txt, a, b], i) => {
+        const el = item("title" + i, "cap", "t", "title", {}, txt);
+        tl.to(el, { opacity: 1, duration: 0.3 }, a);
+        if (i < 2) tl.to(el, { opacity: 0, duration: 0.2 }, b);
+      });
+
+      // ===== CONTENT: motion inside beats =====
+
+      tl.from(EL.map((i) => "#" + i), { y: 40, stagger: 0.18, duration: 0.3, ease: "power2.out" }, T(0, 0.04));
+      tl.from(DL.map((i) => "#" + i), { y: 40, stagger: 0.15, duration: 0.3, ease: "power2.out" }, T(1, 0.04));
+
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

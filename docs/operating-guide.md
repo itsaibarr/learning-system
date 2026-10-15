@@ -18,7 +18,7 @@ the queue). A session is scratch space — only template-shaped conclusions surv
    or review, definitions, misconceptions, examples). Every lesson cites the brief.
 2. You study in Obsidian, one **unit** at a time: 2-5 linked ideas (about 15-20 minutes)
    taught together. Each unit block has a big idea, key terms, then 2-4 segments; each segment
-   is a short narrated Manim scene (60-120 s, voice and picture in sync, `learn voice`) with
+   is a short narrated scene (Manim for maths, HyperFrames otherwise; voice and picture in sync, `learn voice`) with
    numbered steps or a table under it, and a worked example where there are numbers. A folded
    transcript sits under each video. `Maps/<topic> map.canvas` colours each concept by progress.
    After the block comes ONE unit check: one question per idea, at least one asking for the
@@ -34,6 +34,18 @@ the queue). A session is scratch space — only template-shaped conclusions surv
    solid.
 4. Say "stop". `learn end` writes a summary into the note, rebuilds
    `Maps/Learner dashboard.md`, and commits `state/learner.json`.
+
+## Teaching a paper
+
+Attach a paper (PDF, HTML or text) or paste a link (arXiv, DOI, direct PDF, open article page) and say "teach me this paper".
+In OpenCode that is `/learn <link or file path>`; in Claude Code the `teach-understanding` skill picks it up. The agent runs
+`learn paper`, which prints how much of the paper was really read. If only the abstract could be read it stops and asks you.
+After that the session is the usual one: a research brief (the paper is source S1; its claims are typed as the authors' claim, evidence
+or interpretation), units with narrated drawn visuals (Manim only for formula-driven maths, HyperFrames for everything else),
+a unit check after each unit, and finally `learn report`: a ten-part visual report in the vault folder `Papers/`.
+Every picture says what it is based on: sourced, argued, illustrative or hypothetical. Each rendered video also prints a PREVIEW
+sheet of frames; open it before trusting a scene, because overlapping labels are not caught automatically.
+Feedback on how this works goes in `docs/paper-feedback.md`.
 
 ## Multi-session continuity
 
