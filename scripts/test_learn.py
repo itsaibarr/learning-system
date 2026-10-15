@@ -7,6 +7,7 @@ import io
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
 import unittest
@@ -80,7 +81,7 @@ class Base(unittest.TestCase):
         learn.STATE = root / "state" / "learner.json"
         learn.VAULT = root / "vault"
         os.environ.update(LEARN_NO_CLI="1", LEARN_NO_GIT="1", LEARN_TODAY="2026-10-03", LEARN_REQUIRE_MANIM="0",
-                          LEARN_TTS="fake", LEARN_MANIM_QUALITY="-ql")
+                          LEARN_TTS="fake", LEARN_MANIM_QUALITY="-ql", LEARN_PREVIEW_DIR=str(root / "previews"))
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -284,7 +285,7 @@ class TestVisuals(Base):
     def test_block_needs_a_visual(self):
         self.start_planned()
         out = self.run_cmd("block", "total", stdin="Plain text only [S1].", ok=False)
-        self.assertIn("needs a Manim visual", out)
+        self.assertIn("needs a rendered visual", out)
 
     def test_figure_png_lands_in_vault_and_embeds(self):
         self.start_planned()
@@ -353,7 +354,10 @@ class TestVisuals(Base):
     def test_every_template_in_visuals_guide_renders(self):
         guide = Path(__file__).resolve().parent.parent / "skills/teach-understanding/references/visuals.md"
         templates = [t for t in re.findall(r"```python\n(.*?)```", guide.read_text(), re.S) if "TEMPLATE" in t or "OUT_PNG" in t]
-        self.assertGreaterEqual(sum("from manim import" in t for t in templates), 5)
+        self.assertGreaterEqual(sum("from manim import" in t for t in templates), 3)
+        for t in templates:   # Manim templates are for maths: each must pass the engine's formula rule
+            if "from manim import" in t:
+                self.assertTrue(learn.MATH_MANIM.search(t), "a Manim template without a formula would be rejected")
         self.start_planned()
         for n, code in enumerate(templates, 1):
             args = ["--still"] if "--still" in code.splitlines()[0] else []
@@ -373,6 +377,7 @@ from manim import *
 NARRATION = ["The squeeze of air moves along the tube while each bit of air only rocks in place."]
 class Ok(Scene):
     def construct(self):
+        t = ValueTracker(0)
         self.play(Write(Text("pressure wave", font_size=32).to_edge(UP)))
         self.wait(1.5)
 """
@@ -381,6 +386,7 @@ from manim import *
 NARRATION = ["Two labels sit on top of each other here, which the engine must catch."]
 class Bad(Scene):
     def construct(self):
+        t = ValueTracker(0)
         self.play(Write(Text("pressure wave")), Write(Text("air stays").shift(0.1 * RIGHT)))
         self.wait(1.5)
 """
@@ -409,7 +415,7 @@ class TestManim(Base):
     def test_block_requires_a_manim_figure(self):
         self.start_planned()
         out = self.run_cmd("block", "total", stdin="x [S1]" + VIS, ok=False)
-        self.assertIn("needs a Manim visual", out)
+        self.assertIn("needs a rendered visual", out)
 
     @unittest.skipUnless(learn.MANIM.exists(), "Manim not installed")
     def test_manim_video_and_still_render_and_unlock_the_block(self):
@@ -446,6 +452,7 @@ NARRATION = ["First the client asks the server whether it may open a connection.
              "Then the server agrees and asks for a connection in the other direction too."]
 class Steps(Scene):
     def construct(self):
+        t = ValueTracker(0)
         cap = Text("1  client asks", font_size=30).to_edge(UP)
         self.play(Write(cap))
         self.wait(0.5)
@@ -612,7 +619,7 @@ NARRATION = ["First the client asks the server whether it may open a connection.
              "Then the server agrees and asks for a connection back."]
 class Voiced(Scene):
     def construct(self):
-        a = Circle(); b = Square().shift(2 * RIGHT)
+        t = ValueTracker(0); a = Circle(); b = Square().shift(2 * RIGHT)
         with self.voice(1):
             self.play(Create(a), run_time=0.5)
         with self.voice(2) as d:
@@ -1072,6 +1079,449 @@ class TestChatAndTyped(Base):
         self.start_topic("x")
         self.run_cmd("pref", "Use", "Russian", "for", "terms")
         self.assertIn("Use Russian for terms", self.run_cmd("next") + self.run_cmd("start", "x"))
+
+
+# ---------- HyperFrames scenes (every topic that is not maths) ----------
+
+SKELETON = re.search(r"```html\n(.*?)```", (Path(__file__).resolve().parent.parent /
+                     "skills/teach-understanding/references/hyperframes.md").read_text(), re.S).group(1)
+EXAMPLE = (Path(__file__).resolve().parent.parent / "skills/teach-understanding/references/hyperframes-example.html").read_text()
+
+FAKE_HF = r"""
+import json, re, subprocess, sys
+from pathlib import Path
+cmd = sys.argv[1]
+html = Path("index.html").read_text()
+if cmd == "check":
+    bad = "FAKE_FAIL" in html
+    f = [{"code": "text_occluded", "severity": "error", "selector": "#cap", "time": 3,
+          "message": "Text is hidden beneath an opaque element.", "fixHint": "raise its stacking order"}] if bad else []
+    print(json.dumps({"ok": not bad, "lint": {"findings": []}, "runtime": {"findings": []},
+                      "layout": {"findings": f}, "motion": {"findings": []}, "contrast": {"findings": []}}))
+elif cmd == "render":
+    out = sys.argv[sys.argv.index("--output") + 1]
+    total = re.search(r'"total": ([0-9.]+)', html).group(1)
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i", f"color=c=black:s=320x180:d={total}",
+                    "-f", "lavfi", "-i", "anullsrc=r=24000:cl=mono", "-t", total, "-shortest", "-c:v", "libx264",
+                    "-pix_fmt", "yuv420p", "-c:a", "aac", out], check=True)
+"""
+
+
+class TestHyperFrames(Base):
+    def setUp(self):
+        super().setUp()
+        os.environ["LEARN_REQUIRE_MANIM"] = "1"
+        self.real_cmd = learn.HF_CMD
+        fake = Path(self.tmp.name) / "fakehf.py"
+        fake.write_text(FAKE_HF)
+        learn.HF_CMD = [sys.executable, str(fake)]
+
+    def tearDown(self):
+        learn.HF_CMD = self.real_cmd
+        super().tearDown()
+
+    def test_html_scene_renders_unlocks_the_block_and_keeps_the_transcript(self):
+        self.start_planned()
+        out = self.run_cmd("figure", "ball", stdin=SKELETON)
+        self.assertIn("ball.mp4 (hyperframes)", out)
+        sheet = re.search(r"PREVIEW: (\S+\.png)", out).group(1)
+        self.assertGreater(Path(sheet).stat().st_size, 1000)
+        embed = re.search(r"EMBED: (!\[\[.+\]\])", out).group(1)
+        self.assertTrue((learn.VAULT / "Attachments/learn/probability-basics/ball.mp4").exists())
+        self.run_cmd("block", "total", stdin=f"{embed}\n\nThe ball keeps rolling [S1].")
+        self.assertIn("Narration (what the voice says)", self.note())
+        self.assertIn("nothing pushes back", self.note())
+
+    def test_engine_writes_timing_audio_and_total_into_the_page(self):
+        proj = Path(self.tmp.name) / "proj"
+        clips = []
+        for i, secs in enumerate([2.0, 3.0]):
+            wav = Path(self.tmp.name) / f"l{i}.wav"
+            wav.write_bytes(b"RIFF")
+            clips.append((wav, secs))
+        total = learn.hf_prepare(SKELETON, ["a b c d", "e f g h"], [2.0, 3.0], clips, proj)
+        html = (proj / "index.html").read_text()
+        self.assertEqual(total, 7.6)                         # lead 0.25 + 2 + gap + 3, minus gap, plus 2 s hold
+        self.assertIn('"start": [0.25, 2.6]', html)
+        self.assertNotIn("LEARN_TOTAL", html)
+        self.assertIn('data-duration="7.6"', html)
+        self.assertEqual(html.count("<audio"), 2)
+        self.assertLess(html.index("<audio"), html.index('id="stage"'))   # audio is a direct child of the root
+        self.assertTrue((proj / "gsap.min.js").exists() and (proj / "audio/line1.wav").exists())
+
+    def test_scene_without_narration_is_rejected(self):
+        self.start_planned()
+        page = re.sub(r'<script type="application/json".*?</script>', "", SKELETON, flags=re.S)
+        self.assertIn("no narration", self.run_cmd("figure", "x", stdin=page, ok=False))
+
+    def test_rule_breaking_scenes_are_rejected_with_reasons(self):
+        self.start_planned()
+        cdn = SKELETON.replace("</head>", '<script src="https://cdn.example.com/lib.js"></script></head>')
+        self.assertIn("external URL", self.run_cmd("figure", "x", stdin=cdn, ok=False))
+        timer = SKELETON.replace("const tl =", "setTimeout(() => {}, 5); const tl =")
+        self.assertIn("a timer", self.run_cmd("figure", "x", stdin=timer, ok=False))
+        self.assertEqual(self.state()["session"]["manim_failures"], 2)
+
+    def test_check_errors_come_back_with_the_fix_and_count_as_a_failure(self):
+        self.start_planned()
+        out = self.run_cmd("figure", "x", stdin=SKELETON.replace("</body>", "<!-- FAKE_FAIL --></body>"), ok=False)
+        self.assertIn("text_occluded #cap at 3s", out)
+        self.assertIn("raise its stacking order", out)
+        self.assertEqual(self.state()["session"]["manim_failures"], 1)
+        self.run_cmd("figure", "x", stdin=SKELETON)
+        self.assertEqual(self.state()["session"]["manim_failures"], 0)
+
+    def test_manim_without_a_formula_is_not_allowed(self):
+        self.start_planned()
+        boxes = ("from manim import *\nNARRATION = ['First the client asks the server to talk.']\nclass A(Scene):\n"
+                 "    def construct(self):\n        self.play(Write(Text('client', font_size=30)))\n")
+        out = self.run_cmd("figure", "x", stdin=boxes, ok=False)
+        self.assertIn("only for math", out)
+        self.assertIn("HyperFrames", out)
+        self.assertEqual(self.state()["session"].get("manim_failures", 0), 0)
+
+    def test_a_non_scene_script_points_to_both_renderers(self):
+        self.start_planned()
+        out = self.run_cmd("figure", "m", stdin="print('hi')", ok=False)
+        self.assertIn("HyperFrames", out)
+        self.assertIn("Manim", out)
+
+    def test_hyperframes_needs_a_video_not_a_still(self):
+        self.start_planned()
+        self.assertIn("--still is for Manim", self.run_cmd("figure", "x", "--still", stdin=SKELETON, ok=False))
+
+    def test_existing_learners_get_the_new_visual_preference(self):
+        self.start_planned()
+        st = self.state()
+        st["profile"]["preferences"].append("Visual learner: every idea gets a Manim animation of how it works "
+                                            "(3Blue1Brown style), plus normal text.")
+        learn.STATE.write_text(json.dumps(st))
+        out = self.run_cmd("start", "Probability", "basics")
+        self.assertNotIn("3Blue1Brown", out)
+        self.assertIn("HyperFrames for everything else", out)
+
+
+@unittest.skipUnless(shutil.which("npx") and os.environ.get("LEARN_TEST_HF", "1") != "0",
+                     "needs Node and npx (LEARN_TEST_HF=0 skips the real render)")
+class TestRealHyperFrames(Base):
+    """Runs the pinned HyperFrames for real (about a minute with a cold cache)."""
+
+    def test_the_documented_scenes_pass_the_real_check_and_render(self):
+        os.environ["LEARN_REQUIRE_MANIM"] = "1"
+        self.start_planned()
+        for name, page in [("skeleton", SKELETON), ("example", EXAMPLE)]:
+            out = self.run_cmd("figure", name, stdin=page)
+            self.assertIn(f"{name}.mp4 (hyperframes)", out)
+            mp4 = learn.VAULT / f"Attachments/learn/probability-basics/{name}.mp4"
+            self.assertGreater(mp4.stat().st_size, 10_000)
+            self.assertTrue(has_audio(mp4))
+
+
+# ---------- paper mode: "Teach this paper to me" ----------
+
+ARXIV_ATOM = ("<?xml version='1.0'?><feed xmlns='http://www.w3.org/2005/Atom' xmlns:arxiv='http://arxiv.org/schemas/atom'>"
+              "<entry><title>Attention Is All You Need</title><summary>We propose a new network architecture.</summary>"
+              "<published>2017-06-12T00:00:00Z</published><author><name>Ashish Vaswani</name></author>"
+              "<author><name>Noam Shazeer</name></author></entry></feed>")
+FULL_HTML = ("<html><body><nav>skip me</nav><h1>Attention</h1><h2>1 Introduction</h2><p>" + "word " * 4000
+             + "</p><h2>2 Background</h2><p>more words here</p></body></html>")
+PAPER_URL = "https://arxiv.org/abs/1706.03762"
+
+
+def paper_brief(fid="full", url=PAPER_URL, **over):
+    sections = {
+        "Access": f"Fidelity: {fid}\nNot read: appendix tables",
+        "Claims": "| Id | Claim | Type | Source |\n| --- | --- | --- | --- |\n"
+                  "| C1 | Attention alone can replace recurrence | author-claim | S1 |\n"
+                  "| C2 | It scores higher on translation benchmarks | evidence | S1 |\n"
+                  "| C3 | Cost grows with the square of the length | interpretation | S2 |",
+        "Authors": "| Author | Affiliation | Role in this paper | Source |\n| --- | --- | --- | --- |\n"
+                   "| Ashish Vaswani | Google Brain | collective | S1 |",
+        "Novelty": "- Existed: recurrent encoders [S2]\n- Changed: removed recurrence [S1]\n- Shown: strong translation scores [S1]"}
+    sections.update(over)
+    base = make_brief(PROB).replace("https://example.org/1", url)
+    return base + "\n" + "\n".join(f"## {k}\n{v}\n" for k, v in sections.items() if v is not None)
+
+
+class PaperBase(Base):
+    def setUp(self):
+        super().setUp()
+        learn.PAPER_CACHE = Path(self.tmp.name) / "papers"
+        self.real_get, self.web = learn.http_get, {"html": FULL_HTML, "pdf": None}
+        os.environ["LEARN_REQUIRE_MANIM"] = "1"
+        self.real_hf = learn.HF_CMD
+        fake = Path(self.tmp.name) / "fakehf.py"
+        fake.write_text(FAKE_HF)
+        learn.HF_CMD = [sys.executable, str(fake)]
+
+        def fake_get(url, timeout=40):
+            import urllib.error
+            if "export.arxiv.org" in url:
+                return ARXIV_ATOM.encode(), "application/atom+xml"
+            if "arxiv.org/html/" in url and self.web["html"]:
+                return self.web["html"].encode(), "text/html"
+            if "arxiv.org/pdf/" in url and self.web["pdf"]:
+                return self.web["pdf"], "application/pdf"
+            raise urllib.error.URLError("no network in tests")
+        learn.http_get = fake_get
+
+    def tearDown(self):
+        learn.http_get, learn.HF_CMD = self.real_get, self.real_hf
+        super().tearDown()
+
+    def start_paper(self, fid="full", brief=None):
+        self.run_cmd("paper", PAPER_URL)
+        self.run_cmd("research", "--save", stdin=brief or paper_brief(fid))
+
+
+class TestPaperIngestion(PaperBase):
+    def test_urls_are_recognised_or_refused_by_name(self):
+        P = learn.parse_paper_url
+        for u in ["https://arxiv.org/abs/1706.03762", "https://arxiv.org/pdf/1706.03762v5", "https://arxiv.org/html/1706.03762",
+                  "arXiv:1706.03762"]:
+            self.assertEqual(P(u)["id"], "1706.03762", u)
+        self.assertEqual(P("https://arxiv.org/pdf/1706.03762v5")["version"], "v5")
+        self.assertEqual(P("https://arxiv.org/abs/hep-th/9901001")["id"], "hep-th/9901001")
+        self.assertEqual(P("https://doi.org/10.1038/nature14539")["kind"], "doi")
+        self.assertEqual(P("https://example.org/paper.pdf")["kind"], "pdf")
+        self.assertEqual(P("https://example.org/articles/12")["kind"], "page")
+        for bad in ["not a url", "ftp://x.org/p.pdf", "http://localhost:8000/p.pdf"]:
+            with self.assertRaises(learn.LearnError):
+                P(bad)
+
+    def test_arxiv_html_gives_full_text_and_opens_a_paper_topic(self):
+        out = self.run_cmd("paper", PAPER_URL)
+        self.assertIn("FIDELITY: full", out)
+        self.assertIn("Read via: arXiv HTML", out)
+        self.assertIn("Outline: Attention | 1 Introduction | 2 Background", out)
+        self.assertNotIn("skip me", (learn.PAPER_CACHE / "1706-03762" / "paper.txt").read_text())
+        t = self.state()["topics"]["attention-is-all-you-need"]
+        self.assertEqual((t["mode"], t["paper"]["fidelity"]), ("paper", "full"))
+        self.assertIn("PAPER MODE", out)
+        self.assertIn("Fidelity", self.run_cmd("research"))     # the template carries the paper sections
+
+    def test_a_short_html_falls_back_to_the_pdf_then_to_the_abstract(self):
+        self.web["html"] = "<html><body><p>tiny</p></body></html>"
+        out = self.run_cmd("paper", PAPER_URL)
+        self.assertIn("arXiv HTML: only", out)
+        self.assertIn("FIDELITY: abstract-only", out)            # PDF unreachable too: never silent
+        self.assertIn("LIMIT:", out)
+
+    def test_abstract_only_blocks_the_brief_until_the_learner_accepts(self):
+        self.web["html"] = None
+        self.run_cmd("paper", PAPER_URL)
+        out = self.run_cmd("research", "--save", stdin=paper_brief("abstract-only"), ok=False)
+        self.assertIn("Only the abstract", out)
+        self.run_cmd("paper", PAPER_URL, "--accept-abstract-only")
+        self.run_cmd("research", "--save", stdin=paper_brief("abstract-only"))
+        self.assertTrue(self.state()["topics"]["attention-is-all-you-need"]["research"])
+
+    def test_an_attached_pdf_with_an_arxiv_stamp_gets_real_metadata(self):
+        pdf = Path(self.tmp.name) / "attachment-3f2a.pdf"
+        pdf.write_bytes(b"%PDF")
+        learn.pdf_to_text = lambda data: "Attention\narXiv:1706.03762v7 [cs.CL] 02 Aug 2023\n" + "word " * 1500
+        try:
+            out = self.run_cmd("paper", str(pdf))
+        finally:
+            del learn.pdf_to_text
+        self.assertIn("PAPER: Attention Is All You Need", out)
+        self.assertIn("Source: https://arxiv.org/abs/1706.03762", out)
+        self.assertIn("Read via: attached pdf file", out)
+        self.assertIn("Ashish Vaswani", out)
+
+    def test_an_attached_file_without_ids_is_cited_by_its_path(self):
+        txt = Path(self.tmp.name) / "notes.txt"
+        txt.write_text("A Local Study of Rivers\n" + "word " * 1000)
+        out = self.run_cmd("paper", str(txt))
+        self.assertIn("PAPER: A Local Study of Rivers", out)
+        self.assertIn("authors and venue are unknown", out)
+        self.assertIn(f"cite it in the brief as file://{txt.resolve()}", out)
+        self.run_cmd("research", "--save", stdin=paper_brief("partial", url=f"file://{txt.resolve()}"))
+        self.assertEqual(self.state()["topics"]["a-local-study-of-rivers"]["paper"]["file"], str(txt.resolve()))
+
+    def test_attached_files_of_other_kinds_are_refused_by_name(self):
+        img = Path(self.tmp.name) / "scan.png"
+        img.write_bytes(b"x")
+        self.assertIn("only PDF, HTML, .txt and .md", self.run_cmd("paper", str(img), ok=False))
+
+    def test_title_override_for_pdfs(self):
+        self.web["html"] = None
+        self.web["pdf"] = ("word " * 1000).encode()
+        learn.pdf_to_text = lambda data: data.decode()
+        try:
+            out = self.run_cmd("paper", PAPER_URL, "--title", "A Better Title")
+        finally:
+            del learn.pdf_to_text
+        self.assertIn("PAPER: A Better Title", out)
+
+
+class TestPaperBrief(PaperBase):
+    def brief_errors(self, brief):
+        self.run_cmd("paper", PAPER_URL)
+        return self.run_cmd("research", "--save", stdin=brief, ok=False)
+
+    def test_a_good_paper_brief_is_saved_with_typed_claims(self):
+        self.start_paper()
+        brief = learn.brief_of(self.state() and learn.load())
+        self.assertEqual(brief["claims"]["C2"]["type"], "evidence")
+        self.assertIn("Ashish Vaswani", brief["authors"])
+
+    def test_access_must_match_what_the_engine_really_read(self):
+        out = self.brief_errors(paper_brief("abstract-only"))
+        self.assertIn("Access says abstract-only but the engine retrieved full", out)
+
+    def test_claims_must_be_typed_and_sourced(self):
+        bad = paper_brief(Claims="| Id | Claim | Type | Source |\n| --- | --- | --- | --- |\n"
+                                  "| C1 | It works | obviously true | S1 |\n| C2 | It is fast | evidence | S9 |")
+        out = self.brief_errors(bad)
+        self.assertIn("type must be one of author-claim, evidence, interpretation", out)
+        self.assertIn("source must be a Sources id", out)
+        self.assertIn("at least 3 rows", out)
+
+    def test_authors_need_a_source_for_an_individual_role(self):
+        bad = paper_brief(Authors="| Author | Affiliation | Role in this paper | Source |\n| --- | --- | --- | --- |\n"
+                                  "| Noam Shazeer | Google | wrote the multi-head attention | unverified |")
+        self.assertIn("an individual role needs a source; otherwise write 'collective'", self.brief_errors(bad))
+
+    def test_the_paper_must_be_a_source_and_novelty_must_be_complete(self):
+        bad = paper_brief(Novelty="- Existed: recurrent encoders [S2]").replace(PAPER_URL, "https://example.org/other")
+        out = self.brief_errors(bad)
+        self.assertIn("must be one of the Sources", out)
+        self.assertIn("'- Changed: ...'", out)
+        self.assertIn("'- Shown: ...'", out)
+
+    def test_a_non_paper_topic_has_none_of_this(self):
+        self.run_cmd("start", "Probability", "basics")
+        self.run_cmd("research", "--save", stdin=make_brief(PROB))     # no paper sections needed
+
+
+class TestPaperVisualsAndReport(PaperBase):
+    def teach_one(self):
+        self.start_paper()
+        self.run_cmd("plan", "--goal", "understand the paper", "--concept", "total|Attention replaces recurrence",
+                     "--concept", "none|Self-attention|total", "--concept", "atleast|Multi-head|none", "--known", "none")
+        out = self.run_cmd("figure", "idea", "--basis", "illustrative", stdin=SKELETON)
+        self.embed = re.search(r"EMBED: (!\[\[.+\]\])", out).group(1)
+        self.run_cmd("block", "total", stdin=f"{self.embed}\n\nAttention looks at every word at once [S1].")
+
+    def test_a_paper_figure_must_say_what_it_is_based_on(self):
+        self.start_paper()
+        self.run_cmd("plan", "--goal", "g", "--concept", "total|T", "--concept", "none|N|total",
+                     "--concept", "atleast|A|none", "--known", "none")
+        out = self.run_cmd("figure", "x", stdin=SKELETON, ok=False)
+        self.assertIn("--basis sourced|argued|illustrative|hypothetical", out)
+
+    def test_the_basis_label_sits_under_the_figure_in_the_note(self):
+        self.teach_one()
+        note = self.note()
+        self.assertIn("Basis: illustrative. This picture is a diagram that helps understanding", note)
+        self.assertLess(note.index(self.embed), note.index("Basis: illustrative"))
+
+    def report(self, over=None):
+        body = {n: f"## {n}. {learn.REPORT_PARTS[n - 1]}\n" + "word " * 45 + "\n" for n in range(1, 11)}
+        body[1] = "## 1. The paper at a glance\nAccess: full. Appendix tables were not read. " + "word " * 45 + "\n"
+        for n in learn.REPORT_CITED:
+            body[n] += " [S1]\n"
+        body[3] += f"\n{self.embed}\n"
+        body[4] += "\n```mermaid\nflowchart LR\n  A --> B\n```\n"
+        body[7] += "\n- **Ashish Vaswani**: Google Brain [S1]\n"
+        body[9] += "\n**Authors acknowledge:** cost grows. **Our analysis:** the claim needs more tasks. [S1]\n"
+        body[10] += "\n```mermaid\nflowchart LR\n  P --> I --> M --> F\n```\n"
+        body.update(over or {})
+        return "\n".join(body[n] for n in range(1, 11))
+
+    def test_report_needs_the_brief_and_some_teaching_first(self):
+        self.start_paper()
+        out = self.run_cmd("report", "--save", stdin="x", ok=False)
+        self.assertIn("Teach at least the central idea", out)
+
+    def test_a_complete_report_is_saved_to_papers_with_labels_and_sources(self):
+        self.teach_one()
+        self.assertIn("## 10. The mental model to retain", self.run_cmd("report"))
+        out = self.run_cmd("report", "--save", stdin=self.report())
+        self.assertIn("Report saved: Papers/Attention Is All You Need report.md (10 parts", out)
+        saved = (learn.VAULT / "Papers/Attention Is All You Need report.md").read_text()
+        self.assertIn("type: paper-report", saved)
+        self.assertIn("fidelity: full", saved)
+        self.assertIn("Basis: illustrative", saved)
+        self.assertIn("Sources", saved)
+        self.assertIn("arXiv HTML", saved)
+        self.assertTrue(self.state()["topics"]["attention-is-all-you-need"]["report"])
+
+    def test_report_rejections_name_each_problem(self):
+        self.teach_one()
+        for over, msg in [({7: "## 7. Authors and research contributions\n" + "word " * 45 + "\n- **Someone Else**: lab [S1]\n"},
+                           "who is not in the brief's Authors table"),
+                          ({9: "## 9. Limitations and open questions\n" + "word " * 45 + " [S1]\n"}, "keep 'Authors acknowledge'"),
+                          ({1: "## 1. The paper at a glance\nAccess: abstract-only. " + "word " * 45 + "\n"}, "engine retrieved full"),
+                          ({5: "## 5. What is actually new\n" + "word " * 45 + "\n"}, "cites no brief source"),
+                          ({2: "## 2. The problem and its motivation\nshort [S1]\n"}, "needs real content")]:
+            self.assertIn(msg, self.run_cmd("report", "--save", stdin=self.report(over), ok=False))
+        self.assertIn("exactly ten parts", self.run_cmd("report", "--save", stdin="## 1. Only\nx", ok=False))
+        self.assertIn("at least 3", self.run_cmd("report", "--save", stdin=self.report({
+            3: "## 3. The central idea\n" + "word " * 45 + " [S1]\n", 4: "## 4. How the proposed approach works\n" + "word " * 45 + " [S1]\n",
+            10: "## 10. The mental model to retain\n" + "word " * 45 + "\n"}), ok=False))
+
+    def test_an_unlabelled_figure_cannot_enter_the_report(self):
+        self.teach_one()
+        st = self.state()
+        st["figure_basis"] = {}
+        learn.STATE.write_text(json.dumps(st))
+        self.assertIn("has no basis label", self.run_cmd("report", "--save", stdin=self.report(), ok=False))
+
+    def test_the_last_step_of_a_paper_is_the_report(self):
+        self.teach_one()
+        st = self.state()
+        for c in st["topics"]["attention-is-all-you-need"]["concepts"].values():
+            c.update(status="mastered", next_review=None)
+        st["session"]["step"] = None
+        st["session"]["pending"] = {}
+        learn.STATE.write_text(json.dumps(st))
+        self.assertIn("The visual report is the last step", self.run_cmd("next"))
+
+
+class TestWebPages(Base):
+    def test_an_article_page_is_read_without_its_menus(self):
+        body = "word " * 400
+        html = f"<html><body><nav>MENU SUBSCRIBE</nav><article><h1>Real title</h1><p>{body}</p></article><aside>SIDEBAR</aside></body></html>"
+        text = learn.html_to_text(html)
+        self.assertIn("Real title", text)
+        self.assertNotIn("MENU", text)
+        self.assertNotIn("SIDEBAR", text)
+
+    def test_a_content_div_is_read_with_its_nested_divs_and_without_the_menus(self):
+        body = "".join(f"<div class='para'><p>{'word ' * 30}</p></div>" for _ in range(12))
+        html = (f"<html><body><div class='menu'><p>WELCOME</p><h3>SUBSCRIBE</h3></div><div class='entry-content'><h2>A heading</h2>{body}</div>"
+                "<div><h3>Recent articles</h3><p>short</p></div></body></html>")
+        text = learn.html_to_text(html)
+        self.assertIn("A heading", text)
+        self.assertEqual(text.count("word"), 360)
+        for junk in ("WELCOME", "SUBSCRIBE", "Recent articles"):
+            self.assertNotIn(junk, text)
+
+    def test_site_name_suffix_is_dropped_from_the_title(self):
+        meta = learn.page_meta("<html><head><title>The Stamp Act - Journal of the Revolution</title></head></html>", "https://x.org/a")
+        self.assertEqual(meta["title"], "The Stamp Act")
+        meta = learn.page_meta('<meta name="citation_title" content="Stamp-Act politics">', "https://x.org/a")
+        self.assertEqual(meta["title"], "Stamp-Act politics")
+
+
+class TestHouseStyle(Base):
+    @unittest.skipUnless(learn.MANIM.exists(), "Manim not installed")
+    def test_manim_scenes_get_the_same_look_as_hyperframes(self):
+        from PIL import Image
+        self.start_planned()
+        self.run_cmd("figure", "styled", "--still", stdin=MANIM_OK)
+        im = Image.open(learn.VAULT / "Attachments/learn/probability-basics/styled.png").convert("RGB")
+        w, h = im.size
+        top, bottom = im.getpixel((w // 2, 2)), im.getpixel((w // 2, h - 3))
+        self.assertTrue(all(abs(a - b) <= 6 for a, b in zip(top, (0x12, 0x16, 0x1b))), f"top pixel {top} is not the navy sky")
+        self.assertTrue(all(abs(a - b) <= 6 for a, b in zip(bottom, (0x2b, 0x2a, 0x22))), f"bottom pixel {bottom} is not the warm end of the gradient")
+
+    def test_the_engine_ships_the_font_and_its_licence(self):
+        for name in ("Inter-Regular.ttf", "Inter-SemiBold.ttf", "Inter-Bold.ttf", "LICENSE-Inter.txt"):
+            self.assertTrue((learn.FONT_DIR / name).exists(), name)
+        self.assertIn("SIL OPEN FONT LICENSE", (learn.FONT_DIR / "LICENSE-Inter.txt").read_text().upper())
 
 
 if __name__ == "__main__":

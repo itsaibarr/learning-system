@@ -5,14 +5,20 @@ The agent runs one subcommand per step and follows the WHY/NEXT lines it prints.
 The rules live here, not in the prompt, so every model gets the same decisions.
 
   start <topic...> [--exam <profile>]  begin or resume a session; --exam switches the topic to exam mode
+  paper <url|file> [--accept-abstract-only] [--title T]   "Teach this paper to me": a link (arXiv, DOI, PDF, open page) or an
+                                   attached file (PDF, HTML, text); fetch it, record how
+                                   much was really read, open a paper-mode topic, then the normal research/plan/teach loop
+  report [--save]                  paper topics: the 10-part visual report (template / validate + save to vault Papers/)
   research [--save]                research gate: show the brief template / save a brief (stdin) for this topic
   lit search|resolve|text|guide|db ...   PRAXIST no-key literature lookup (OpenAlex, arXiv, Crossref, PubMed...)
   plan --concept id ... --known id,id|none   concepts come from the research brief
   known <concept>                  learner says they already know it -> quick check instead of teaching
   add <id> <title...> [--prereqs a,b] [--before c]
-  figure <name> [--still|--silent] Manim scene on stdin -> checked, narrated MP4 (or PNG with --still) in the vault
-                                   (narration = the scene's NARRATION list, spoken by a local Voicebox/Kokoro voice)
-                                   (matplotlib is the fallback, unlocked after 3 failed Manim attempts in a row)
+  figure <name> [--still|--silent] [--basis B] scene on stdin -> checked, narrated MP4 in the vault. An HTML file is a
+                                   HyperFrames scene (every topic); a Manim script is for math only (formula-driven)
+                                   (narration = the scene's NARRATION list or <script id="narration">, spoken by a
+                                   local Voicebox/Kokoro voice; --still gives a PNG for Manim)
+                                   (matplotlib is the fallback, unlocked after 3 failed attempts in a row)
   block <concept>                  theory markdown (with a visual) on stdin -> session note
   ask <concept>                    question JSON on stdin -> session note
   check                            read answers from the note; grades choice questions
@@ -26,6 +32,8 @@ The rules live here, not in the prompt, so every model gets the same decisions.
 
 Env: LEARN_STATE, LEARN_VAULT, LEARN_TODAY (YYYY-MM-DD), LEARN_NO_CLI=1, LEARN_NO_GIT=1,
      LEARN_MANIM (manim binary), LEARN_TEX_BIN (TeX bin dir), LEARN_REQUIRE_MANIM=0 (accept any visual),
+     LEARN_HF (hyperframes command, default npx pinned), LEARN_HF_QUALITY (draft|standard|high),
+     LEARN_PAPER_CACHE (where fetched paper text is kept), LEARN_PREVIEW_DIR (frame sheets of rendered videos),
      LEARN_TTS=voicebox|fake|none, LEARN_VOICEBOX_URL, LEARN_VOICEBOX_DIR, LEARN_VOICEBOX_AUTOSTART=0.
 """
 
@@ -35,6 +43,7 @@ import json
 import os
 import random
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -43,8 +52,11 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import wave
+import xml.etree.ElementTree as ET
 from datetime import date, timedelta
+from html.parser import HTMLParser
 from pathlib import Path
+from types import SimpleNamespace
 
 REPO = Path(__file__).resolve().parent.parent
 STATE = Path(os.environ.get("LEARN_STATE", REPO / "state" / "learner.json"))
@@ -100,8 +112,42 @@ OLD_MANIM_API = [
 # Wraps the agent's scene: after every play()/wait(), text that overlaps other text or leaves the frame is recorded.
 MANIM_HARNESS = r"""
 import json, os
+import manim as _m
 from manim import *
 from manim import Scene as _Base
+# ---- house style: the same look as the HyperFrames scenes (Inter, navy gradient, one palette, sans maths) ----
+from pathlib import Path as _P
+for _n, _v in {"BLUE": "#5ec8f0", "TEAL": "#5ec8f0", "YELLOW": "#ffd166", "GREEN": "#6ee7a0", "RED": "#ff6b5e",
+               "PURPLE": "#b69cff", "ORANGE": "#ffb35e", "WHITE": "#eef1f4", "GREY": "#8892a0", "GRAY": "#8892a0"}.items():
+    setattr(_m, _n, ManimColor(_v))
+for _f in sorted(_P(os.environ.get("LEARN_FONT_DIR", ".")).glob("*.ttf")):
+    register_font(str(_f)).__enter__()
+for _c in (Text, MarkupText):
+    _c.set_default(font="Inter", color="#eef1f4")
+for _c in (MathTex, Tex):
+    _c.set_default(color="#eef1f4")
+_tpl = TexTemplate()
+_tpl.add_to_preamble(r"\usepackage[T1]{fontenc}\usepackage[scaled=0.95]{helvet}\renewcommand{\familydefault}{\sfdefault}\usepackage{mathastext}")
+config.tex_template = _tpl
+config.background_color = "#12161b"
+
+def _gradient_png():
+    import numpy as np
+    from PIL import Image
+    H, W = config.pixel_height, config.pixel_width
+    at, rgb = [0.0, 0.55, 1.0], [(0x12, 0x16, 0x1b), (0x1a, 0x22, 0x30), (0x2b, 0x2a, 0x22)]   # as the HyperFrames sky
+    col = np.stack([np.interp(np.linspace(0, 1, H), at, [c[k] for c in rgb]) for k in range(3)], axis=1)
+    path = _P(os.environ["LEARN_FIG_REPORT"]).parent / "bg.png"
+    Image.fromarray(np.repeat(col[:, None, :], W, axis=1).astype("uint8")).save(path)
+    return str(path)
+
+_BG = _gradient_png()
+
+def _themed(camera_class):
+    class _Themed(camera_class):
+        def __init__(self, **kw):
+            super().__init__(**{**kw, "background_image": _BG})
+    return _Themed
 _ns = {"__name__": "figure"}
 exec(compile(open(os.environ["LEARN_FIG_SCRIPT"]).read(), "figure.py", "exec"), _ns)
 _found = [v for v in _ns.values() if isinstance(v, type) and issubclass(v, _Base) and v.__module__ == "figure"]
@@ -143,6 +189,12 @@ def _note_marks(mobs, t):
             _marks[int(hit.group(1))] = [round(t, 3), txt.strip()]
 
 class LearnChecked(_found[0]):
+    def __init__(self, *args, **kwargs):
+        import inspect
+        default = inspect.signature(_found[0].__init__).parameters.get("camera_class")
+        base = default.default if default is not None and default.default is not inspect.Parameter.empty else Camera
+        kwargs["camera_class"] = _themed(kwargs.get("camera_class") or base)
+        super().__init__(*args, **kwargs)
     @_cm
     def voice(self, i):
         # narration line i (1-based) is spoken from here; the block lasts at least as long as the line
@@ -275,12 +327,13 @@ DEFAULT_PREFS = [
     "If the learner says they are lost, restart from the most basic idea, from zero.",
     "Always say why a step exists before showing how to do it.",
     "One note per session. Never send the learner to another file mid-session.",
-    "Visual learner: every idea gets a Manim animation of how it works (3Blue1Brown style), plus normal text.",
+    "Visual learner: every idea gets a narrated animation of how it works, drawn for the topic (Manim for math, HyperFrames for everything else), plus normal text.",
 ]
 
 
 SUPERSEDED_PREFS = {
     "Visual learner: every idea gets a picture of how it works (diagram, animation or plot), plus normal text.",
+    "Visual learner: every idea gets a Manim animation of how it works (3Blue1Brown style), plus normal text.",
 }
 
 
@@ -450,6 +503,542 @@ def topic_profile(t):
     return exam_profile(t["exam"]) if t.get("mode") == "exam" else None
 
 
+# ---------- paper mode: "Teach this paper to me" ----------
+
+PAPERS_DIR = "Papers"
+PAPER_CACHE = Path(os.environ.get("LEARN_PAPER_CACHE", Path.home() / ".local/share/learning-system/papers"))
+PAPER_SECTIONS = ["Access", "Claims", "Authors", "Novelty"]
+CLAIM_TYPES = {"author-claim", "evidence", "interpretation"}
+FULL_WORDS, PARTIAL_WORDS = 3000, 800          # words of real text: below FULL is partial, below PARTIAL is abstract-only
+BASIS = {"sourced": "drawn from what the paper or a source it cites states",
+         "argued": "the authors' claim, drawn as a picture",
+         "illustrative": "a diagram that helps understanding; it is not evidence and not the authors' own model",
+         "hypothetical": "an invented example that clarifies an idea"}
+REPORT_PARTS = ["The paper at a glance", "The problem and its motivation", "The central idea",
+                "How the proposed approach works", "What is actually new", "Experiments and results",
+                "Authors and research contributions", "Practical applications", "Limitations and open questions",
+                "The mental model to retain"]
+REPORT_CITED = (2, 3, 4, 5, 6, 8)             # parts that state facts, so they must cite the brief
+ARXIV_ID = re.compile(r"(?:arxiv\.org/(?:abs|pdf|html)/|\barxiv:)((?:\d{4}\.\d{4,5}|[a-z][a-z\-]*(?:\.[A-Za-z]{2})?/\d{7}))(v\d+)?",
+                      re.I)
+PAPER_TEMPLATE = """## Access
+Fidelity: <full | partial | abstract-only>   (must match what `learn paper` recorded)
+Not read: <what you could not read: appendices, supplementary files, paywalled parts; "nothing" if full>
+
+## Claims
+| Id | Claim | Type | Source |
+| --- | --- | --- | --- |
+| C1 | <what is claimed, one sentence> | author-claim | S1 |
+| C2 | <a result the experiments show> | evidence | S1 |
+| C3 | <your own reading or caution> | interpretation | S1 |
+
+## Authors
+| Author | Affiliation | Role in this paper | Source |
+| --- | --- | --- | --- |
+| <name> | <affiliation at paper time> | collective | S1 |
+
+## Novelty
+- Existed: <what was already established, with the source>
+- Changed: <what the authors introduced, changed or combined>
+- Shown: <what this paper demonstrates that the baseline work did not>
+"""
+
+
+class _PageText(HTMLParser):
+    SKIP = {"script", "style", "nav", "footer", "noscript", "svg", "button", "form"}
+
+    def __init__(self):
+        super().__init__()
+        self.out, self.skip = [], 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.SKIP:
+            self.skip += 1
+        elif tag in ("h1", "h2", "h3", "h4"):
+            self.out.append("\n\n## ")
+        elif tag in ("p", "div", "li", "tr", "br", "section", "figcaption"):
+            self.out.append("\n")
+
+    def handle_endtag(self, tag):
+        if tag in self.SKIP:
+            self.skip = max(0, self.skip - 1)
+        elif tag in ("h1", "h2", "h3", "h4"):
+            self.out.append("\n")
+
+    def handle_data(self, data):
+        if not self.skip:
+            self.out.append(data)
+
+
+CONTENT_CLASS = re.compile(r"""<div[^>]*class=["'][^"']*\b(entry-content|post-content|article-body|article__body|story-body|content-body|post-body)\b[^"']*["'][^>]*>""", re.I)
+
+
+def inner_div(html, start):
+    """Inner HTML of the <div> opening at `start`, counting nested divs."""
+    depth, pos = 0, start
+    for m in re.finditer(r"<(/?)div\b[^>]*>", html[start:], re.I):
+        depth += -1 if m.group(1) else 1
+        if depth == 0:
+            return html[start + html[start:].index(">") + 1: start + m.start()]
+    return html[start:]
+
+
+def html_to_text(html):
+    """Page text. A web article has menus and sidebars: read just the <article>, <main> or content div when the page has one."""
+    for tag in ("article", "main"):
+        m = re.search(rf"<{tag}\b[^>]*>(.*)</{tag}>", html, re.S | re.I)
+        if m and len(m.group(1).split()) > 300:
+            html = m.group(1)
+            break
+    else:
+        m = CONTENT_CLASS.search(html)
+        if m:
+            inner = inner_div(html, m.start())
+            if len(inner.split()) > 300:
+                html = inner
+    p = _PageText()
+    p.feed(html)
+    text = re.sub(r"[ \t]+", " ", "".join(p.out))
+    return re.sub(r"\n\s*\n\s*\n+", "\n\n", text).strip()
+
+
+def pdf_to_text(data):
+    try:
+        import pymupdf
+    except ImportError:
+        pymupdf = None
+    if pymupdf:
+        try:
+            with pymupdf.open(stream=data, filetype="pdf") as doc:
+                return "\n".join(page.get_text() for page in doc)
+        except Exception as e:
+            raise LearnError(f"could not read this PDF ({type(e).__name__})")
+    try:
+        import io
+        from pdfminer.high_level import extract_text
+        return extract_text(io.BytesIO(data))
+    except ImportError:
+        raise LearnError("no PDF reader installed. Run `python3 -m pip install pymupdf`.")
+    except Exception as e:
+        raise LearnError(f"could not read this PDF ({type(e).__name__})")
+
+
+def _ssl_context():
+    """python.org builds ship without CA certificates; certifi (a PRAXIST/httpx dependency) has them."""
+    import ssl
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
+def net_err(ex):
+    return f"{type(ex).__name__}: {getattr(ex, 'reason', ex)}"
+
+
+def http_get(url, timeout=40):
+    req = urllib.request.Request(url, headers={"User-Agent": "learning-system/2 (personal study tool)"})
+    with urllib.request.urlopen(req, timeout=timeout, context=_ssl_context()) as r:
+        return r.read(), r.headers.get("Content-Type", "")
+
+
+FILE_KINDS = {".pdf": "pdf", ".html": "html", ".htm": "html", ".txt": "text", ".md": "text"}
+ARXIV_STAMP = re.compile(r"arXiv:\s?((?:\d{4}\.\d{4,5}|[a-z][a-z\-]*(?:\.[A-Za-z]{2})?/\d{7}))(v\d+)?", re.I)
+DOI_IN_TEXT = re.compile(r"\b(10\.\d{4,9}/[^\s\"<>,;]+[^\s\"<>,;.])")
+
+
+def parse_paper_url(url):
+    url = url.strip()
+    local = Path(os.path.expanduser(url))
+    if not re.match(r"[a-z]+:", url, re.I) and local.is_file():
+        kind = FILE_KINDS.get(local.suffix.lower())
+        if not kind:
+            raise LearnError(f"{local.name}: only PDF, HTML, .txt and .md files can be read as a paper "
+                             f"(got {local.suffix or 'no extension'}).")
+        return {"kind": "file", "format": kind, "id": slug(local.stem)[:60], "path": str(local.resolve()),
+                "url": f"file://{local.resolve()}"}
+    m = ARXIV_ID.search(url)
+    if m:
+        return {"kind": "arxiv", "id": m.group(1), "version": m.group(2) or "", "url": f"https://arxiv.org/abs/{m.group(1)}"}
+    m = re.search(r"(?:doi\.org/|^doi:)(10\.\d{4,9}/[^\s?#]+)", url, re.I)
+    if m:
+        return {"kind": "doi", "id": m.group(1), "url": f"https://doi.org/{m.group(1)}"}
+    if re.match(r"https?://", url):
+        host = urllib.parse.urlparse(url).hostname or ""
+        if host in ("localhost", "127.0.0.1") or host.endswith(".local"):
+            raise LearnError("Local addresses are not papers.")
+        kind = "pdf" if urllib.parse.urlparse(url).path.lower().endswith(".pdf") else "page"
+        return {"kind": kind, "id": slug(host + urllib.parse.urlparse(url).path)[:60], "url": url}
+    raise LearnError(f"{url!r} is not a paper link. Supported: arXiv (abs, pdf or html), a DOI, a direct PDF link, "
+                     "an open-access article page, or an attached file (PDF, HTML, text). Paywalled publisher pages return only the abstract.")
+
+
+def arxiv_meta(aid):
+    ns = {"a": "http://www.w3.org/2005/Atom", "x": "http://arxiv.org/schemas/atom"}
+    try:
+        data, _ = http_get(f"https://export.arxiv.org/api/query?id_list={aid}")
+        e = ET.fromstring(data).find("a:entry", ns)
+    except (urllib.error.URLError, OSError, ET.ParseError) as ex:
+        raise LearnError(f"Could not reach arXiv for {aid} ({net_err(ex)}). Check the network and retry.")
+    title = " ".join((e.findtext("a:title", "", ns) if e is not None else "").split())
+    if not title or title.lower() == "error":
+        raise LearnError(f"arXiv has no paper with id {aid}.")
+    return {"title": title,
+            "authors": [{"name": a.findtext("a:name", "", ns), "affiliation": a.findtext("x:affiliation", "", ns)}
+                        for a in e.findall("a:author", ns)],
+            "abstract": " ".join(e.findtext("a:summary", "", ns).split()),
+            "date": e.findtext("a:published", "", ns)[:10],
+            "venue": e.findtext("x:journal_ref", "", ns) or "arXiv preprint"}
+
+
+def crossref_meta(doi):
+    try:
+        data, _ = http_get(f"https://api.crossref.org/works/{urllib.parse.quote(doi)}")
+        m = json.loads(data)["message"]
+    except (urllib.error.URLError, OSError, ValueError, KeyError) as ex:
+        raise LearnError(f"Crossref has no record for doi:{doi} ({net_err(ex)}).")
+    parts = (m.get("issued") or {}).get("date-parts") or [[None]]
+    return {"title": " ".join((m.get("title") or [""])[0].split()),
+            "authors": [{"name": f"{a.get('given', '')} {a.get('family', '')}".strip(),
+                         "affiliation": ((a.get("affiliation") or [{}])[0]).get("name", "")} for a in m.get("author", [])],
+            "abstract": " ".join(re.sub(r"<[^>]+>", " ", m.get("abstract", "")).split()),
+            "date": "-".join(f"{x:02d}" if i else str(x) for i, x in enumerate(parts[0]) if x),
+            "venue": (m.get("container-title") or ["unknown venue"])[0]}
+
+
+def page_meta(html, url):
+    def tag(name):
+        return [x for x in re.findall(r'<meta[^>]+name=["\']%s["\'][^>]+content=["\']([^"\']*)' % name, html, re.I)]
+    title = (tag("citation_title") or re.findall(r"<title[^>]*>(.*?)</title>", html, re.I | re.S) or [url])[0]
+    title = re.split(r"\s+[|\u2013\u2014-]\s+", " ".join(title.split()))[0]   # drop the " - Site name" suffix
+    return {"title": title, "authors": [{"name": n, "affiliation": ""} for n in tag("citation_author")],
+            "abstract": " ".join((tag("citation_abstract") or tag("description") or [""])[0].split()),
+            "date": (tag("citation_publication_date") or tag("citation_date") or [""])[0],
+            "venue": (tag("citation_journal_title") or tag("citation_conference_title") or ["unknown venue"])[0]}
+
+
+def paper_fidelity(text, abstract):
+    n = len(text.split())
+    if not n or (abstract and n <= int(len(abstract.split()) * 1.5)):
+        return "abstract-only"
+    return "full" if n >= FULL_WORDS else "partial" if n >= PARTIAL_WORDS else "abstract-only"
+
+
+def fetch_paper(info):
+    """Best available text for a paper: returns {meta, text, how, notes}. Never silently falls back to the abstract."""
+    kind, notes, text, how = info["kind"], [], "", ""
+    if kind == "arxiv":
+        meta = arxiv_meta(info["id"])
+        for label, url, as_pdf in [("arXiv HTML", f"https://arxiv.org/html/{info['id']}{info['version']}", False),
+                                   ("arXiv PDF", f"https://arxiv.org/pdf/{info['id']}{info['version']}", True)]:
+            try:
+                data, _ = http_get(url)
+                got = pdf_to_text(data) if as_pdf else html_to_text(data.decode("utf-8", "replace"))
+            except (urllib.error.URLError, OSError, LearnError) as e:
+                notes.append(f"{label}: {e}")
+                continue
+            if len(got.split()) >= PARTIAL_WORDS:
+                text, how = got, label
+                break
+            notes.append(f"{label}: only {len(got.split())} words")
+    elif kind == "doi":
+        meta = crossref_meta(info["id"])
+        try:
+            from praxist.plugins.tools.literature_lookup import adapter as lit
+            r = lit.literature_open_access_text(f"doi:{info['id']}", 400000)
+            got = "" if r.get("error") else str(r.get("text") or "")
+            if len(got.split()) >= PARTIAL_WORDS:
+                text, how = got, "open-access full text (PRAXIST lookup)"
+            else:
+                notes.append(f"open-access text: {r.get('error') or 'none found'}")
+        except ImportError:
+            notes.append("open-access text: PRAXIST is not installed")
+    elif kind == "file":
+        path = Path(info["path"])
+        try:
+            text = (pdf_to_text(path.read_bytes()) if info["format"] == "pdf" else
+                    html_to_text(path.read_text(errors="replace")) if info["format"] == "html" else path.read_text(errors="replace"))
+        except OSError as e:
+            raise LearnError(f"Could not read {path.name}: {e}")
+        how, meta = f"attached {info['format']} file", None
+        head = text[:4000]
+        m = ARXIV_STAMP.search(head)
+        d = DOI_IN_TEXT.search(head)
+        try:    # a printed arXiv id or DOI gives real authors, date and venue, and a link the brief can cite
+            if m:
+                meta = arxiv_meta(m.group(1))
+                info.update(id=m.group(1), url=f"https://arxiv.org/abs/{m.group(1)}", kind="arxiv", version=m.group(2) or "")
+            elif d:
+                meta = crossref_meta(d.group(1))
+                info.update(id=d.group(1), url=f"https://doi.org/{d.group(1)}", kind="doi")
+        except LearnError as e:
+            notes.append(f"identifier lookup: {e}")
+        if meta is None:
+            header = re.compile(r"journal|proceedings|conference|\bvol\b|\(\d{4}\)|arxiv|©|copyright|^\d+$|submitted|published", re.I)
+            first = next((l.strip() for l in text.split("\n") if len(l.split()) >= 3 and not header.search(l)), path.stem)
+            meta = {"title": first[:140], "authors": [], "abstract": "", "date": "", "venue": "unknown venue"}
+            notes.append("no arXiv id or DOI found in the file: authors and venue are unknown (pass --title if the title is wrong)")
+    elif kind == "pdf":
+        try:
+            data, _ = http_get(info["url"])
+            text, how = pdf_to_text(data), "PDF"
+        except (urllib.error.URLError, OSError) as e:
+            raise LearnError(f"Could not download the PDF ({net_err(e)}). Is the link public?")
+        header = re.compile(r"journal|proceedings|conference|\bvol\b|\(\d{4}\)|arxiv|©|copyright|^\d+$|submitted|published", re.I)
+        first = next((l.strip() for l in text.split("\n") if len(l.split()) >= 3 and not header.search(l)), info["url"])
+        meta = {"title": first[:140], "authors": [], "abstract": "", "date": "", "venue": "unknown venue"}
+    else:
+        try:
+            data, ctype = http_get(info["url"])
+        except (urllib.error.URLError, OSError) as e:
+            raise LearnError(f"Could not open the page ({net_err(e)}). Paywalled or private pages are not supported.")
+        html = data.decode("utf-8", "replace")
+        meta = page_meta(html, info["url"])
+        text, how = html_to_text(html), "page text"
+    if not text.strip():
+        text, how = meta.get("abstract", ""), "abstract only"
+    return {"meta": meta, "text": text, "how": how, "notes": notes}
+
+
+def paper_outline(text, limit=40):
+    heads = [l[3:].strip() for l in text.split("\n") if l.startswith("## ")]
+    if len(heads) < 3:
+        heads = [l.strip() for l in text.split("\n") if re.match(r"^\d{1,2}(\.\d)*\.?\s+[A-Z][A-Za-z ,:\-]{2,60}$", l.strip())]
+    return heads[:limit]
+
+
+def short_title(title):
+    return " ".join(re.sub(r'[\\/*?"<>|]', "", title.split(":")[0]).split()[:8]) or "Paper"
+
+
+def cmd_paper(s, a):
+    info = parse_paper_url(a.url)
+    got = fetch_paper(info)
+    meta, text = got["meta"], got["text"]
+    if a.title:
+        meta["title"] = a.title
+    fid = paper_fidelity(text, meta.get("abstract", ""))
+    title = short_title(meta["title"])
+    tid = slug(title)
+    cache = PAPER_CACHE / slug(info["id"])
+    cache.mkdir(parents=True, exist_ok=True)
+    (cache / "paper.txt").write_text(text)
+    d = iso(today())
+    t = s["topics"].setdefault(tid, {"title": title, "goal": "", "created": d, "concepts": {}})
+    t["mode"] = "paper"
+    t["paper"] = {"id": info["id"], "kind": info["kind"], "url": info["url"], "title": meta["title"], "fidelity": fid,
+                  "how": got["how"], "words": len(text.split()), "cache": str(cache / "paper.txt"), "date": meta.get("date", ""),
+                  "venue": meta.get("venue", ""), "authors": meta.get("authors", []), "retrieved": d,
+                  "accepted_limits": fid != "abstract-only" or bool(a.accept_abstract_only), "file": info.get("path")}
+    (cache / "meta.json").write_text(json.dumps(t["paper"], indent=1))
+    names = [x["name"] for x in meta.get("authors", [])]
+    print(f"PAPER: {meta['title']}")
+    print(f"Authors: {', '.join(names[:6])}{f' (+{len(names) - 6} more)' if len(names) > 6 else ''}" if names else "Authors: not found")
+    print(f"Venue/date: {meta.get('venue')} / {meta.get('date') or 'unknown'}   Source: {info['url']}"
+          + (f"   (cite it in the brief as {info['url']})" if info.get("path") and info["url"].startswith("file://") else ""))
+    print(f"Read via: {got['how']} ({len(text.split()):,} words)   FIDELITY: {fid}")
+    for n in got["notes"]:
+        print(f"  note: {n}")
+    print(f"Text cached for reading in chunks: {cache / 'paper.txt'}")
+    heads = paper_outline(text)
+    if heads:
+        print("Outline: " + " | ".join(heads))
+    if not text.strip():
+        print("LIMIT: no readable text and no abstract were found. Do not teach from this link: ask the learner for another "
+              "copy (an open-access version, the arXiv id, or the PDF).")
+    elif fid != "full":
+        print(f"LIMIT: only {fid} text was available" + (" (the engine will not plan from an abstract unless the learner "
+              "accepts that: tell them, then re-run with --accept-abstract-only)." if fid == "abstract-only" else
+              ". Say in the brief's Access section what was not read."))
+    cmd_start(s, SimpleNamespace(topic=[title], exam=None))
+
+
+def paper_of(s):
+    t = topic_of(s)
+    if t.get("mode") != "paper":
+        raise LearnError("This topic is not a paper. Start one with `learn paper <url>`.")
+    return t, t["paper"]
+
+
+def paper_brief_checks(text, sec, sources, paper, errs):
+    """Typed claims, sourced authors, novelty, and an Access line that matches what the engine really retrieved."""
+    access = "\n".join(sec.get("access", []))
+    m = re.search(r"fidelity:\s*(full|partial|abstract-only)", access, re.I)
+    if not m:
+        errs.append("'## Access' needs a 'Fidelity: full|partial|abstract-only' line")
+    elif m.group(1).lower() != paper["fidelity"]:
+        errs.append(f"Access says {m.group(1).lower()} but the engine retrieved {paper['fidelity']} text. Report what was really read")
+    if not re.search(r"not read:\s*\S+", access, re.I):
+        errs.append("'## Access' needs a 'Not read: ...' line ('nothing' if the whole paper was read)")
+    if not any(paper["id"].lower() in v["source"].lower() or paper["url"].lower() in v["source"].lower() or
+               (paper.get("file") and paper["file"].lower() in v["source"].lower()) for v in sources.values()):
+        errs.append(f"the paper itself ({paper['url']}) must be one of the Sources")
+    claims = {}
+    for r in table_rows(sec.get("claims", [])):
+        if len(r) < 4 or not re.fullmatch(r"C\d+", r[0]):
+            errs.append(f"claim row needs 4 columns (Id | Claim | Type | Source) with an id like C1: {r[:2]}")
+            continue
+        typ = r[2].lower()
+        if typ not in CLAIM_TYPES:
+            errs.append(f"{r[0]}: type must be one of {', '.join(sorted(CLAIM_TYPES))}, not {r[2]!r}")
+        if not re.fullmatch(r"S\d+", r[3]) or r[3] not in sources:
+            errs.append(f"{r[0]}: source must be a Sources id like S1")
+        claims[r[0]] = {"claim": r[1], "type": typ, "source": r[3]}
+    kinds = {c["type"] for c in claims.values()}
+    if len(claims) < 3 or not {"author-claim", "evidence"} <= kinds:
+        errs.append("'## Claims' needs at least 3 rows, including an author-claim and an evidence row")
+    authors = {}
+    for r in table_rows(sec.get("authors", [])):
+        if len(r) < 4:
+            errs.append(f"author row needs 4 columns (Author | Affiliation | Role in this paper | Source): {r[:2]}")
+            continue
+        name, aff, role, src = r[:4]
+        if src.lower() != "unverified" and src not in sources:
+            errs.append(f"author {name}: source must be a Sources id or 'unverified'")
+        if role.lower() not in ("collective", "unknown", "unverified") and src not in sources:
+            errs.append(f"author {name}: an individual role needs a source; otherwise write 'collective'")
+        authors[name] = {"affiliation": aff, "role": role, "source": src}
+    if not authors:
+        errs.append("'## Authors' needs at least one author row")
+    nov = "\n".join(sec.get("novelty", []))
+    for lead in ("Existed", "Changed", "Shown"):
+        if not re.search(rf"^\s*-\s*{lead}:\s*\S", nov, re.M | re.I):
+            errs.append(f"'## Novelty' needs a '- {lead}: ...' bullet")
+    return claims, authors
+
+
+def basis_callout(basis):
+    return f"> [!note] Basis: {basis}. This picture is {BASIS[basis]}."
+
+
+def label_embeds(md, s):
+    """Put each figure's basis label right under its embed (paper topics record one per figure)."""
+    for f in dict.fromkeys(FIG_EMBED.findall(md)):
+        basis = s.get("figure_basis", {}).get(f)
+        if basis and f"Basis: {basis}" not in md.split(f, 1)[-1][:400]:
+            md = re.sub(r"(!\[\[" + re.escape(f) + r"(?:\|[^\]]*)?\]\])", lambda m: m.group(1) + "\n\n" + basis_callout(basis),
+                        md, count=1)
+    return md
+
+
+def report_template(t, paper):
+    return f"""# Report: {paper['title']}
+(Write each part for someone who has NOT read the paper. Embed the figures you made with `learn figure ... --basis`.)
+
+## 1. The paper at a glance
+Access: {paper['fidelity']}. <what was not read>
+Title, authors, venue and date, research domain, the central problem, the main contribution, why it matters,
+and what the reader should understand after studying it.
+
+## 2. The problem and its motivation
+What problem existed, why it is hard, why existing approaches were not enough, what pushed the authors. A visual of the problem [S#].
+
+## 3. The central idea
+The paper's key insight in plain words, a concrete example or analogy, ONE diagram or animation of the mechanism, why it is useful [S#].
+
+## 4. How the proposed approach works
+Per component: what it does, why it exists, what it receives and produces, how it connects to the others. Best visual per component [S#].
+
+## 5. What is actually new
+What already existed, what the authors changed or combined, why that matters, what this paper shows beyond the baseline work [S#].
+
+## 6. Experiments and results
+What was evaluated, against which baselines, what the evaluation was meant to establish, the findings, what they suggest,
+and which conclusions the evidence does NOT justify. A table or chart. Keep the evaluation conditions [S#].
+
+## 7. Authors and research contributions
+Only authors in the brief's Authors table: `- **Name**: affiliation and relevant verified background [S#]`. Team contribution;
+individual contributions only where the paper documents them.
+
+## 8. Practical applications
+Demonstrated applications vs plausible future ones, engineering trade-offs, compute needs, where it is the wrong tool [S#].
+
+## 9. Limitations and open questions
+**Authors acknowledge:** ... **Our analysis:** ... (keep them separate)
+
+## 10. The mental model to retain
+The problem to remember, the core insight, how it works, the main contribution, the evidence, where it helps, its limits,
+what to read next. End with a visual overview that connects problem, idea, method and findings.
+"""
+
+
+def report_problems(md, t, paper, brief, s):
+    errs = []
+    heads = [(int(m.group(1)), m.start()) for m in re.finditer(r"(?m)^## (\d+)\. ", md)]
+    if [n for n, _ in heads] != list(range(1, 11)):
+        errs.append(f"the report needs exactly ten parts, '## 1. ...' to '## 10. ...' in order (found {[n for n, _ in heads]})")
+        return errs
+    bounds = [pos for _, pos in heads] + [len(md)]
+    parts = {n: md[bounds[n - 1]:bounds[n]] for n in range(1, 11)}
+    for n, body in parts.items():
+        words = len(re.sub(r"```.*?```|!\[\[[^\]]*\]\]", " ", body, flags=re.S).split())
+        if words < 40:
+            errs.append(f"part {n} ({REPORT_PARTS[n - 1]}) has {words} words; it needs real content (40+)")
+    cited = set(CITE.findall(md))
+    for sid in sorted(cited - set(brief["sources"])):
+        errs.append(f"{sid} is not in the research brief")
+    for n in REPORT_CITED:
+        if not CITE.search(parts[n]):
+            errs.append(f"part {n} ({REPORT_PARTS[n - 1]}) states facts but cites no brief source [S#]")
+    m = re.search(r"(?mi)^Access:\s*(full|partial|abstract-only)", parts[1])
+    if not m:
+        errs.append("part 1 must start with 'Access: full|partial|abstract-only' and say what was not read")
+    elif m.group(1).lower() != paper["fidelity"]:
+        errs.append(f"part 1 says {m.group(1).lower()} but the engine retrieved {paper['fidelity']} text")
+    figs = FIG_EMBED.findall(md)
+    for f in dict.fromkeys(figs):
+        if not (VAULT / f).exists():
+            errs.append(f"figure {f} does not exist in the vault")
+        elif not s.get("figure_basis", {}).get(f):
+            errs.append(f"figure {f} has no basis label: re-make it with `learn figure ... --basis "
+                        "sourced|argued|illustrative|hypothetical`")
+    visuals = len(set(figs)) + len(MERMAID.findall(md))
+    if visuals < 3:
+        errs.append(f"the report has {visuals} visual(s); it needs at least 3 that carry an idea")
+    for n in (4, 10):
+        if not (FIG_EMBED.search(parts[n]) or MERMAID.search(parts[n])):
+            errs.append(f"part {n} ({REPORT_PARTS[n - 1]}) needs a visual")
+    if not (re.search(r"(?i)authors acknowledge", parts[9]) and re.search(r"(?i)our analysis", parts[9])):
+        errs.append("part 9 must keep 'Authors acknowledge' and 'Our analysis' apart")
+    for name in re.findall(r"(?m)^\s*-\s*\*\*([^*]+)\*\*", parts[7]):
+        if name.strip() not in brief["authors"]:
+            errs.append(f"part 7 names {name.strip()!r}, who is not in the brief's Authors table")
+    return errs
+
+
+def cmd_report(s, a):
+    t, paper = paper_of(s)
+    if not t.get("research"):
+        raise LearnError("The report comes after the research brief. Run `learn research` first.")
+    brief = brief_of(s)
+    if not a.save:
+        print(f"REPORT TEMPLATE for '{paper['title']}' (fill every part; pipe the result to `learn report --save`):\n")
+        print(report_template(t, paper))
+        print("NEXT: Write the report from the research brief and the figures made in this topic, then `learn report --save`.")
+        return
+    md = sys.stdin.read().strip()
+    if not any(c["taught"] for c in t["concepts"].values()):
+        raise LearnError("Teach at least the central idea before the report: the report revisits what was taught.")
+    errs = report_problems(md, t, paper, brief, s)
+    if errs:
+        raise LearnError("Report rejected. Fix and re-save:\n- " + "\n- ".join(errs))
+    md = label_embeds(md, s)
+    cited = list(dict.fromkeys(CITE.findall(md)))
+    refs = "\n".join(f"> {x}: {brief['sources'][x]['source']} ({brief['sources'][x]['type']})" for x in cited)
+    head = (f"---\ntype: paper-report\ntopic: {json.dumps(t['title'])}\npaper: {json.dumps(paper['url'])}\n"
+            f"fidelity: {paper['fidelity']}\ndate: {iso(today())}\n---\n")
+    rel = f"{PAPERS_DIR}/{t['title']} report.md"
+    (VAULT / PAPERS_DIR).mkdir(parents=True, exist_ok=True)
+    (VAULT / rel).write_text(f"{head}{md}\n\n> [!quote]- Sources\n{refs}\n\n> [!info] How this was read\n"
+                             f"> {paper['how']}, {paper['words']:,} words, retrieved {paper['retrieved']} from {paper['url']}.\n")
+    t["report"] = {"note": rel, "date": iso(today())}
+    if s["session"]:
+        append(s, f"> [!success] Report saved\n> [[{rel[:-3]}]]")
+    print(f"Report saved: {rel} ({len(re.findall(r'(?m)^## ', md))} parts, {len(cited)} sources)")
+    print_next(s)
+
+
 # ---------- research brief (PRAXIST method, adapted for learning) ----------
 
 def sections(text):
@@ -469,11 +1058,11 @@ def table_rows(lines):
     return [r for r in rows[1:] if not all(re.fullmatch(r":?-{3,}:?", c) for c in r)]
 
 
-def parse_brief(text, profile=None):
+def parse_brief(text, profile=None, paper=None):
     """Validate a research brief. Returns (brief, errors). With an exam profile, exam sections are required."""
     errs = []
     sec = sections(text)
-    for name in BRIEF_SECTIONS + (EXAM_SECTIONS if profile else []):
+    for name in BRIEF_SECTIONS + (EXAM_SECTIONS if profile else []) + (PAPER_SECTIONS if paper else []):
         if name.lower() not in sec:
             errs.append(f"missing section '## {name}'")
     goal = next((l.split(":", 1)[1].strip() for l in text.split("\n") if l.lower().startswith("goal:")), "")
@@ -488,7 +1077,7 @@ def parse_brief(text, profile=None):
         if not re.fullmatch(r"S\d+", sid):
             errs.append(f"source id must look like S1, got {sid!r}")
             continue
-        if not re.search(r"https?://\S+|\bdoi:\S+|\b10\.\d{4,}/\S+|\barxiv:\S+", src, re.I):
+        if not re.search(r"https?://\S+|file://\S+|\bdoi:\S+|\b10\.\d{4,}/\S+|\barxiv:\S+", src, re.I):
             errs.append(f"{sid}: needs a URL or a doi:/arXiv: identifier")
         if typ.lower() not in SOURCE_TYPES:
             errs.append(f"{sid}: type must be one of {', '.join(sorted(SOURCE_TYPES))}")
@@ -550,8 +1139,9 @@ def parse_brief(text, profile=None):
                               "scheme": r[6]}
         if not patterns:
             errs.append("'## Paper patterns' needs at least one pattern row built from real questions")
+    claims, authors = paper_brief_checks(text, sec, sources, paper, errs) if paper else ({}, {})
     return {"goal": goal, "concepts": concepts, "sources": sources, "patterns": patterns,
-            "citations": citations}, errs
+            "citations": citations, "claims": claims, "authors": authors}, errs
 
 
 def brief_of(s):
@@ -562,7 +1152,7 @@ def brief_of(s):
     path = VAULT / r["note"]
     if not path.exists():
         raise LearnError(f"Research brief {r['note']} is missing from the vault. Re-save it with `learn research --save`.")
-    brief, errs = parse_brief(path.read_text(), topic_profile(t))
+    brief, errs = parse_brief(path.read_text(), topic_profile(t), t.get("paper") if t.get("mode") == "paper" else None)
     if errs:
         raise LearnError("The research brief no longer validates: " + "; ".join(errs[:5]))
     return brief
@@ -737,6 +1327,8 @@ def choose_fresh(s):
     blocked = [cid for cid, c in cs.items() if c["status"] == "new"]
     if blocked:
         return step("teach", blocked[0], f"'{cs[blocked[0]]['title']}' is the next idea in the plan.")
+    if t.get("mode") == "paper" and not t.get("report"):
+        return step("report", None, f"Every concept of '{t['paper']['title']}' is solid. The visual report is the last step.")
     return step("complete", None, "Every concept in this topic is solid or mastered.")
 
 def current_step(s):
@@ -777,6 +1369,21 @@ def instruction(s, st):
         return ("Tell the learner in ONE line which question to answer in the note. Then STOP and wait. "
                 "When they send any message, run `learn check`. If they answer in chat instead, run "
                 "`learn answer <Q> <letter>` or `learn answer <Q> --text \"...\"`.")
+    if a == "research" and t.get("mode") == "paper":
+        pp = t["paper"]
+        return (f"PAPER MODE: '{pp['title']}' (read {pp['words']:,} words via {pp['how']}; fidelity {pp['fidelity']}). "
+                "1) If you don't know the goal, ask ONE plain question: what do they want from this paper and what do they "
+                f"already know? 2) Read the paper text in chunks from {pp['cache']} (the paper is source S1, type primary). "
+                "3) Resolve gaps: for each term or method the paper assumes and the learner may lack, find the shortest path "
+                "to a correct mental model with `learn lit resolve|search|text` on the cited foundational work or official "
+                "docs, and stop there; give every source an id. 4) `learn research` prints the template with the paper "
+                "sections (Access, typed Claims, Authors, Novelty); pipe the brief to `learn research --save`. Concepts are "
+                "the ideas needed to follow the contribution, in prerequisite order, mechanisms before derivations "
+                "(references/papers.md). Abstract-only or partial text: say so to the learner first.")
+    if a == "report":
+        return (f"Every idea in the paper is solid. Write the visual report: `learn report` prints the 10-part template; "
+                "fill it from the brief and the figures made in this topic, then pipe it to `learn report --save` "
+                "(references/papers.md). Tell the learner the note path in one line.")
     if a == "research" and t.get("mode") == "exam":
         prof = exam_profile(t["exam"])
         return (f"EXAM MODE. Read {prof['path']}. 1) If you don't know the goal, ask ONE plain question: which papers, "
@@ -799,9 +1406,10 @@ def instruction(s, st):
                 "--known is required: the ids the learner SAID they already know (they get a quick check instead "
                 "of teaching), or --known none. Never teach what they already know.")
     if a == "teach":
-        return (f"Make 1 Manim visual of how '{title}' works: pick the closest template in references/visuals.md "
-                f"(things moving: physical; a system of parts: diagram with --still; a curve or numbers: graph; a "
-                f"formula: derivation; steps: process), adapt it, write its NARRATION (one spoken line per visual event, each event inside `with self.voice(i):`), and run `learn figure <name>`; it comes back narrated. Then write the theory block from the research "
+        return (f"Make 1 visual of how '{title}' works, drawn for the topic (references/visuals.md): a formula, a curve or "
+                f"formula-driven motion = a Manim scene; anything else (history, people, places, causes, systems, "
+                f"processes, arguments, comparisons) = a HyperFrames HTML scene (references/hyperframes.md: copy its worked "
+                f"example, one focus and one caption per beat). Write its narration (Manim: one spoken line per visual event, each inside `with self.voice(i):`; HyperFrames: the JSON narration list), and run `learn figure <name>`; it comes back narrated. Then write the theory block from the research "
                 f"brief (cite sources as [S1]) with the visual embedded, using the block recipe in the skill, pipe it to "
                 f"`learn block {cid}`, then write 1 question at level 2 ({LEVELS[2]}) by references/questions.md and pipe "
                 f"it to `learn ask {cid}`." + band_note(s))
@@ -811,7 +1419,7 @@ def instruction(s, st):
                   if last and last["kind"] == "misconception" and last["what"] else "")
         return (f"Re-teach '{title}': write a NEW block on the SAME idea with smaller steps, smaller numbers and a "
                 f"different example from the same subject (not a toy story without the idea), and a NEW narrated "
-                f"Manim scene (audio-first, references/visuals.md) that shows the step they got wrong. Name that "
+                f"scene (audio-first, references/visuals.md or hyperframes.md) that shows the step they got wrong. Name that "
                 f"step.{belief} Pipe it to `learn block {cid}`. Then 1 question at level 1 via `learn ask {cid}`.")
     if a == "ask":
         what = "a scenario the lesson did not use" if lvl > 1 else "worded differently from any earlier question"
@@ -850,12 +1458,12 @@ def unit_instruction(s, st):
     if st["action"] == "teach_unit" and exam:
         return (f"EXAM MODE, short teaching for unit '{u['title']}' ({names}): ONE block with 1-2 segments: the idea as "
                 f"the syllabus states it, then a worked example of a REAL past-paper question (cite it) solved step by "
-                f"step with the mark-scheme points, then the examiner-report trap. One narrated Manim scene per segment "
+                f"step with the mark-scheme points, then the examiner-report trap. One narrated scene per segment "
                 f"(`learn figure`). Pipe to `learn block {st['concept']}`. Practice follows.")
     if st["action"] == "teach_unit":
         return (f"Teach the whole unit '{u['title']}' in ONE block: one segment per sub-idea (2-{MAX_SEGMENTS}), covering "
-                f"{names}. For each segment make one short narrated Manim scene with `learn figure` (60-120 s, audio-first "
-                f"`with self.voice(i):`, references/visuals.md). Write the block with the unit recipe in the skill (big idea, "
+                f"{names}. For each segment make one short narrated scene with `learn figure` (60-120 s, audio-first; Manim for "
+                f"maths: references/visuals.md; HyperFrames for everything else: references/hyperframes.md). Write the block with the unit recipe in the skill (big idea, "
                 f"key terms, per segment: video + steps/table, worked example), pipe it to `learn block {st['concept']}`. "
                 f"No questions until the block is in the note.")
     _, todo = unit_check_needed(s)
@@ -1265,10 +1873,18 @@ def cmd_research(s, a):
         if prof:
             print(f"EXAM MODE ({prof['board']}): also add these sections (rules: {prof['path']}):")
             print(EXAM_TEMPLATE)
+        if t.get("mode") == "paper":
+            print(f"PAPER MODE ('{t['paper']['title']}', fidelity {t['paper']['fidelity']}): also add these sections:")
+            print(PAPER_TEMPLATE)
         print_next(s)
         return
     text = sys.stdin.read().strip()
-    brief, errs = parse_brief(text, topic_profile(t))
+    paper = t.get("paper") if t.get("mode") == "paper" else None
+    if paper and paper["fidelity"] == "abstract-only" and not paper.get("accepted_limits"):
+        raise LearnError("Only the abstract of this paper could be read, so this would not be a real study of the paper. "
+                         "Tell the learner what is missing and ask whether to continue with the abstract plus external "
+                         "sources. If yes, run `learn paper <url> --accept-abstract-only`, then save the brief.")
+    brief, errs = parse_brief(text, topic_profile(t), paper)
     if errs:
         raise LearnError("Brief rejected. Fix and re-save:\n- " + "\n- ".join(errs))
     rel = f"{SOURCES_DIR}/{t['title']} research brief.md"
@@ -1643,15 +2259,38 @@ def narrate(s, video, lines, marks, tmp, clips=None, audio_first=False):
                  + (f"; picture held {held:.1f}s in total so it waits for the voice" if held else "") + ".")
 
 
-def save_figure(s, name, out, kind):
+PREVIEW_DIR = Path(os.environ.get("LEARN_PREVIEW_DIR", Path.home() / ".local/share/learning-system/previews"))
+
+
+def preview_sheet(video, topic, name):
+    """A 3x2 sheet of frames from a rendered video, so layout defects (clipped or overlapping labels) are easy to see."""
+    if video.suffix != ".mp4" or not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
+        return None
+    secs = probe_duration(video)
+    if not secs:
+        return None
+    out_dir = Path(os.environ.get("LEARN_PREVIEW_DIR", PREVIEW_DIR))
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / f"{topic}--{name}.png"
+    r = subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(video), "-vf",
+                        f"fps={6 / secs:.5f},scale=640:360,tile=3x2", "-frames:v", "1", str(out)], capture_output=True)
+    return out if r.returncode == 0 and out.exists() else None
+
+
+def save_figure(s, name, out, kind, basis=None):
     sess = need_session(s)
     rel = f"{FIG_DIR}/{sess['topic']}/{name}{out.suffix}"
     dest = VAULT / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(out.read_bytes())
     s.setdefault("figures", {})[rel] = kind
+    if basis:
+        s.setdefault("figure_basis", {})[rel] = basis
     s.setdefault("narrations", {}).pop(rel, None)
     print(f"Figure saved: {rel} ({kind})")
+    sheet = preview_sheet(dest, sess["topic"], name)
+    if sheet:
+        print(f"PREVIEW: {sheet} (frames from the video: if you can view images, check the layout and read every label before using it)")
     print(f"EMBED: ![[{rel}]]")
     print("NEXT: Put the EMBED line under its segment heading in the block (or in a question's \"figure\" field). "
           "The notes beside it add steps or a table, not the narration. Make the next segment's scene, or run "
@@ -1674,7 +2313,7 @@ def render_manim(s, name, script, still, tmp, durations=None):
     (tmp / "figure.py").write_text(script)
     (tmp / "harness.py").write_text(MANIM_HARNESS)
     report = tmp / "report.json"
-    env = dict(os.environ, LEARN_FIG_SCRIPT=str(tmp / "figure.py"), LEARN_FIG_REPORT=str(report),
+    env = dict(os.environ, LEARN_FIG_SCRIPT=str(tmp / "figure.py"), LEARN_FIG_REPORT=str(report), LEARN_FONT_DIR=str(FONT_DIR),
                LEARN_VOICE_DUR=json.dumps({str(i + 1): d for i, d in enumerate(durations or [])}),
                PATH=f"{TEX_BIN}{os.pathsep}{os.environ.get('PATH', '')}")
     quality = os.environ.get("LEARN_MANIM_QUALITY", "-qm")      # 720p30 for lessons; tests use -ql
@@ -1758,6 +2397,179 @@ def render_matplotlib(script, tmp):
     return out
 
 
+HF_VERSION = "0.8.161"
+HF_CMD = shlex.split(os.environ.get("LEARN_HF", f"npx --yes hyperframes@{HF_VERSION}"))
+HF_TIMEOUT = 900
+HF_GSAP = REPO / "scripts" / "vendor" / "gsap.min.js"
+FONT_DIR = REPO / "scripts" / "vendor" / "fonts"      # Inter (SIL OFL): the same typeface as the HyperFrames scenes
+HF_CONFIG = {"$schema": "https://hyperframes.heygen.com/schema/hyperframes.json",
+             "registry": "https://raw.githubusercontent.com/heygen-com/hyperframes/main/registry",
+             "paths": {"blocks": "compositions", "components": "compositions/components", "assets": "assets"},
+             "media": {"autoProxy": True}}
+HTML_START = re.compile(r"\s*(<!doctype html|<html)", re.I)
+# Manim is for scenes driven by a formula. A scene without any of these is boxes and words: use HyperFrames.
+MATH_MANIM = re.compile(r"\b(MathTex|Tex|Axes|ThreeDAxes|NumberPlane|NumberLine|ValueTracker|FunctionGraph|"
+                        r"ParametricFunction|VectorField|Vector)\b|\.plot\(|get_graph")
+HF_NARRATION_MISSING = (
+    "The scene has no narration. Add the spoken lines as JSON in the page, one line per beat:\n"
+    '  <script type="application/json" id="narration">["First line ...", "Second line ..."]</script>\n'
+    "The engine speaks them first and gives you their real timing as LEARN.start[i], LEARN.dur[i], LEARN.total "
+    "and T(i, fraction) (references/hyperframes.md).")
+
+
+def hf_narration(html):
+    m = re.search(r'<script[^>]*\bid=["\']narration["\'][^>]*>(.*?)</script>', html, re.S)
+    if not m:
+        raise LearnError(HF_NARRATION_MISSING)
+    try:
+        lines = json.loads(m.group(1))
+    except ValueError:
+        raise LearnError("The narration script is not valid JSON. It must be a list of strings.")
+    if not (isinstance(lines, list) and lines and all(isinstance(x, str) for x in lines)):
+        raise LearnError("The narration script must be a non-empty JSON list of strings.")
+    return lines
+
+
+def hf_timing(durs):
+    """Start time of each spoken line and the video length: lead-in, a gap between lines, a silent hold at the end."""
+    starts, t = [], NARR_LEAD
+    for d in durs:
+        starts.append(round(t, 2))
+        t += d + NARR_GAP
+    return starts, round(t - NARR_GAP + NARR_TAIL, 2)
+
+
+def hf_static_problems(html):
+    errs = []
+    html = re.sub(r"https://[^\"']*gsap[^\"']*", "gsap.min.js", html)
+    ext = re.findall(r'(?:src|href)=["\'](https?://[^"\']+)', html)
+    if ext:
+        errs.append(f"external URL(s) {', '.join(ext[:3])}: the scene must work offline and render the same every time. "
+                    "Use the local gsap.min.js and draw everything yourself in HTML, CSS and inline SVG")
+    for pat, why in [(r"Math\.random|Date\.now|performance\.now", "a clock or random number (frames must be reproducible)"),
+                     (r"setTimeout|setInterval|requestAnimationFrame", "a timer (build the animation on the paused GSAP timeline)"),
+                     (r"repeat:\s*-1", "an endless repeat (use a finite count)"),
+                     (r"<br\s*/?>", "<br> in text (let it wrap)")]:
+        if re.search(pat, html):
+            errs.append(f"uses {why}")
+    if not re.search(r'data-composition-id=["\']main["\']', html):
+        errs.append('the root element needs data-composition-id="main"')
+    if "window.__timelines" not in html:
+        errs.append('register one paused GSAP timeline: window.__timelines["main"] = tl')
+    if not re.search(r"<head[^>]*>", html, re.I):
+        errs.append("the page needs a <head>")
+    return errs
+
+
+def hf_prepare(html, lines, durs, clips, proj):
+    """Write a HyperFrames project: the scene with engine-supplied timing and audio, GSAP, config. Returns total seconds."""
+    errs = hf_static_problems(html)
+    if errs:
+        raise LearnError("The scene breaks the HyperFrames rules:\n- " + "\n- ".join(errs))
+    starts, total = hf_timing(durs)
+    html = re.sub(r"https://[^\"']*gsap[^\"']*", "gsap.min.js", html)
+    inject = ("<script>window.LEARN=" + json.dumps({"start": starts, "dur": [round(d, 2) for d in durs], "total": total})
+              + ";window.T=function(i,f){return LEARN.start[i]+(f||0)*LEARN.dur[i];};</script>")
+    html = re.sub(r"(<head[^>]*>)", lambda m: m.group(1) + inject, html, count=1, flags=re.I)
+    html = html.replace("LEARN_TOTAL", str(total))
+    if clips:
+        audio = "".join(f'<audio id="learn-line{i}" src="audio/line{i}.wav" data-start="{st}" data-duration="{round(d, 2)}" '
+                        f'data-track-index="{10 + i}" data-volume="1"></audio>' for i, (st, d) in enumerate(zip(starts, durs)))
+        root = re.search(r'<div[^>]*\bdata-composition-id=["\']main["\'][^>]*>', html)
+        html = html[:root.end()] + audio + html[root.end():]
+    proj.mkdir(parents=True, exist_ok=True)
+    (proj / "index.html").write_text(html)
+    shutil.copy(HF_GSAP, proj / "gsap.min.js")
+    (proj / "hyperframes.json").write_text(json.dumps(HF_CONFIG, indent=2))
+    if clips:
+        (proj / "audio").mkdir(exist_ok=True)
+        for i, (path, _) in enumerate(clips):
+            shutil.copy(path, proj / "audio" / f"line{i}.wav")
+    return total
+
+
+def hf_run(args, proj, timeout=HF_TIMEOUT):
+    try:
+        return subprocess.run(HF_CMD + args, cwd=proj, capture_output=True, text=True, timeout=timeout)
+    except FileNotFoundError:
+        raise LearnError(f"HyperFrames needs Node 22+ and npx ({HF_CMD[0]} not found). Install Node, then retry.")
+    except subprocess.TimeoutExpired:
+        raise LearnError(f"HyperFrames ran longer than {timeout}s. Use fewer elements and shorter beats.")
+
+
+def hf_check_problems(report):
+    errs = []
+    for section in ("lint", "runtime", "layout", "motion", "contrast"):
+        for f in (report.get(section) or {}).get("findings", []):
+            if f.get("severity") == "error":
+                where = f.get("selector") or ""
+                when = f" at {f['time']}s" if f.get("time") else ""
+                errs.append(f"{f.get('code')} {where}{when}: {f.get('message')} Fix: {f.get('fixHint') or '-'}")
+    return errs
+
+
+def render_hyperframes(html, lines, clips, tmp):
+    durs = [d for _, d in clips] if clips else [max(1.0, len(x.split()) / 2.6) for x in lines]
+    proj = tmp / "hf"
+    total = hf_prepare(html, lines, durs, clips, proj)
+    r = hf_run(["check", "--json"], proj)
+    try:
+        report = json.loads(r.stdout)
+    except ValueError:
+        tail = "\n".join(strip_ansi(r.stdout + r.stderr).strip().splitlines()[-10:])
+        raise LearnError("HyperFrames could not check the scene:\n" + tail)
+    errs = hf_check_problems(report)
+    if errs or report.get("ok") is False:
+        raise LearnError("HyperFrames rejected the scene. Fix these and re-run:\n- " + "\n- ".join(errs or ["see `npx hyperframes check`"]))
+    out = tmp / "out.mp4"
+    r = hf_run(["render", "--quality", os.environ.get("LEARN_HF_QUALITY", "draft"), "--output", str(out)], proj)
+    if r.returncode != 0 or not out.exists():
+        tail = "\n".join(strip_ansi(r.stdout + r.stderr).strip().splitlines()[-10:])
+        raise LearnError("HyperFrames failed to render:\n" + tail)
+    if out.stat().st_size > VIDEO_MAX_BYTES:
+        raise LearnError(f"The video is {out.stat().st_size // 1_000_000} MB; the limit is {VIDEO_MAX_BYTES // 1_000_000} MB.")
+    if shutil.which("ffprobe"):
+        secs = probe_duration(out)
+        if secs and abs(secs - total) > 1.5:
+            raise LearnError(f"The video lasts {secs:.1f}s but the narration needs {total:.1f}s. "
+                             "Do not set the duration yourself: use LEARN_TOTAL for data-duration.")
+    return out
+
+
+def figure_hyperframes(s, a, name, html):
+    import tempfile
+    sess = need_session(s)
+    fails = sess.get("manim_failures", 0)
+    if a.still:
+        raise LearnError("--still is for Manim. A HyperFrames scene is always a video.")
+    lines = hf_narration(html)
+    validate_narration(lines)
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        clips, note = None, None
+        if not a.silent:
+            try:
+                clips = tts_lines(lines, s["profile"].get("voice", DEFAULT_VOICE), tmp)
+            except TTSError as e:
+                note = tts_warning(e)
+        try:
+            out = render_hyperframes(html, lines, clips, tmp)
+        except LearnError:
+            sess["manim_failures"] = fails + 1
+            left = MANIM_FALLBACK_AFTER - sess["manim_failures"]
+            print(f"(Scene attempt failed {sess['manim_failures']} time(s) in a row"
+                  + (f"; matplotlib fallback unlocks after {left} more)" if left > 0 else
+                     "; matplotlib fallback is now unlocked if you need it)"))
+            save(s)
+            raise
+        sess["manim_failures"] = 0
+        rel = save_figure(s, name, out, "hyperframes", a.basis)
+        if clips:
+            s["narrations"][rel] = lines
+        if note:
+            print(note)
+
+
 def manim_required():
     return os.environ.get("LEARN_REQUIRE_MANIM", "1") != "0"
 
@@ -1768,14 +2580,20 @@ def cmd_figure(s, a):
     name = slug(a.name)
     script = sys.stdin.read()
     if not script.strip():
-        raise LearnError("Empty figure script. Pipe a Manim scene on stdin (templates: references/visuals.md).")
+        raise LearnError("Empty figure script. Pipe a scene on stdin: an HTML file for any topic, or a Manim "
+                         "script for math (templates: references/visuals.md, references/hyperframes.md).")
+    if s["topics"][sess["topic"]].get("mode") == "paper" and not a.basis:
+        raise LearnError("Paper topic: say what the picture is based on with --basis sourced|argued|illustrative|hypothetical "
+                         "(sourced = from the paper or its sources; argued = the authors' claim drawn; illustrative = a "
+                         "helpful diagram, not evidence; hypothetical = an invented example). It is shown under the figure.")
+    if HTML_START.match(script):
+        return figure_hyperframes(s, a, name, script)
     is_manim = bool(re.search(r"^\s*(from|import)\s+manim", script, re.M))
     fails = sess.get("manim_failures", 0)
     if not is_manim and manim_required() and fails < MANIM_FALLBACK_AFTER:
-        raise LearnError("Manim is the visual tool for this learner (3Blue1Brown style). Write a Manim Community "
-                         "scene: `from manim import *`, one `class X(Scene)` with construct() (templates: "
-                         f"references/visuals.md). matplotlib unlocks only after {MANIM_FALLBACK_AFTER} failed Manim "
-                         f"attempts in a row (now {fails}).")
+        raise LearnError("Pipe a rendered scene: an HTML file (HyperFrames, any topic: references/hyperframes.md) or, "
+                         "only for math, a Manim Community scene (references/visuals.md). matplotlib unlocks only "
+                         f"after {MANIM_FALLBACK_AFTER} failed attempts in a row (now {fails}).")
     if is_manim:   # old 3b1b/ManimGL code is the first thing to fix, and counts as a failed Manim attempt
         old = [fix for pat, fix in OLD_MANIM_API if re.search(pat, script)]
         if old:
@@ -1784,6 +2602,11 @@ def cmd_figure(s, a):
             raise LearnError("This is old 3Blue1Brown/ManimGL code. Rewrite it for Manim Community "
                              "(references/visuals.md):\n- " + "\n- ".join(old)
                              + f"\n(Manim attempt failed {sess['manim_failures']} time(s) in a row)")
+    if is_manim and not MATH_MANIM.search(script):
+        raise LearnError("Manim is only for math here: a scene driven by a formula (MathTex, Axes, NumberPlane, "
+                         "ValueTracker, plot...). This one only draws words and shapes, which teaches little. Redraw "
+                         "it as a HyperFrames scene (references/hyperframes.md): real things that move, one focus "
+                         "per beat, one caption that says what happened.")
     lines = None
     if is_manim and not a.still and not a.silent:
         lines = narration_of(script)
@@ -1824,14 +2647,14 @@ def cmd_figure(s, a):
                                         clips=clips, audio_first=True)
             elif lines:
                 out, note = narrate(s, out, lines, align_narration(lines, marks), tmp)
-            rel = save_figure(s, name, out, "manim")
+            rel = save_figure(s, name, out, "manim", a.basis)
             if lines and note and not note.startswith("WARNING"):
                 s["narrations"][rel] = lines
             if note:
                 print(note)
         else:
             out = render_matplotlib(script, tmp)
-            save_figure(s, name, out, "matplotlib")
+            save_figure(s, name, out, "matplotlib", a.basis)
 
 
 def block_structure_problems(md, unit_size):
@@ -1904,13 +2727,13 @@ def cmd_block(s, a):
         raise LearnError(f"Embedded figure not found: {', '.join(missing)}. Make it with `learn figure <name>` "
                          "and paste the embed line it prints.")
     kinds = s.get("figures", {})
-    has_manim = any(kinds.get(f) == "manim" for f in figs)
+    has_manim = any(kinds.get(f) in ("manim", "hyperframes") for f in figs)
     fallback = sess.get("manim_failures", 0) >= MANIM_FALLBACK_AFTER or not manim_required()
     if not has_manim and not (fallback and (figs or MERMAID.search(md))):
-        raise LearnError("Every block needs a Manim visual of how it works (learner preference, 3Blue1Brown "
-                         "style). Make one with `learn figure <name>` (a Manim scene; references/visuals.md) and "
-                         "paste the EMBED line. Mermaid can be added for structure, but does not replace it. "
-                         "Then re-run `learn block`.")
+        raise LearnError("Every block needs a rendered visual of how it works. Make one with `learn figure <name>`: "
+                         "a HyperFrames scene (HTML) for any topic, or a Manim scene for math "
+                         "(references/visuals.md, references/hyperframes.md). Paste the EMBED line. Mermaid can be "
+                         "added for structure, but does not replace it. Then re-run `learn block`.")
     merr, unchecked = mermaid_problems(md)
     if merr:
         raise LearnError("Mermaid would not render in Obsidian. Fix it and re-run:\n- " + "\n- ".join(merr))
@@ -1921,6 +2744,7 @@ def cmd_block(s, a):
     shape = block_structure_problems(md, len(cids))
     if shape:
         raise LearnError("The notes need structure (unit recipe in the skill):\n- " + "\n- ".join(shape))
+    md = label_embeds(md, s)
     for f in figs:   # folded transcript under each narrated video
         said = s.get("narrations", {}).get(f)
         if said:
@@ -2418,7 +3242,10 @@ def main(argv=None):
     p = sub.add_parser("add"); p.add_argument("id"); p.add_argument("title", nargs="+")
     p.add_argument("--prereqs"); p.add_argument("--before")
     p = sub.add_parser("figure"); p.add_argument("name"); p.add_argument("--still", action="store_true")
-    p.add_argument("--silent", action="store_true")
+    p.add_argument("--silent", action="store_true"); p.add_argument("--basis", choices=sorted(BASIS))
+    p = sub.add_parser("paper"); p.add_argument("url"); p.add_argument("--accept-abstract-only", action="store_true")
+    p.add_argument("--title", help="paper title, for a file whose title cannot be read")
+    p = sub.add_parser("report"); p.add_argument("--save", action="store_true")
     p = sub.add_parser("voice"); p.add_argument("voice", nargs="?")
     p = sub.add_parser("block"); p.add_argument("concept")
     p = sub.add_parser("ask"); p.add_argument("concept")
