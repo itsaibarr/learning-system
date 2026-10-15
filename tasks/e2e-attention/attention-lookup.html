@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #12161b; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #eef1f4; }
+      #stage { position: absolute; inset: 0; }
+      .abs { position: absolute; display: block; }
+      #sky { inset: 0; background: linear-gradient(#12161b 0%, #1a2230 55%, #2b2a22 100%); }
+      #ground { left: 0; top: 640px; width: 1920px; height: 120px; background: linear-gradient(#3a3522, #2a2618); }
+      .title { left: 160px; top: 44px; font-size: 40px; font-weight: 600; color: #8892a0; white-space: nowrap; }
+      .caption { left: 160px; top: 110px; width: 1600px; font-size: 56px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+      .tag { font-size: 34px; font-weight: 600; white-space: nowrap; }
+      .yurt { width: 126px; height: 84px; }
+      .yurt svg { width: 126px; height: 84px; display: block; }
+      .arrow { width: 150px; height: 60px; color: #ff6b5e; }
+      .arrow svg { width: 150px; height: 60px; display: block; transform: scaleX(-1); }
+      .link { height: 4px; background: #8892a0; transform-origin: left center; border-radius: 2px; }
+      #axis { left: 160px; top: 880px; width: 1600px; height: 4px; background: #5b6675; border-radius: 2px; }
+      .tick { width: 3px; height: 22px; background: #5b6675; top: 871px; }
+      .yr { top: 898px; width: 90px; text-align: center; font-size: 24px; color: #8892a0; }
+      .dot { width: 34px; height: 34px; border-radius: 17px; top: 865px; }
+      .evt { width: 340px; text-align: center; top: 770px; line-height: 1.15; }
+      .evt b { display: block; font-size: 44px; }
+      .evt span { font-size: 28px; }
+      .brace { height: 8px; top: 946px; border-radius: 4px; transform-origin: left center; background: #ffd166; }
+
+      .tok { width: 190px; height: 90px; border-radius: 18px; background: #1d2530; border: 4px solid #5b6675; font-size: 36px; font-weight: 600; text-align: center; line-height: 82px; }
+      .chip { width: 110px; height: 44px; border-radius: 22px; border: 3px solid; font-size: 24px; font-weight: 700; text-align: center; line-height: 38px; }
+      .arcbox { pointer-events: none; }
+      .bar { height: 36px; border-radius: 10px; }
+      .outbox { width: 260px; height: 400px; border: 4px solid #8892a0; border-radius: 18px; }
+      .seg { width: 200px; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="LEARN_TOTAL" data-width="1920" data-height="1080">
+      <div id="stage" class="clip" data-start="0" data-duration="LEARN_TOTAL" data-track-index="0">
+        <div id="sky" class="abs"></div>
+        <svg width="0" height="0" style="position:absolute">
+          <symbol id="yurt-s" viewBox="0 0 90 60"><path d="M8 60 L8 36 A37 32 0 0 1 82 36 L82 60 Z" fill="currentColor"/><rect x="38" y="40" width="14" height="20" fill="#12161b"/><rect x="43" y="0" width="4" height="8" fill="currentColor"/></symbol>
+          <symbol id="arrow-s" viewBox="0 0 150 60"><path d="M0 18 H100 V0 L150 30 L100 60 V42 H0 Z" fill="currentColor"/></symbol>
+        </svg>
+        <div id="layer"></div>
+        <script type="application/json" id="narration">["Think of attention as a lookup. One word asks a question, called the query, and every other word offers a key that says what it holds and a value that carries its content.", "The query is compared with every key, and the better the match, the bigger the weight that word gets.", "The output is a blend of the values, mixed in proportion to those weights, so the word collects mostly what its best matches carry."]</script>
+        <div id="basis" class="abs" style="right:80px; top:1020px; font-size:22px; color:#8892a0;">Basis: query, key, value and weighted sum are from Section 3.2 [S1]. The words and weights are illustrative.</div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const X = (y) => 160 + (y - 1720) * (1600 / 12);
+      const yurtSvg = '<svg><use href="#yurt-s"/></svg>';
+      const arrowSvg = '<svg><use href="#arrow-s"/></svg>';
+      const GY = 556, DIM = 0.3;
+
+      // ===== ENGINE (keep as is): the item registry =====
+      // ---------- item registry: every visible thing is an item with a kind and a scene ----------
+      // kind "s" = shape (dims to 30% when not in focus); "t" = text (disappears when not in focus)
+      const items = {};
+      function item(id, scene, kind, cls, css, html) {
+        const d = document.createElement("div");
+        d.id = id; d.className = "abs " + cls;
+        Object.assign(d.style, css);
+        if (html) d.innerHTML = html;
+        document.getElementById("layer").appendChild(d);
+        gsap.set(d, { opacity: 0 });
+        items[id] = { el: d, scene, kind, seen: false };
+        return d;
+      }
+
+      // ===== CONTENT (rewrite for your topic): items, captions =====
+
+      const WC = ["#ffd166", "#5ec8f0", "#b69cff"], WN = ["animal", "street", "cross"], WT = [330, 480, 630], WGT = [0.7, 0.2, 0.1];
+      item("q", "s1", "s", "tok", { left: "170px", top: "480px", borderColor: "#ffd166", color: "#ffd166" }, "it");
+      item("qm", "s1", "t", "tag", { left: "170px", top: "400px", color: "#ffd166", fontSize: "56px" }, "?");
+      WN.forEach((w, i) => {
+        item("card" + i, "s1", "s", "tok", { left: "640px", top: WT[i] + "px", borderColor: WC[i] }, w);
+        item("key" + i, "s1", "s", "chip", { left: "860px", top: WT[i] + 23 + "px", borderColor: "#8892a0", color: "#8892a0" }, "key");
+        item("val" + i, "s1", "t", "chip", { left: "990px", top: WT[i] + 23 + "px", background: WC[i], color: "#12161b" }, "value");
+        item("line" + i, "s1", "s", "arcbox", { left: "0px", top: "0px", width: "1920px", height: "1080px" },
+          `<svg width="1920" height="1080" style="position:absolute;left:0;top:0"><line x1="362" y1="525" x2="852" y2="${WT[i] + 45}" stroke="#ffd166" stroke-width="${3 + WGT[i] * 9}" stroke-linecap="round"/></svg>`);
+        item("bar" + i, "s1", "s", "bar", { left: "1130px", top: WT[i] + 27 + "px", width: Math.round(WGT[i] * 500) + "px", background: WC[i] });
+        item("wt" + i, "s1", "t", "tag", { left: 1130 + Math.round(WGT[i] * 500) + 16 + "px", top: WT[i] + 22 + "px", color: WC[i], fontSize: "30px" }, String(WGT[i]));
+      });
+      item("outbox", "s1", "s", "outbox", { left: "1530px", top: "340px" });
+      [[0.7, 0], [0.2, 1], [0.1, 2]].forEach(([w, i]) => {
+        const h = Math.round(w * 340), top = i === 0 ? 720 - h : i === 1 ? 720 - 238 - h : 720 - 238 - 68 - h;
+        item("seg" + i, "s1", "s", "seg", { left: "1560px", top: top + "px", height: h + "px", background: WC[i] });
+      });
+
+      const CAP = [["c1", "A word asks a question: this is the query."], ["c2", "Every other word offers a key and a value."],
+        ["c3", "The query is compared with every key."], ["c4", "A better match gets a bigger weight."],
+        ["c5", "The output blends the values by those weights."], ["c6", "So 'it' mostly takes what 'animal' carries."]];
+      CAP.forEach(([id, text]) => item(id, "cap", "t", "caption", {}, text));
+
+      const KEYS = [0, 1, 2].map((i) => "key" + i), CARDS = [0, 1, 2].map((i) => "card" + i), VALS = [0, 1, 2].map((i) => "val" + i);
+      const LINES = [0, 1, 2].map((i) => "line" + i), BARS = [0, 1, 2].map((i) => "bar" + i), WTS = [0, 1, 2].map((i) => "wt" + i), SEGS = [0, 1, 2].map((i) => "seg" + i);
+      // Beat times come from the narration: T(line, fraction) = the moment that part of the spoken line is said.
+      const BEATS = [
+        [T(0, 0), "c1", ["q", "qm"], []],
+        [T(0, 0.45), "c2", [...CARDS, ...KEYS, ...VALS], ["q"]],
+        [T(1, 0), "c3", ["q", ...LINES, ...KEYS], CARDS],
+        [T(1, 0.5), "c4", [...BARS, ...WTS, ...LINES], [...CARDS, "q"]],
+        [T(2, 0), "c5", [...VALS, "outbox"], CARDS],
+        [T(2, 0.55), "c6", ["outbox", ...SEGS, "card0", "q"], []],
+      ];
+
+      // ===== ENGINE (keep as is): the beat loop. One focus per beat; the rest dims or disappears =====
+      const sceneOf = (id) => items[id].scene;
+      BEATS.forEach(([t, cap, focus, context]) => {
+        const f = new Set([...focus, cap]), c = new Set(context);
+        const activeScenes = new Set([...f, ...c].map(sceneOf).filter((s) => s !== "tl" && s !== "cap"));
+        Object.keys(items).forEach((id) => {
+          const it = items[id];
+          if (f.has(id)) {
+            tl.to(it.el, { opacity: 1, duration: 0.35 }, t);
+            if (!it.seen && it.kind === "s") tl.fromTo(it.el, { scale: 0.92 }, { scale: 1, duration: 0.35, ease: "back.out(2)" }, t);
+            it.seen = true;
+          } else if (c.has(id)) {
+            tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+            it.seen = true;
+          } else if (it.seen) {
+            if (it.scene === "cap") tl.to(it.el, { opacity: 0, duration: 0.2 }, t - 0.05);
+            else if (it.scene === "tl") tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+            else if (it.kind === "t" || !activeScenes.has(it.scene)) tl.to(it.el, { opacity: 0, duration: 0.3 }, t);
+            else tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+          }
+        });
+      });
+      [["Ask", T(0, 0), T(1, 0) - 0.2], ["Match", T(1, 0), T(2, 0) - 0.2], ["Blend", T(2, 0), LEARN.total]].forEach(([txt, a, b], i) => {
+        const el = item("title" + i, "cap", "t", "title", {}, txt);
+        tl.to(el, { opacity: 1, duration: 0.3 }, a);
+        if (i < 2) tl.to(el, { opacity: 0, duration: 0.2 }, b);
+      });
+
+      // ===== CONTENT: motion inside beats =====
+
+      tl.to(VALS.map((v) => "#" + v), { x: 570, stagger: 0.25, duration: 0.9, ease: "power2.inOut" }, T(2, 0.08));
+
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #12161b; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #eef1f4; }
+      #stage { position: absolute; inset: 0; }
+      .abs { position: absolute; display: block; }
+      #sky { inset: 0; background: linear-gradient(#12161b 0%, #1a2230 55%, #2b2a22 100%); }
+      #ground { left: 0; top: 640px; width: 1920px; height: 120px; background: linear-gradient(#3a3522, #2a2618); }
+      .title { left: 160px; top: 44px; font-size: 40px; font-weight: 600; color: #8892a0; white-space: nowrap; }
+      .caption { left: 160px; top: 110px; width: 1600px; font-size: 56px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+      .tag { font-size: 34px; font-weight: 600; white-space: nowrap; }
+      .yurt { width: 126px; height: 84px; }
+      .yurt svg { width: 126px; height: 84px; display: block; }
+      .arrow { width: 150px; height: 60px; color: #ff6b5e; }
+      .arrow svg { width: 150px; height: 60px; display: block; transform: scaleX(-1); }
+      .link { height: 4px; background: #8892a0; transform-origin: left center; border-radius: 2px; }
+      #axis { left: 160px; top: 880px; width: 1600px; height: 4px; background: #5b6675; border-radius: 2px; }
+      .tick { width: 3px; height: 22px; background: #5b6675; top: 871px; }
+      .yr { top: 898px; width: 90px; text-align: center; font-size: 24px; color: #8892a0; }
+      .dot { width: 34px; height: 34px; border-radius: 17px; top: 865px; }
+      .evt { width: 340px; text-align: center; top: 770px; line-height: 1.15; }
+      .evt b { display: block; font-size: 44px; }
+      .evt span { font-size: 28px; }
+      .brace { height: 8px; top: 946px; border-radius: 4px; transform-origin: left center; background: #ffd166; }
+
+      .cbar { width: 170px; border-radius: 10px 10px 0 0; }
+      .hbar { height: 70px; border-radius: 12px; }
+      .arcbox { pointer-events: none; }
+      .bignum { width: 340px; height: 170px; border: 5px solid; border-radius: 22px; background: #1d2530; text-align: center; padding-top: 24px; }
+      .bignum b { display: block; font-size: 72px; line-height: 1.1; }
+      .bignum span { font-size: 28px; color: #eef1f4; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="LEARN_TOTAL" data-width="1920" data-height="1080">
+      <div id="stage" class="clip" data-start="0" data-duration="LEARN_TOTAL" data-track-index="0">
+        <div id="sky" class="abs"></div>
+        <svg width="0" height="0" style="position:absolute">
+          <symbol id="yurt-s" viewBox="0 0 90 60"><path d="M8 60 L8 36 A37 32 0 0 1 82 36 L82 60 Z" fill="currentColor"/><rect x="38" y="40" width="14" height="20" fill="#12161b"/><rect x="43" y="0" width="4" height="8" fill="currentColor"/></symbol>
+          <symbol id="arrow-s" viewBox="0 0 150 60"><path d="M0 18 H100 V0 L150 30 L100 60 V42 H0 Z" fill="currentColor"/></symbol>
+        </svg>
+        <div id="layer"></div>
+        <script type="application/json" id="narration">["On English to German translation, the big Transformer reached twenty eight point four BLEU, more than two points above the best earlier results, including ensembles.", "The base model scored twenty seven point three, and needed about fifty times less training compute than the best ensemble in the comparison.", "It also worked on parsing sentence structure. But only translation and parsing were tested, so these results do not show that it wins on every task."]</script>
+        <div id="basis" class="abs" style="right:80px; top:1020px; font-size:22px; color:#8892a0;">Basis: BLEU and training cost from Table 2, parsing F1 from Table 4 [S1]. Bars are drawn to scale from the paper's numbers.</div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const X = (y) => 160 + (y - 1720) * (1600 / 12);
+      const yurtSvg = '<svg><use href="#yurt-s"/></svg>';
+      const arrowSvg = '<svg><use href="#arrow-s"/></svg>';
+      const GY = 556, DIM = 0.3;
+
+      // ===== ENGINE (keep as is): the item registry =====
+      // ---------- item registry: every visible thing is an item with a kind and a scene ----------
+      // kind "s" = shape (dims to 30% when not in focus); "t" = text (disappears when not in focus)
+      const items = {};
+      function item(id, scene, kind, cls, css, html) {
+        const d = document.createElement("div");
+        d.id = id; d.className = "abs " + cls;
+        Object.assign(d.style, css);
+        if (html) d.innerHTML = html;
+        document.getElementById("layer").appendChild(d);
+        gsap.set(d, { opacity: 0 });
+        items[id] = { el: d, scene, kind, seen: false };
+        return d;
+      }
+
+      // ===== CONTENT (rewrite for your topic): items, captions =====
+
+      const M = [["ConvS2S", 25.16], ["MoE", 26.03], ["GNMT+RL ens.", 26.30], ["ConvS2S ens.", 26.36], ["Transformer base", 27.3], ["Transformer big", 28.4]], BB = [];
+      const hOf = (v) => Math.round((v - 24) * 80), X0 = 220, STEP = 250, BASE = 740;
+      M.forEach(([n, v], i) => { item("mb" + i, "s1", "s", "cbar", { left: X0 + i * STEP + "px", top: BASE - hOf(v) + "px", height: hOf(v) + "px", background: i >= 4 ? "#5b6675" : "#5b6675" }); BB.push("mb" + i); });
+      item("mn", "s1", "t", "tag", { left: X0 + "px", top: BASE + 14 + "px", width: 1500 + "px", fontSize: "24px", color: "#8892a0" },
+        M.map(([n], i) => `<span style="position:absolute;left:${i * STEP - 20}px;width:210px;text-align:center">${n}</span>`).join(""));
+      item("v5", "s1", "t", "tag", { left: X0 + 5 * STEP + "px", top: BASE - hOf(28.4) - 52 + "px", width: "170px", textAlign: "center", color: "#6ee7a0" }, "28.4");
+      item("v3", "s1", "t", "tag", { left: X0 + 3 * STEP + "px", top: BASE - hOf(26.36) - 52 + "px", width: "170px", textAlign: "center", color: "#ffd166" }, "26.36");
+      item("axn", "s1", "t", "tag", { left: "220px", top: "230px", color: "#8892a0", fontSize: "26px" }, "BLEU, English to German; the axis starts at 24");
+      item("gap", "s1", "s", "arcbox", { left: "0px", top: "0px", width: "1920px", height: "1080px" },
+        `<svg width="1920" height="1080" style="position:absolute;left:0;top:0"><line x1="${X0 + 3 * STEP + 170}" y1="${BASE - hOf(26.36)}" x2="${X0 + 5 * STEP}" y2="${BASE - hOf(26.36)}" stroke="#ffd166" stroke-width="4" stroke-dasharray="10 8"/><line x1="${X0 + 5 * STEP + 85}" y1="${BASE - hOf(26.36)}" x2="${X0 + 5 * STEP + 85}" y2="${BASE - hOf(28.4)}" stroke="#6ee7a0" stroke-width="6"/></svg>`);
+      item("gapT", "s1", "t", "tag", { left: X0 + 5 * STEP + 190 + "px", top: BASE - hOf(27.4) - 20 + "px", color: "#6ee7a0", width: "250px", fontSize: "28px", textAlign: "left" }, "+2.04 BLEU");
+      // compute
+      item("cA", "s2", "s", "hbar", { left: "260px", top: "420px", width: "1300px", background: "#ff6b5e" });
+      item("cB", "s2", "s", "hbar", { left: "260px", top: "560px", width: "24px", background: "#6ee7a0" });
+      item("cAT", "s2", "t", "tag", { left: "260px", top: "360px", color: "#ff6b5e", fontSize: "30px" }, "best ensemble in the comparison: 1.8e20 training operations");
+      item("cBT", "s2", "t", "tag", { left: "260px", top: "640px", color: "#6ee7a0", fontSize: "30px" }, "Transformer base: 3.3e18, about fifty times fewer");
+      // parsing + limits
+      item("p1", "s3", "s", "bignum", { left: "300px", top: "400px", borderColor: "#6ee7a0" }, `<b style="color:#6ee7a0">91.3</b><span>F1, trained on WSJ only</span>`);
+      item("p2", "s3", "s", "bignum", { left: "700px", top: "400px", borderColor: "#6ee7a0" }, `<b style="color:#6ee7a0">92.7</b><span>F1, semi-supervised</span>`);
+      item("t1", "s4", "s", "bignum", { left: "300px", top: "400px", borderColor: "#6ee7a0", width: "560px" }, `<b style="color:#6ee7a0;font-size:44px">Tested</b><span>translation and parsing</span>`);
+      item("t2", "s4", "s", "bignum", { left: "1000px", top: "400px", borderColor: "#8892a0", borderStyle: "dashed", width: "560px" }, `<b style="color:#8892a0;font-size:44px">Not shown here</b><span>other tasks and data</span>`);
+
+      const CAP = [["c1", "The big Transformer reaches 28.4 BLEU."], ["c2", "More than 2 BLEU above the best earlier result."],
+        ["c3", "The base model used about 50 times less compute."], ["c4", "It also worked on parsing sentence structure."],
+        ["c5", "Only translation and parsing were tested here."]];
+      CAP.forEach(([id, text]) => item(id, "cap", "t", "caption", {}, text));
+      // Beat times come from the narration: T(line, fraction) = the moment that part of the spoken line is said.
+      const BEATS = [
+        [T(0, 0), "c1", [...BB, "mn", "v5", "axn"], []],
+        [T(0, 0.55), "c2", [...BB, "mn", "v5", "v3", "axn", "gap", "gapT"], []],
+        [T(1, 0), "c3", ["cA", "cB", "cAT", "cBT"], []],
+        [T(2, 0), "c4", ["p1", "p2"], []],
+        [T(2, 0.45), "c5", ["t1", "t2"], []],
+      ];
+
+      // ===== ENGINE (keep as is): the beat loop. One focus per beat; the rest dims or disappears =====
+      const sceneOf = (id) => items[id].scene;
+      BEATS.forEach(([t, cap, focus, context]) => {
+        const f = new Set([...focus, cap]), c = new Set(context);
+        const activeScenes = new Set([...f, ...c].map(sceneOf).filter((s) => s !== "tl" && s !== "cap"));
+        Object.keys(items).forEach((id) => {
+          const it = items[id];
+          if (f.has(id)) {
+            tl.to(it.el, { opacity: 1, duration: 0.35 }, t);
+            if (!it.seen && it.kind === "s") tl.fromTo(it.el, { scale: 0.92 }, { scale: 1, duration: 0.35, ease: "back.out(2)" }, t);
+            it.seen = true;
+          } else if (c.has(id)) {
+            tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+            it.seen = true;
+          } else if (it.seen) {
+            if (it.scene === "cap") tl.to(it.el, { opacity: 0, duration: 0.2 }, t - 0.05);
+            else if (it.scene === "tl") tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+            else if (it.kind === "t" || !activeScenes.has(it.scene)) tl.to(it.el, { opacity: 0, duration: 0.3 }, t);
+            else tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+          }
+        });
+      });
+      [["Translation", T(0, 0), T(1, 0) - 0.2], ["The cost", T(1, 0), T(2, 0) - 0.2], ["The limits", T(2, 0), LEARN.total]].forEach(([txt, a, b], i) => {
+        const el = item("title" + i, "cap", "t", "title", {}, txt);
+        tl.to(el, { opacity: 1, duration: 0.3 }, a);
+        if (i < 2) tl.to(el, { opacity: 0, duration: 0.2 }, b);
+      });
+
+      // ===== CONTENT: motion inside beats =====
+
+      tl.to("#mb5", { backgroundColor: "#6ee7a0", duration: 0.4 }, T(0, 0.04));
+      tl.to("#mb3", { backgroundColor: "#ffd166", duration: 0.4 }, T(0, 0.55));
+      tl.from("#cB", { scaleX: 0, transformOrigin: "left center", duration: 0.5 }, T(1, 0.05));
+      tl.from("#cA", { scaleX: 0, transformOrigin: "left center", duration: 1.2, ease: "power2.out" }, T(1, 0.05));
+
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

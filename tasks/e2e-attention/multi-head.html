@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #12161b; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #eef1f4; }
+      #stage { position: absolute; inset: 0; }
+      .abs { position: absolute; display: block; }
+      #sky { inset: 0; background: linear-gradient(#12161b 0%, #1a2230 55%, #2b2a22 100%); }
+      #ground { left: 0; top: 640px; width: 1920px; height: 120px; background: linear-gradient(#3a3522, #2a2618); }
+      .title { left: 160px; top: 44px; font-size: 40px; font-weight: 600; color: #8892a0; white-space: nowrap; }
+      .caption { left: 160px; top: 110px; width: 1600px; font-size: 56px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+      .tag { font-size: 34px; font-weight: 600; white-space: nowrap; }
+      .yurt { width: 126px; height: 84px; }
+      .yurt svg { width: 126px; height: 84px; display: block; }
+      .arrow { width: 150px; height: 60px; color: #ff6b5e; }
+      .arrow svg { width: 150px; height: 60px; display: block; transform: scaleX(-1); }
+      .link { height: 4px; background: #8892a0; transform-origin: left center; border-radius: 2px; }
+      #axis { left: 160px; top: 880px; width: 1600px; height: 4px; background: #5b6675; border-radius: 2px; }
+      .tick { width: 3px; height: 22px; background: #5b6675; top: 871px; }
+      .yr { top: 898px; width: 90px; text-align: center; font-size: 24px; color: #8892a0; }
+      .dot { width: 34px; height: 34px; border-radius: 17px; top: 865px; }
+      .evt { width: 340px; text-align: center; top: 770px; line-height: 1.15; }
+      .evt b { display: block; font-size: 44px; }
+      .evt span { font-size: 28px; }
+      .brace { height: 8px; top: 946px; border-radius: 4px; transform-origin: left center; background: #ffd166; }
+
+      .tok { width: 190px; height: 90px; border-radius: 18px; background: #1d2530; border: 4px solid #5b6675; font-size: 36px; font-weight: 600; text-align: center; line-height: 82px; }
+      .arcbox { pointer-events: none; }
+      .blob { width: 120px; height: 120px; border-radius: 60px; background: #8892a0; }
+      .seg8 { width: 175px; height: 90px; border-radius: 10px; }
+      .cbar { width: 160px; background: #5b6675; border-radius: 10px 10px 0 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="LEARN_TOTAL" data-width="1920" data-height="1080">
+      <div id="stage" class="clip" data-start="0" data-duration="LEARN_TOTAL" data-track-index="0">
+        <div id="sky" class="abs"></div>
+        <svg width="0" height="0" style="position:absolute">
+          <symbol id="yurt-s" viewBox="0 0 90 60"><path d="M8 60 L8 36 A37 32 0 0 1 82 36 L82 60 Z" fill="currentColor"/><rect x="38" y="40" width="14" height="20" fill="#12161b"/><rect x="43" y="0" width="4" height="8" fill="currentColor"/></symbol>
+          <symbol id="arrow-s" viewBox="0 0 150 60"><path d="M0 18 H100 V0 L150 30 L100 60 V42 H0 Z" fill="currentColor"/></symbol>
+        </svg>
+        <div id="layer"></div>
+        <script type="application/json" id="narration">["One attention head blends all the words in one fixed way, so it averages different kinds of information together.", "The Transformer runs eight heads side by side. Each head looks for something different, and works in a smaller space: sixty four dimensions out of five hundred twelve.", "The outputs are joined and mixed back into one vector. A single head scored nine tenths of a BLEU point below the best setting, but thirty two heads scored lower than eight."]</script>
+        <div id="basis" class="abs" style="right:80px; top:1020px; font-size:22px; color:#8892a0;">Basis: h = 8 heads, 64 of 512 dimensions each (Section 3.2.2) and BLEU by head count (Table 3, rows A) [S1]. The sentence and arcs are illustrative.</div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const X = (y) => 160 + (y - 1720) * (1600 / 12);
+      const yurtSvg = '<svg><use href="#yurt-s"/></svg>';
+      const arrowSvg = '<svg><use href="#arrow-s"/></svg>';
+      const GY = 556, DIM = 0.3;
+
+      // ===== ENGINE (keep as is): the item registry =====
+      // ---------- item registry: every visible thing is an item with a kind and a scene ----------
+      // kind "s" = shape (dims to 30% when not in focus); "t" = text (disappears when not in focus)
+      const items = {};
+      function item(id, scene, kind, cls, css, html) {
+        const d = document.createElement("div");
+        d.id = id; d.className = "abs " + cls;
+        Object.assign(d.style, css);
+        if (html) d.innerHTML = html;
+        document.getElementById("layer").appendChild(d);
+        gsap.set(d, { opacity: 0 });
+        items[id] = { el: d, scene, kind, seen: false };
+        return d;
+      }
+
+      // ===== CONTENT (rewrite for your topic): items, captions =====
+
+      const WORDS = ["The", "animal", "was", "tired", "so", "it", "slept"], WX = WORDS.map((_, i) => 130 + i * 250), TY = 430;
+      WORDS.forEach((w, i) => item("w" + i, "s1", "s", "tok", { left: WX[i] + "px", top: TY + "px", borderColor: i === 5 ? "#ffd166" : "#5b6675" }, w));
+      const arc = (j, c, w) => { const x1 = WX[5] + 95, x2 = WX[j] + 95, cy = TY - 20 - 50 * Math.abs(5 - j);
+        return `<svg width="1920" height="1080" style="position:absolute;left:0;top:0"><path d="M ${x1} ${TY - 6} Q ${(x1 + x2) / 2} ${cy} ${x2} ${TY - 6}" stroke="${c}" stroke-width="${w}" fill="none" stroke-linecap="round"/></svg>`; };
+      const GA = [], CA = [];
+      [0, 1, 2, 3, 4, 6].forEach((j) => { item("ga" + j, "s1", "s", "arcbox", { left: "0px", top: "0px", width: "1920px", height: "1080px" }, arc(j, "#8892a0", 4)); GA.push("ga" + j); });
+      [[1, "#5ec8f0"], [3, "#ffd166"], [6, "#b69cff"]].forEach(([j, c]) => { item("ca" + j, "s1", "s", "arcbox", { left: "0px", top: "0px", width: "1920px", height: "1080px" }, arc(j, c, 9)); CA.push("ca" + j); });
+      item("avg", "s1", "s", "blob", { left: "870px", top: "640px" });
+      item("avgT", "s1", "t", "tag", { left: "700px", top: "770px", width: "520px", textAlign: "center", color: "#8892a0" }, "one blended average");
+      // dimensions: 512 split over 8 heads
+      const HC = ["#5ec8f0", "#ffd166", "#b69cff", "#6ee7a0", "#ff6b5e", "#5ec8f0", "#ffd166", "#b69cff"], HS = [];
+      HC.forEach((c, i) => { item("hs" + i, "s2", "s", "seg8", { left: 260 + i * 195 + "px", top: "520px", background: c }); HS.push("hs" + i); });
+      item("dmT", "s2", "t", "tag", { left: "260px", top: "420px", color: "#eef1f4" }, "8 heads, 64 dimensions each");
+      item("outT", "s2", "t", "tag", { left: "260px", top: "640px", color: "#6ee7a0" }, "joined and mixed back: 512 dimensions");
+      // chart: BLEU by number of heads (Table 3, rows A)
+      const CH = [[1, 24.9], [4, 25.5], [8, 25.8], [16, 25.8], [32, 25.4]], CB = [];
+      CH.forEach(([n, v], i) => { const h = Math.round((v - 24) * 140); item("cb" + i, "s3", "s", "cbar", { left: 330 + i * 250 + "px", top: 740 - h + "px", height: h + "px" }); CB.push("cb" + i); });
+      item("hx", "s3", "t", "tag", { left: "330px", top: "760px", width: "1250px", fontSize: "28px", color: "#8892a0", display: "flex", justifyContent: "space-between" },
+        CH.map(([n]) => `<span style="width:160px;text-align:center">${n} head${n > 1 ? "s" : ""}</span>`).join("<span></span>").replace(/<\/span><span><\/span>/g, "</span><span style='flex:1'></span>"));
+      item("v0", "s3", "t", "tag", { left: "330px", top: 740 - Math.round(0.9 * 140) - 60 + "px", width: "160px", textAlign: "center", color: "#ff6b5e" }, "24.9");
+      item("v2", "s3", "t", "tag", { left: "830px", top: 740 - Math.round(1.8 * 140) - 60 + "px", width: "160px", textAlign: "center", color: "#6ee7a0" }, "25.8");
+      item("v4", "s3", "t", "tag", { left: "1330px", top: 740 - Math.round(1.4 * 140) - 60 + "px", width: "160px", textAlign: "center", color: "#ffd166" }, "25.4");
+      item("axT", "s3", "t", "tag", { left: "330px", top: "330px", color: "#8892a0", fontSize: "26px" }, "BLEU on the English-German dev set; the axis starts at 24");
+
+      const CAP = [["c1", "One head blends all the words in one fixed way."], ["c2", "Eight heads, each free to look for something different."],
+        ["c3", "Each head works in a smaller space: 64 of 512."], ["c4", "Their outputs are joined and mixed back into one."],
+        ["c5", "One head scored 0.9 BLEU lower than the best setting."], ["c6", "But 32 heads scored lower than 8."]];
+      CAP.forEach(([id, text]) => item(id, "cap", "t", "caption", {}, text));
+
+      const TOK = WORDS.map((_, i) => "w" + i);
+      // Beat times come from the narration: T(line, fraction) = the moment that part of the spoken line is said.
+      const BEATS = [
+        [T(0, 0), "c1", [...TOK, ...GA, "avg", "avgT"], []],
+        [T(1, 0), "c2", [...TOK, ...CA], []],
+        [T(1, 0.5), "c3", [...HS, "dmT"], []],
+        [T(2, 0), "c4", [...HS, "outT"], []],
+        [T(2, 0.4), "c5", [...CB, "hx", "v0", "v2", "axT"], []],
+        [T(2, 0.78), "c6", [...CB, "hx", "v2", "v4", "axT"], []],
+      ];
+
+      // ===== ENGINE (keep as is): the beat loop. One focus per beat; the rest dims or disappears =====
+      const sceneOf = (id) => items[id].scene;
+      BEATS.forEach(([t, cap, focus, context]) => {
+        const f = new Set([...focus, cap]), c = new Set(context);
+        const activeScenes = new Set([...f, ...c].map(sceneOf).filter((s) => s !== "tl" && s !== "cap"));
+        Object.keys(items).forEach((id) => {
+          const it = items[id];
+          if (f.has(id)) {
+            tl.to(it.el, { opacity: 1, duration: 0.35 }, t);
+            if (!it.seen && it.kind === "s") tl.fromTo(it.el, { scale: 0.92 }, { scale: 1, duration: 0.35, ease: "back.out(2)" }, t);
+            it.seen = true;
+          } else if (c.has(id)) {
+            tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+            it.seen = true;
+          } else if (it.seen) {
+            if (it.scene === "cap") tl.to(it.el, { opacity: 0, duration: 0.2 }, t - 0.05);
+            else if (it.scene === "tl") tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+            else if (it.kind === "t" || !activeScenes.has(it.scene)) tl.to(it.el, { opacity: 0, duration: 0.3 }, t);
+            else tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+          }
+        });
+      });
+      [["One head", T(0, 0), T(1, 0) - 0.2], ["Eight heads", T(1, 0), T(2, 0) - 0.2], ["What it buys", T(2, 0), LEARN.total]].forEach(([txt, a, b], i) => {
+        const el = item("title" + i, "cap", "t", "title", {}, txt);
+        tl.to(el, { opacity: 1, duration: 0.3 }, a);
+        if (i < 2) tl.to(el, { opacity: 0, duration: 0.2 }, b);
+      });
+
+      // ===== CONTENT: motion inside beats =====
+
+      for (let i = 0; i < 8; i++) tl.to("#hs" + i, { x: -20 * i, duration: 1.0, ease: "power2.inOut" }, T(2, 0.08));
+      tl.to("#cb0", { backgroundColor: "#ff6b5e", duration: 0.3 }, T(2, 0.42));
+      tl.to("#cb2", { backgroundColor: "#6ee7a0", duration: 0.3 }, T(2, 0.42));
+      tl.to("#cb0", { backgroundColor: "#5b6675", duration: 0.3 }, T(2, 0.8));
+      tl.to("#cb4", { backgroundColor: "#ffd166", duration: 0.3 }, T(2, 0.8));
+
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

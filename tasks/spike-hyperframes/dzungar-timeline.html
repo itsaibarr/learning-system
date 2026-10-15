@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #12161b; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #eef1f4; }
+      #stage { position: absolute; inset: 0; }
+      .abs { position: absolute; display: block; }
+      #sky { inset: 0; background: linear-gradient(#12161b 0%, #1a2230 55%, #2b2a22 100%); }
+      #ground { left: 0; top: 640px; width: 1920px; height: 120px; background: linear-gradient(#3a3522, #2a2618); }
+      .title { left: 160px; top: 44px; font-size: 40px; font-weight: 600; color: #8892a0; white-space: nowrap; }
+      .caption { left: 160px; top: 110px; width: 1600px; font-size: 56px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+      .tag { font-size: 34px; font-weight: 600; white-space: nowrap; }
+      .yurt { width: 126px; height: 84px; }
+      .yurt svg { width: 126px; height: 84px; display: block; }
+      .arrow { width: 150px; height: 60px; color: #ff6b5e; }
+      .arrow svg { width: 150px; height: 60px; display: block; transform: scaleX(-1); }
+      .link { height: 4px; background: #8892a0; transform-origin: left center; border-radius: 2px; }
+      #axis { left: 160px; top: 880px; width: 1600px; height: 4px; background: #5b6675; border-radius: 2px; }
+      .tick { width: 3px; height: 22px; background: #5b6675; top: 871px; }
+      .yr { top: 898px; width: 90px; text-align: center; font-size: 24px; color: #8892a0; }
+      .dot { width: 34px; height: 34px; border-radius: 17px; top: 865px; }
+      .evt { width: 340px; text-align: center; top: 770px; line-height: 1.15; }
+      .evt b { display: block; font-size: 44px; }
+      .evt span { font-size: 28px; }
+      .brace { height: 8px; top: 946px; border-radius: 4px; transform-origin: left center; background: #ffd166; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="31" data-width="1920" data-height="1080">
+      <div id="stage" class="clip" data-start="0" data-duration="31" data-track-index="0">
+        <div id="sky" class="abs"></div>
+        <div id="ground" class="abs"></div>
+        <svg width="0" height="0" style="position:absolute">
+          <symbol id="yurt-s" viewBox="0 0 90 60"><path d="M8 60 L8 36 A37 32 0 0 1 82 36 L82 60 Z" fill="currentColor"/><rect x="38" y="40" width="14" height="20" fill="#12161b"/><rect x="43" y="0" width="4" height="8" fill="currentColor"/></symbol>
+          <symbol id="arrow-s" viewBox="0 0 150 60"><path d="M0 18 H100 V0 L150 30 L100 60 V42 H0 Z" fill="currentColor"/></symbol>
+        </svg>
+        <div id="axis" class="abs"></div>
+        <div id="layer"></div>
+        <div id="basis" class="abs" style="right:80px; top:1020px; font-size:22px; color:#8892a0;">Dates: e-history.kz [S2]; 1728 and 1730 per guide. Camp layout: illustrative, not to scale.</div>
+      </div>
+      <audio id="v1" src="audio/line0.wav" data-start="0.4" data-duration="10.55" data-track-index="10" data-volume="1"></audio>
+      <audio id="v2" src="audio/line1.wav" data-start="11.45" data-duration="9.38" data-track-index="11" data-volume="1"></audio>
+      <audio id="v3" src="audio/line2.wav" data-start="21.33" data-duration="7.6" data-track-index="12" data-volume="1"></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const X = (y) => 160 + (y - 1720) * (1600 / 12);
+      const yurtSvg = '<svg><use href="#yurt-s"/></svg>';
+      const arrowSvg = '<svg><use href="#arrow-s"/></svg>';
+      const GY = 556, DIM = 0.3;
+
+      // ---------- item registry: every visible thing is an item with a kind and a scene ----------
+      // kind "s" = shape (dims to 30% when not in focus); "t" = text (disappears when not in focus)
+      const items = {};
+      function item(id, scene, kind, cls, css, html) {
+        const d = document.createElement("div");
+        d.id = id; d.className = "abs " + cls;
+        Object.assign(d.style, css);
+        if (html) d.innerHTML = html;
+        document.getElementById("layer").appendChild(d);
+        gsap.set(d, { opacity: 0 });
+        items[id] = { el: d, scene, kind, seen: false };
+        return d;
+      }
+
+      // ---------- timeline (scene "tl": persists, shapes only dim) ----------
+      for (let y = 1720; y <= 1732; y++) {
+        const t = document.createElement("div"); t.className = "abs tick"; t.style.left = X(y) - 1 + "px";
+        document.getElementById("layer").appendChild(t);
+        const l = document.createElement("div"); l.className = "abs yr"; l.style.left = X(y) - 45 + "px"; l.textContent = y;
+        document.getElementById("layer").appendChild(l);
+      }
+      const EV = [
+        { id: "e1723", y: 1723, c: "#ff6b5e", a: "1723", b: "Great Disaster" },
+        { id: "e1726", y: 1726, c: "#ffd166", a: "1726", b: "Ordabasy" },
+        { id: "e1728", y: 1728, c: "#6ee7a0", a: "1728", b: "Bulanty" },
+        { id: "e1730", y: 1730, c: "#6ee7a0", a: "1730", b: "Anyrakay" },
+      ];
+      EV.forEach((e) => {
+        item(e.id + "d", "tl", "s", "dot", { left: X(e.y) - 17 + "px", background: e.c });
+        item(e.id + "l", "tl", "s", "evt", { left: X(e.y) - 170 + "px", color: e.c, top: e.y === 1728 ? "700px" : "770px" }, `<b>${e.a}</b><span>${e.b}</span>`);
+      });
+      item("brace", "s2", "s", "brace", { left: X(1723) + "px", width: X(1726) - X(1723) + "px" });
+      item("braceT", "s2", "t", "tag", { left: X(1723) + (X(1726) - X(1723)) / 2 - 170 + "px", top: "956px", width: "340px", textAlign: "center", color: "#ffd166", fontSize: "26px" }, "3 years later");
+
+      // ---------- scene 1: 1723 ----------
+      [230, 520, 810, 1100, 1370, 1620].forEach((x, i) => item("a" + i, "s1", "s", "yurt", { left: x + "px", top: GY + "px", color: "#cfd6df" }, yurtSvg));
+      for (let i = 0; i < 6; i++) item("dz" + i, "s1", "s", "arrow", { left: "1900px", top: 462 + i * 38 + "px" }, arrowSvg);
+      item("dzT", "s1", "t", "tag", { left: "1700px", top: "380px", color: "#ff6b5e" }, "Dzungars");
+      item("gap", "s1", "s", "link", { left: "300px", top: "490px", width: "1380px" });
+      item("gapT", "s1", "t", "tag", { left: "560px", top: "430px", color: "#cfd6df" }, "too far apart to help each other");
+      item("peaceT", "s1", "t", "tag", { left: "1200px", top: "330px", color: "#ff6b5e", width: "620px", textAlign: "right" }, "peace on their other border");
+
+      // ---------- scene 2: 1726 ----------
+      const zc = ["#5ec8f0", "#ffd166", "#b69cff"], zx = [300, 900, 1500], zEnd = [690, 870, 1050];
+      for (let z = 0; z < 3; z++) {
+        for (let k = 0; k < 3; k++) item("z" + z + "_" + k, "s2", "s", "yurt", { left: zx[z] + k * 56 + "px", top: GY + (k === 1 ? -34 : 0) + "px", color: zc[z] }, yurtSvg);
+        item("zl" + z, "s2", "t", "tag", { left: zx[z] + 20 + "px", top: "440px", color: zc[z] }, "Zhuz");
+      }
+      item("khan", "s2", "t", "tag", { left: "660px", top: "400px", width: "600px", textAlign: "center", color: "#eef1f4", fontSize: "44px" }, "Abulkhair Khan");
+      ["Bogenbai", "Kabanbai", "Raiymbek"].forEach((n, i) => item("bt" + i, "s2", "t", "tag", { left: 560 + i * 280 + "px", top: "330px", width: "260px", textAlign: "center", color: zc[i] }, n));
+
+      // ---------- scene 3: 1728-1730 ----------
+      const cx = [690, 810, 930, 750, 870], cc = ["#5ec8f0", "#ffd166", "#b69cff", "#ffd166", "#5ec8f0"];
+      cx.forEach((x, i) => item("u" + i, "s3", "s", "yurt", { left: x + "px", top: GY + (i > 2 ? -40 : 0) + "px", color: cc[i] }, yurtSvg));
+      for (let i = 0; i < 3; i++) item("ar" + i, "s3", "s", "arrow", { left: "1900px", top: 490 + i * 56 + "px" }, arrowSvg);
+      item("dzT3", "s3", "t", "tag", { left: "1700px", top: "420px", color: "#ff6b5e" }, "Dzungars");
+      const ring = item("ring", "s3", "s", "abs", { left: "650px", top: "470px", width: "480px", height: "210px", border: "6px solid #6ee7a0", borderRadius: "105px" });
+
+      // ---------- captions: one plain sentence per beat ----------
+      const CAP = [
+        ["c1", "Spring 1723: the Dzungars attack."],
+        ["c2", "The auls are far apart. Nobody can help."],
+        ["c3", "Peace on their other border: more troops come here."],
+        ["c4", "The families flee. This is the Great Disaster."],
+        ["c5", "1726: three Zhuzes meet at Ordabasy."],
+        ["c6", "They unite under Abulkhair Khan."],
+        ["c7", "Three batyrs lead the army."],
+        ["c8", "One army can make one plan."],
+        ["c9", "1728, Bulanty: the united army stops the attack."],
+        ["c10", "1730, Anyrakay: it wins again."],
+        ["c11", "The invasion is turned back."],
+        ["c12", "Same land, new unity: lost in 1723, won in 1730."],
+      ];
+      CAP.forEach(([id, text]) => item(id, "cap", "t", "caption", {}, text));
+
+      // ---------- beats: at time t, show caption, put focus items at 100%, dim or hide the rest ----------
+      // Each beat: [t, captionId, focusIds[], contextIds[] (shown at 30% with no spotlight)]
+      const U = ["u0", "u1", "u2", "u3", "u4"], A = ["a0", "a1", "a2", "a3", "a4", "a5"], D6 = ["dz0", "dz1", "dz2", "dz3", "dz4", "dz5"];
+      const Z = ["z0_0", "z0_1", "z0_2", "z1_0", "z1_1", "z1_2", "z2_0", "z2_1", "z2_2"], AR3 = ["ar0", "ar1", "ar2"];
+      const BEATS = [
+        [0.4, "c1", ["e1723d", "e1723l", "dz0", "dz1", "dz2", "dzT"], A],
+        [3.5, "c2", [...A, "gap", "gapT"], ["dz0", "dz1", "dz2"]],
+        [5.5, "c3", [...D6, "peaceT"], A],
+        [8.2, "c4", [...A, ...D6, "e1723d", "e1723l"], []],
+        [11.45, "c5", [...Z, "zl0", "zl1", "zl2", "e1726d", "e1726l", "brace", "braceT"], []],
+        [15.9, "c6", [...Z, "khan"], ["e1726d", "e1726l"]],
+        [18.15, "c7", [...Z, "bt0", "bt1", "bt2"], ["e1726d", "e1726l"]],
+        [21.33, "c8", U, ["e1726d", "e1726l"]],
+        [23.75, "c9", [...U, ...AR3, "dzT3", "e1728d", "e1728l"], ["e1726d", "e1726l"]],
+        [25.48, "c10", [...U, ...AR3, "e1730d", "e1730l"], ["e1728d", "e1728l"]],
+        [26.86, "c11", [...U, ...AR3, "dzT3"], ["e1730d", "e1730l"]],
+        [29.0, "c12", ["e1723d", "e1723l", "e1726d", "e1726l", "e1728d", "e1728l", "e1730d", "e1730l"], []],
+      ];
+      const sceneOf = (id) => items[id].scene;
+      BEATS.forEach(([t, cap, focus, context]) => {
+        const f = new Set([...focus, cap]), c = new Set(context);
+        const activeScenes = new Set([...f, ...c].map(sceneOf).filter((s) => s !== "tl" && s !== "cap"));
+        Object.keys(items).forEach((id) => {
+          const it = items[id];
+          if (f.has(id)) {
+            tl.to(it.el, { opacity: 1, duration: 0.35 }, t);
+            if (!it.seen && it.kind === "s") tl.fromTo(it.el, { scale: 0.92 }, { scale: 1, duration: 0.35, ease: "back.out(2)" }, t);
+            it.seen = true;
+          } else if (c.has(id)) {
+            tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+            it.seen = true;
+          } else if (it.seen) {
+            if (it.scene === "cap") tl.to(it.el, { opacity: 0, duration: 0.2 }, t - 0.05);
+            else if (it.scene === "tl") tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+            else if (it.kind === "t" || !activeScenes.has(it.scene)) tl.to(it.el, { opacity: 0, duration: 0.3 }, t);
+            else tl.to(it.el, { opacity: DIM, duration: 0.35 }, t);
+          }
+        });
+      });
+      [["Part 1: the attack", 0.4, 11.2], ["Part 2: the union", 11.45, 21.0], ["Part 3: the result", 21.33, 31]].forEach(([txt, a, b], i) => {
+        const el = item("title" + i, "cap", "t", "title", {}, txt);
+        tl.to(el, { opacity: 1, duration: 0.3 }, a);
+        if (i < 2) tl.to(el, { opacity: 0, duration: 0.2 }, b);
+      });
+      tl.from("#axis", { scaleX: 0, transformOrigin: "left center", duration: 0.8, ease: "power2.out" }, 0.1);
+
+      // ---------- motion inside beats ----------
+      const SD = ["#dz0", "#dz1", "#dz2", "#dz3", "#dz4", "#dz5"];
+      tl.to(["#dz0", "#dz1", "#dz2"], { x: -900, stagger: 0.12, duration: 2.0, ease: "power1.in" }, 0.9);      // attack comes in
+      tl.to("#dzT", { x: -900, duration: 2.2, ease: "power1.in" }, 0.9);
+      tl.fromTo(["#dz3", "#dz4", "#dz5"], { x: 400 }, { x: -900, stagger: 0.1, duration: 1.8, ease: "power1.out" }, 5.6); // more troops
+      tl.to(SD, { x: -1300, stagger: 0.05, duration: 1.8, ease: "power1.in" }, 8.3);                             // sweep over the auls
+      tl.to(A.map((i) => "#" + i), { x: -190, color: "#ff6b5e", stagger: 0.08, duration: 1.4 }, 8.7);           // families flee
+      tl.to(SD, { opacity: 0, duration: 0.4 }, 10.5);
+      for (let z = 0; z < 3; z++) {                                                                                // scene 2: slide in, then merge
+        const sel = [0, 1, 2].map((k) => "#z" + z + "_" + k);
+        tl.from(sel, { x: z === 0 ? -250 : z === 2 ? 250 : 0, y: z === 1 ? -30 : 0, duration: 1.6, ease: "power2.out" }, 11.6);
+        tl.to(sel, { x: zEnd[z] - zx[z], duration: 2.2, ease: "power2.inOut" }, 16.0);
+      }
+      tl.to(["#ar0", "#ar1", "#ar2"], { x: -830, stagger: 0.08, duration: 1.2, ease: "power1.in" }, 23.8);         // scene 3: attack stops at the camp
+      tl.to("#dzT3", { x: -830, duration: 1.3, ease: "power1.in" }, 23.8);
+      tl.to(["#ar0", "#ar1", "#ar2"], { color: "#8892a0", duration: 0.3 }, 25.1);      // the attack stops: arrows go grey
+      tl.fromTo("#ring", { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" }, 25.1); // green ring closes around the camp
+      tl.to("#ring", { opacity: 0, duration: 0.4 }, 28.6);
+            tl.to(["#ar0", "#ar1", "#ar2"], { x: 0, stagger: 0.08, duration: 1.8, ease: "power2.out" }, 27.0);           // ... then turns back
+      tl.to("#dzT3", { x: 0, duration: 1.8, ease: "power2.out" }, 27.0);
+      tl.to(["#ar0", "#ar1", "#ar2", "#dzT3"], { opacity: 0, duration: 0.5 }, 28.6);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
