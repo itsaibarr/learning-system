@@ -1,0 +1,60 @@
+/* BX kit: Branch-Education-style look for HyperFrames lesson scenes (prototype).
+   Measured from Branch Education frames: dark backdrops, cyan labels on leader lines, colour = state
+   (green good/active, red bad/failure, orange what moves, yellow energy/hazard). */
+@font-face { font-family: "BX Saira"; font-weight: 400; src: url("fonts/saira-Regular.woff2") format("woff2"); }
+@font-face { font-family: "BX Saira"; font-weight: 600; src: url("fonts/saira-SemiBold.woff2") format("woff2"); }
+:root { --cyan: #38d6e6; --green: #4cf04a; --yellow: #f2e93a; --orange: #f29a1a; --red: #ff5a4d;
+        --copper: #c8825a; --steel: #8b969e; --text: #e9eef2; --muted: #7f8a94; --plate: #3a3f44; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #15191c; }
+#root { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+        font-family: "BX Saira", Inter, sans-serif; color: var(--text); }
+#stage { position: absolute; inset: 0; }
+/* backgrounds: studio (any topic), grid floor (objects on the ground, wide shots), circuit board (electronics close-ups) */
+.bx-sky { position: absolute; inset: 0; background: linear-gradient(#1a1e21 0%, #23272a 40%, #2a2e31 62%); }
+.bx-floor { position: absolute; inset: 0; }
+/* studio: plain dark backdrop for any topic (lit from above, no grid) */
+.bx-studio { position: absolute; inset: 0; background: radial-gradient(ellipse 90% 80% at 50% 38%, #2b3136 0%, #1c2125 55%, #121518 100%); }
+.bx-board { position: absolute; inset: 0; background-color: #111518;
+  background-image: linear-gradient(#1b2024 2px, transparent 2px), linear-gradient(90deg, #1b2024 2px, transparent 2px);
+  background-size: 96px 96px; }
+.bx-vignette { position: absolute; inset: 0; background: radial-gradient(ellipse 78% 72% at 50% 52%, rgba(0,0,0,0) 42%, rgba(6,8,10,0.8) 100%); }
+.bx-world { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+.bx-hud { position: absolute; inset: 0; z-index: 10; }
+svg.bx-layer { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+/* text */
+.bx-lbl { position: absolute; z-index: 2; text-shadow: 0 0 10px #0b0e10, 0 0 4px #0b0e10, 0 0 2px #0b0e10; font-size: 42px; font-weight: 400; color: var(--cyan); white-space: nowrap; line-height: 1; }
+.bx-big { position: absolute; z-index: 2; text-shadow: 0 0 12px #0b0e10, 0 0 4px #0b0e10; font-size: 72px; font-weight: 400; color: var(--cyan); white-space: nowrap; line-height: 1; }
+.bx-num { position: absolute; z-index: 2; text-shadow: 0 0 10px #0b0e10, 0 0 3px #0b0e10; font-size: 38px; font-weight: 600; color: var(--green); white-space: nowrap; line-height: 1; font-variant-numeric: tabular-nums; }
+.bx-small { position: absolute; z-index: 2; text-shadow: 0 0 8px #0b0e10, 0 0 3px #0b0e10; font-size: 28px; color: var(--text); white-space: nowrap; line-height: 1.1; }
+.bx-section { position: absolute; z-index: 20; left: 56px; top: 40px; font-size: 34px; color: var(--muted); white-space: nowrap; }
+.bx-basis { position: absolute; z-index: 20; left: 44px; bottom: 18px; padding: 4px 12px; border-radius: 8px; background: rgba(12,15,18,0.72); font-size: 24px; color: #a3adb6; white-space: nowrap; }
+.bx-plate { position: absolute; background: linear-gradient(#4a5056, #33383d); border: 3px solid #5d646b; border-radius: 14px;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.12), 0 10px 24px rgba(0,0,0,0.5); color: var(--text);
+  display: flex; align-items: center; justify-content: center; text-align: center; font-size: 36px; line-height: 1.05; }
+.bx-bits { position: absolute; font-size: 40px; font-weight: 600; letter-spacing: 0.06em; white-space: nowrap; line-height: 1; color: var(--text); }
+.bx-bits span { display: inline-block; text-align: center; }
+/* vertical voltage gauge, as in the reference: bevelled grey panel, green -> yellow -> red bar, dark tick bars */
+.bx-gauge { position: absolute; z-index: 10; border-radius: 22px; background: linear-gradient(#5b6268, #3d4349 55%, #33383d);
+  border: 3px solid #737c84; box-shadow: inset 0 3px 0 rgba(255,255,255,0.18), inset 0 -4px 0 rgba(0,0,0,0.35), 0 14px 30px rgba(0,0,0,0.55); }
+.bx-gauge .bar { position: absolute; border-radius: 6px; background: linear-gradient(#4cf04a, #f2e93a 50%, #f29a1a 72%, #e0302a); box-shadow: 0 0 14px rgba(76,240,74,0.25); }
+.bx-gauge .tbar { position: absolute; height: 6px; background: #15181b; border-radius: 2px; }
+.bx-gauge .tick { position: absolute; color: #f2f5f7; white-space: nowrap; line-height: 1; font-weight: 400; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+.bx-gauge .mark { position: absolute; height: 9px; background: #ffffff; border-radius: 3px; box-shadow: 0 0 10px #fff; }
+/* state badge: light plate, big digit (green 1, red 0) */
+.bx-badge { position: absolute; z-index: 3; background: linear-gradient(#4a5258, #2a2f34); border: 2px solid #9aa4ac; border-radius: 10px;
+  font-weight: 600; line-height: 1; box-shadow: 0 6px 18px rgba(0,0,0,0.5); opacity: 0.92; }
+.bx-badge span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; line-height: 1; text-shadow: 0 0 10px rgba(76,240,74,0.45); }
+.bx-section, .bx-basis { text-shadow: 0 0 8px #0b0e10, 0 0 3px #0b0e10, 0 0 1px #0b0e10; }
+.bx-section { background: rgba(13,16,19,0.82); padding: 6px 16px; border-radius: 8px; left: 40px; top: 32px; }
+/* title card, headline unit, bit brackets, chain step numbers, progress HUD */
+.bx-title { position: absolute; z-index: 12; color: var(--text); font-weight: 600; white-space: nowrap; line-height: 1.1; text-shadow: 0 0 18px #0b0e10, 0 0 6px #0b0e10; }
+.bx-unit { font-size: 0.5em; color: var(--text); }
+.bx-bracket { position: absolute; height: 22px; border: 4px solid var(--cyan); border-top: none; border-radius: 0 0 6px 6px; }
+.bx-step { display: block; font-size: 0.8em; color: #b4bec6; margin-bottom: 6px; font-weight: 600; }
+.bx-plate { flex-direction: column; }
+.bx-progress { position: absolute; z-index: 12; color: var(--muted); line-height: 1.35; }
+.bx-progress .it { display: flex; align-items: center; gap: 0.4em; white-space: nowrap; }
+.bx-progress .box { width: 0.6em; height: 0.6em; border: 3px solid currentColor; border-radius: 4px; display: inline-block; }
+.bx-progress.row { display: flex; gap: 0.9em; }
+.bx-progress.row .box { display: none; }

@@ -8,9 +8,9 @@
       "If the learner says they are lost, restart from the most basic idea, from zero.",
       "Always say why a step exists before showing how to do it.",
       "One note per session. Never send the learner to another file mid-session.",
-      "Visual learner: every idea gets a Manim animation of how it works (3Blue1Brown style), plus normal text.",
       "Start each new idea from the everyday problem, and explain what each part is and why it exists before going into details.",
-      "Each visual must show the full idea being taught, including every case such as all classes A, B and C, before any questions are asked on it."
+      "Each visual must show the full idea being taught, including every case such as all classes A, B and C, before any questions are asked on it.",
+      "Visual learner: every idea gets a narrated animation of how it works, drawn for the topic (Manim for math, HyperFrames for everything else), plus normal text."
     ]
   },
   "topics": {
@@ -203,15 +203,15 @@
             "quantize",
             "nyquist"
           ],
-          "status": "solid",
+          "status": "learning",
           "taught": true,
-          "streak": 3,
-          "level": 3,
-          "box": 1,
-          "next_review": "2026-10-07",
+          "streak": 0,
+          "level": 2,
+          "box": 0,
+          "next_review": "2026-10-09",
           "solid_date": "2026-10-06",
           "promoted": "2026-10-06",
-          "last_seen": "2026-10-06",
+          "last_seen": "2026-10-08",
           "history": [
             {
               "date": "2026-10-06",
@@ -233,8 +233,16 @@
               "result": "correct",
               "level": 2,
               "kind": null
+            },
+            {
+              "date": "2026-10-08",
+              "q": "Q1",
+              "result": "wrong",
+              "level": 3,
+              "kind": null
             }
-          ]
+          ],
+          "checked": true
         },
         "chunk": {
           "title": "Streaming sends audio in small chunks; chunk length in ms sets samples and bytes",
@@ -2137,6 +2145,566 @@
           ]
         }
       }
+    },
+    "quadratics-discriminant": {
+      "title": "quadratics-discriminant",
+      "goal": "solve A-level style \"curve y=x^2+2cx+4 meets line y=4x+c at two distinct points, find c\" by equating, forming a quadratic, using discriminant > 0, and solving the inequality in c",
+      "created": "2026-10-08",
+      "concepts": {
+        "equate": {
+          "title": "Intersection means one x satisfies both y values, so equate curve and line",
+          "prereqs": [],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": [],
+          "checked": false
+        },
+        "combined": {
+          "title": "Rearrange to one quadratic ax^2+bx+c=0 in standard form before reading a,b,c",
+          "prereqs": [
+            "equate"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": [],
+          "checked": false
+        },
+        "disc": {
+          "title": "Discriminant D=b^2-4ac tells how many real solutions: >0 two distinct, =0 one repeated, <0 none",
+          "prereqs": [
+            "combined"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": [],
+          "checked": false
+        },
+        "ineq": {
+          "title": "Solve D>0 as a quadratic inequality in c with critical values and a sketch",
+          "prereqs": [
+            "disc"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": [],
+          "checked": false
+        }
+      },
+      "research": {
+        "note": "Sources/quadratics-discriminant research brief.md",
+        "date": "2026-10-08",
+        "sources": 4,
+        "exam": null
+      },
+      "units": {
+        "two-points": {
+          "title": "Line meets curve twice",
+          "concepts": [
+            "equate",
+            "combined",
+            "disc",
+            "ineq"
+          ]
+        }
+      }
+    },
+    "circle-derivatives": {
+      "title": "circle-derivatives",
+      "goal": "find dy/dx for (x+1)^2+(y-2)^2=85 the fastest way, and use it for tangent slope at a point",
+      "created": "2026-10-08",
+      "concepts": {
+        "implicit": {
+          "title": "Treat y as a function of x and differentiate both sides with respect to x",
+          "prereqs": [],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": [],
+          "checked": false
+        },
+        "chain-y": {
+          "title": "d/dx[(y-k)^2]=2(y-k)*dy/dx by the chain rule",
+          "prereqs": [
+            "implicit"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": [],
+          "checked": false
+        },
+        "solve-dydx": {
+          "title": "Collect dy/dx terms and solve: dy/dx=-(x+1)/(y-2)",
+          "prereqs": [
+            "chain-y"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": [],
+          "checked": false
+        },
+        "fast-check": {
+          "title": "Shortcut dy/dx=-(x-h)/(y-k) for (x-h)^2+(y-k)^2=r^2; undefined when y=k (vertical tangent)",
+          "prereqs": [
+            "solve-dydx"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": [],
+          "checked": false
+        }
+      },
+      "research": {
+        "note": "Sources/circle-derivatives research brief.md",
+        "date": "2026-10-08",
+        "sources": 4,
+        "exam": null
+      },
+      "units": {
+        "circle-slope": {
+          "title": "Circle slope in one line",
+          "concepts": [
+            "implicit",
+            "chain-y",
+            "solve-dydx",
+            "fast-check"
+          ]
+        }
+      }
+    },
+    "ai-engineer-prep-llm-mechanics": {
+      "title": "ai engineer prep llm mechanics",
+      "goal": "Explain tokenization, attention, KV-cache memory and sampling well enough to answer an AI-engineer interviewer and pick settings for a feature",
+      "created": "2026-10-13",
+      "concepts": {
+        "tok": {
+          "title": "Tokenization with BPE subwords and token budgets",
+          "prereqs": [],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": [],
+          "checked": false
+        },
+        "embed": {
+          "title": "Embeddings turn tokens into vectors",
+          "prereqs": [
+            "tok"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": [],
+          "checked": false
+        },
+        "attn": {
+          "title": "Self-attention with Q, K, V and causal mask",
+          "prereqs": [
+            "embed"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": [],
+          "checked": false
+        },
+        "quad": {
+          "title": "Why attention cost is O(n squared), residuals",
+          "prereqs": [
+            "attn"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": [],
+          "checked": false
+        },
+        "train-infer": {
+          "title": "Training versus inference, caching is inference only",
+          "prereqs": [
+            "attn"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": [],
+          "checked": false
+        },
+        "kvcache": {
+          "title": "Context window and KV-cache memory with batching",
+          "prereqs": [
+            "quad"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "sample": {
+          "title": "Next-token sampling with temperature and top-p",
+          "prereqs": [
+            "kvcache"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "hallucin": {
+          "title": "Hallucination and how to lower it",
+          "prereqs": [
+            "sample"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        }
+      },
+      "research": {
+        "note": "Sources/ai engineer prep llm mechanics research brief.md",
+        "date": "2026-10-13",
+        "sources": 4,
+        "exam": null
+      },
+      "units": {
+        "tokens-attention": {
+          "title": "Tokens into attention",
+          "concepts": [
+            "tok",
+            "embed",
+            "attn",
+            "quad",
+            "train-infer"
+          ]
+        },
+        "memory-sampling": {
+          "title": "Memory and sampling",
+          "concepts": [
+            "kvcache",
+            "sample",
+            "hallucin"
+          ]
+        }
+      }
+    },
+    "wma12-p2-trigonometry": {
+      "title": "WMA12 P2 trigonometry",
+      "goal": "Score as many trig marks as possible on Pearson Edexcel IAL Pure Mathematics P2 (WMA12/01) tomorrow, using the three real 2024 papers.",
+      "created": "2026-10-15",
+      "concepts": {
+        "tan-as-sin-over-cos": {
+          "title": "tan x is sin x divided by cos x",
+          "prereqs": [],
+          "status": "solid",
+          "taught": true,
+          "streak": 1,
+          "level": 2,
+          "box": 1,
+          "next_review": "2026-10-16",
+          "solid_date": "2026-10-15",
+          "promoted": "2026-10-15",
+          "last_seen": "2026-10-15",
+          "history": [
+            {
+              "date": "2026-10-15",
+              "q": "Q1",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ],
+          "checked": true
+        },
+        "sin-squared-swap": {
+          "title": "sin squared x equals 1 minus cos squared x, so one trig function is left",
+          "prereqs": [
+            "tan-as-sin-over-cos"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 1,
+          "level": 2,
+          "box": 1,
+          "next_review": "2026-10-16",
+          "solid_date": "2026-10-15",
+          "promoted": "2026-10-15",
+          "last_seen": "2026-10-15",
+          "history": [
+            {
+              "date": "2026-10-15",
+              "q": "Q2",
+              "result": "correct",
+              "level": 2,
+              "kind": null
+            }
+          ],
+          "checked": true
+        },
+        "quadratic-in-cos": {
+          "title": "The equation becomes a quadratic in cos x; a root with size above 1 is rejected",
+          "prereqs": [
+            "sin-squared-swap"
+          ],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": "2026-10-16",
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": "2026-10-15",
+          "history": [
+            {
+              "date": "2026-10-15",
+              "q": "Q3",
+              "result": "wrong",
+              "level": 3,
+              "kind": "gap",
+              "marks": "0/6"
+            },
+            {
+              "date": "2026-10-15",
+              "q": "Q5",
+              "result": "wrong",
+              "level": 2,
+              "kind": "slip",
+              "marks": "4/5"
+            },
+            {
+              "date": "2026-10-15",
+              "q": "Q6",
+              "result": "correct",
+              "level": 1,
+              "kind": null,
+              "marks": "3/3"
+            },
+            {
+              "date": "2026-10-15",
+              "q": "Q7",
+              "result": "wrong",
+              "level": 3,
+              "kind": "misconception",
+              "marks": "2/4"
+            }
+          ],
+          "checked": true
+        },
+        "all-solutions-in-range": {
+          "title": "Find every solution in the range (second angle from symmetry, in degrees or radians)",
+          "prereqs": [
+            "quadratic-in-cos"
+          ],
+          "status": "solid",
+          "taught": true,
+          "streak": 1,
+          "level": 2,
+          "box": 1,
+          "next_review": "2026-10-16",
+          "solid_date": "2026-10-15",
+          "promoted": "2026-10-15",
+          "last_seen": "2026-10-15",
+          "history": [
+            {
+              "date": "2026-10-15",
+              "q": "Q4",
+              "result": "correct",
+              "level": 3,
+              "kind": null
+            }
+          ],
+          "checked": true
+        },
+        "compound-angle-equation": {
+          "title": "Solve sin(kx + c) = value by solving for the whole bracket, then shifting the range",
+          "prereqs": [
+            "all-solutions-in-range",
+            "bracket-basics"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "sine-model-reading": {
+          "title": "Amplitude, middle line, maximum, minimum and time of the maximum of y = A sin(...) + B",
+          "prereqs": [
+            "compound-angle-equation"
+          ],
+          "status": "new",
+          "taught": false,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": null,
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": null,
+          "history": []
+        },
+        "bracket-basics": {
+          "title": "Solve sin(kx + c) = value: widen the interval, list every angle, then solve for x",
+          "prereqs": [],
+          "status": "learning",
+          "taught": true,
+          "streak": 0,
+          "level": 1,
+          "box": 0,
+          "next_review": "2026-10-16",
+          "solid_date": null,
+          "promoted": null,
+          "last_seen": "2026-10-15",
+          "history": [
+            {
+              "date": "2026-10-15",
+              "q": "Q8",
+              "result": "idk",
+              "level": 2,
+              "kind": null
+            }
+          ],
+          "checked": true
+        }
+      },
+      "mode": "exam",
+      "exam": "pearson-edexcel-ial",
+      "research": {
+        "note": "Sources/WMA12 P2 trigonometry research brief.md",
+        "date": "2026-10-15",
+        "sources": 7,
+        "exam": "pearson-edexcel-ial"
+      },
+      "units": {
+        "tan-quadratic": {
+          "title": "P1: tan to a quadratic in cos",
+          "concepts": [
+            "tan-as-sin-over-cos",
+            "sin-squared-swap",
+            "quadratic-in-cos",
+            "all-solutions-in-range"
+          ]
+        },
+        "compound-sine": {
+          "title": "P2 and P3: compound angles and sine models",
+          "concepts": [
+            "compound-angle-equation",
+            "sine-model-reading"
+          ]
+        }
+      },
+      "prefs": [
+        "No multiple-choice or two-tier questions. Only open typed questions copied word for word from the real WMA12 past papers (source and marks), marked on the mark scheme.",
+        "Learner does the full working in a paper copybook and types only the final answers in the Obsidian note. Do not penalise missing working: mark the final answer, and ask the learner to confirm the method marks (M/B) from the copybook against the rubric."
+      ]
     }
   },
   "session": null,
@@ -2249,6 +2817,94 @@
       "next_by_topic": {
         "kazakh-history-from-nomadic-society-to-imperial-rule": "Start with 'Seasonal migration and Adat/Biys society before Russian rule': 'I don't know' on 'Seasonal migration and Adat/Biys society before Russian rule': teaching it again, simpler, before asking.",
         "voice-ai-audio-basics": "Start with 'Raw PCM audio: sample rate x bytes per sample x channels = bytes per second': 'Raw PCM audio: sample rate x bytes per sample x channels = bytes per second' is due for review (box 1, last seen 2026-10-06). Note: Kazakh history: Q1 and Q2 were skipped as 'I don't know' (Adat/Biy society and 1723/1726 unity). Re-teach both before asking again."
+      }
+    },
+    {
+      "date": "2026-10-08",
+      "topics": [
+        "voice-ai-audio-basics",
+        "quadratics-discriminant"
+      ],
+      "note": "Sessions/2026-10-06 voice ai audio basics.md",
+      "correct": 0,
+      "wrong": 1,
+      "idk": 0,
+      "next_time": "start fresh quadratics-discriminant session",
+      "next_by_topic": {
+        "voice-ai-audio-basics": "Start with 'Raw PCM audio: sample rate x bytes per sample x channels = bytes per second': 'Raw PCM audio: sample rate x bytes per sample x channels = bytes per second' was forgotten since last time: short re-teach, then a new question.",
+        "quadratics-discriminant": "Next unit: 'Line meets curve twice' (4 linked ideas taught together), because it needs nothing else, so it is a starting point. Note: start fresh quadratics-discriminant session"
+      }
+    },
+    {
+      "date": "2026-10-08",
+      "topics": [
+        "quadratics-discriminant",
+        "circle-derivatives"
+      ],
+      "note": "Sessions/2026-10-08 quadratics-discriminant.md",
+      "correct": 0,
+      "wrong": 0,
+      "idk": 0,
+      "next_time": "continue circle-derivatives slope - quadratics Q1-Q4 still open for review",
+      "next_by_topic": {
+        "quadratics-discriminant": "Unit 'Line meets curve twice' is taught. Still to check: 'Intersection means one x satisfies both y values, so equate curve and line', 'Rearrange to one quadratic ax^2+bx+c=0 in standard form before reading a,b,c', 'Discriminant D=b^2-4ac tells how many real solutions: >0 two distinct, =0 one repeated, <0 none', 'Solve D>0 as a quadratic inequality in c with critical values and a sketch'.",
+        "circle-derivatives": "Next unit: 'Circle slope in one line' (4 linked ideas taught together), because it needs nothing else, so it is a starting point. Note: continue circle-derivatives slope - quadratics Q1-Q4 still open for review"
+      }
+    },
+    {
+      "date": "2026-10-08",
+      "topics": [
+        "circle-derivatives"
+      ],
+      "note": "Sessions/2026-10-08 circle-derivatives.md",
+      "correct": 0,
+      "wrong": 0,
+      "idk": 0,
+      "next_time": null,
+      "next_by_topic": {
+        "circle-derivatives": "Unit 'Circle slope in one line' is taught. Still to check: 'Treat y as a function of x and differentiate both sides with respect to x', 'd/dx[(y-k)^2]=2(y-k)*dy/dx by the chain rule', 'Collect dy/dx terms and solve: dy/dx=-(x+1)/(y-2)', 'Shortcut dy/dx=-(x-h)/(y-k) for (x-h)^2+(y-k)^2=r^2; undefined when y=k (vertical tangent)'."
+      }
+    },
+    {
+      "date": "2026-10-13",
+      "topics": [
+        "ai-engineer-prep-llm-mechanics"
+      ],
+      "note": "Sessions/2026-10-13 ai engineer prep llm mechanics.md",
+      "correct": 0,
+      "wrong": 0,
+      "idk": 0,
+      "next_time": null,
+      "next_by_topic": {
+        "ai-engineer-prep-llm-mechanics": "Unit 'Tokens into attention' is taught. Still to check: 'Tokenization with BPE subwords and token budgets', 'Embeddings turn tokens into vectors', 'Self-attention with Q, K, V and causal mask', 'Why attention cost is O(n squared), residuals', 'Training versus inference, caching is inference only'."
+      }
+    },
+    {
+      "date": "2026-10-15",
+      "topics": [
+        "wma12-p2-trigonometry"
+      ],
+      "note": "Sessions/2026-10-15 WMA12 P2 trigonometry.md",
+      "correct": 4,
+      "wrong": 3,
+      "idk": 1,
+      "next_time": null,
+      "next_by_topic": {
+        "wma12-p2-trigonometry": "Start with 'tan x is sin x divided by cos x': 'tan x is sin x divided by cos x' is due for review (box 1, last seen 2026-10-15)."
+      }
+    },
+    {
+      "date": "2026-10-16",
+      "topics": [
+        "ai-engineer-prep-llm-mechanics"
+      ],
+      "note": "Sessions/2026-10-16 ai engineer prep llm mechanics.md",
+      "correct": 0,
+      "wrong": 0,
+      "idk": 0,
+      "next_time": "restart from zero with new visuals",
+      "next_by_topic": {
+        "ai-engineer-prep-llm-mechanics": "Unit 'Tokens into attention' is taught. Still to check: 'Tokenization with BPE subwords and token budgets', 'Embeddings turn tokens into vectors', 'Self-attention with Q, K, V and causal mask', 'Why attention cost is O(n squared), residuals', 'Training versus inference, caching is inference only'. Note: restart from zero with new visuals"
       }
     }
   ],
@@ -2405,6 +3061,51 @@
       "kind": "gap",
       "what": "said I don't know",
       "closed": null
+    },
+    {
+      "topic": "voice-ai-audio-basics",
+      "concept": "pcm",
+      "date": "2026-10-08",
+      "q": "Q1",
+      "kind": "error",
+      "what": "Divides sample rate and bits but forgets channels",
+      "closed": null
+    },
+    {
+      "topic": "wma12-p2-trigonometry",
+      "concept": "quadratic-in-cos",
+      "date": "2026-10-15",
+      "q": "Q3",
+      "kind": "gap",
+      "what": "Answer only, no working: this 'detailed reasoning' question gives no marks without the steps (mark scheme: answers only score no marks). First angle 74.6 is right. Second angle 290.4 is wrong: 360 - 74.6 = 285.4 (arithmetic slip).",
+      "closed": null
+    },
+    {
+      "topic": "wma12-p2-trigonometry",
+      "concept": "quadratic-in-cos",
+      "date": "2026-10-15",
+      "q": "Q5",
+      "kind": "slip",
+      "what": "Got cos x = -1/3 (109.5 degrees is its arccos in degrees), so method marks B1 M1 A1 M1 inferred. Lost final A1: the question wants radians in 0 < x <= pi, answer 1.91; learner gave 109.5 and 250.5 degrees. Calculator in degree mode and ignored the interval, so 250.5 (4.37 rad) is outside the range.",
+      "closed": null
+    },
+    {
+      "topic": "wma12-p2-trigonometry",
+      "concept": "quadratic-in-cos",
+      "date": "2026-10-15",
+      "q": "Q7",
+      "kind": "misconception",
+      "what": "Method right: 3 of 4 values equal the correct answers in degrees (173.06, -143.06, 36.94), so M1 M1 earned. Both A1 lost: the interval -pi < x < pi is in radians, so answers must be -2.50, -0.121, 0.645, 3.02 (3 s.f.); learner answered in degrees to 2 d.p. Also -6.55 is wrong (should be -6.94 deg = -0.121 rad). Same unit error as Q5: calculator in degree mode when the interval has pi.",
+      "closed": null
+    },
+    {
+      "topic": "wma12-p2-trigonometry",
+      "concept": "bracket-basics",
+      "date": "2026-10-15",
+      "q": "Q8",
+      "kind": "gap",
+      "what": "said I don't know",
+      "closed": null
     }
   ],
   "figures": {
@@ -2456,7 +3157,23 @@
     "Attachments/learn/trigonometry-for-a-level-maths-pure-1-p1-papers/cosine-rule.mp4": "manim",
     "Attachments/learn/trigonometry-for-a-level-maths-pure-1-p1-papers/compound-shape.mp4": "manim",
     "Attachments/learn/kazakh-history-from-nomadic-society-to-imperial-rule/seasonal-cycle.mp4": "manim",
-    "Attachments/learn/kazakh-history-from-nomadic-society-to-imperial-rule/dzungar-unity.mp4": "manim"
+    "Attachments/learn/kazakh-history-from-nomadic-society-to-imperial-rule/dzungar-unity.mp4": "manim",
+    "Attachments/learn/quadratics-discriminant/meet-all.mp4": "manim",
+    "Attachments/learn/quadratics-discriminant/disc-calc.mp4": "manim",
+    "Attachments/learn/quadratics-discriminant/ineq-sketch.mp4": "manim",
+    "Attachments/learn/circle-derivatives/circle-why.mp4": "manim",
+    "Attachments/learn/circle-derivatives/circle-chain.mp4": "manim",
+    "Attachments/learn/circle-derivatives/circle-slope.mp4": "manim",
+    "Attachments/learn/ai-engineer-prep-llm-mechanics/tok-embed.mp4": "manim",
+    "Attachments/learn/ai-engineer-prep-llm-mechanics/attn-mask.mp4": "manim",
+    "Attachments/learn/ai-engineer-prep-llm-mechanics/train-infer.mp4": "manim",
+    "Attachments/learn/wma12-p2-trigonometry/p1-derivation.mp4": "manim",
+    "Attachments/learn/wma12-p2-trigonometry/p1-graph.mp4": "manim",
+    "Attachments/learn/wma12-p2-trigonometry/finish-line.mp4": "manim",
+    "Attachments/learn/wma12-p2-trigonometry/bracket-example.mp4": "manim",
+    "Attachments/learn/wma12-p2-trigonometry/bracket-radians.mp4": "manim",
+    "Attachments/learn/wma12-p2-trigonometry/integral-rules.mp4": "manim",
+    "Attachments/learn/wma12-p2-trigonometry/circle-method.mp4": "manim"
   },
   "narrations": {
     "Attachments/learn/communication-and-networking-technologies-cambridge-as-cs-9608-ch2/csma-cd.mp4": [
@@ -2672,6 +3389,104 @@
       "In seventeen twenty three the Dzungars attack in spring when your auls are spread wide, and they are free on their other border, so many families flee in the Great Disaster.",
       "In seventeen twenty six the three Zhuzes meet at Ordabasy and unite under Abulkhair Khan with Batyrs Bogenbai, Kabanbai and Raiymbek.",
       "One united army can now plan together, so you win at Bulanty and then at Anyrakay, and the invasion is turned back."
+    ],
+    "Attachments/learn/quadratics-discriminant/meet-all.mp4": [
+      "You have a bendy curve and a straight line. Where they cross, both y values are the same, so you can set them equal.",
+      "With c equals minus one, the curve and the line cross in two places. Two yellow dots mark the two meeting points.",
+      "With c equals zero, they just touch in one place. This is called a tangent, and it means one repeated answer.",
+      "With c equals one, they miss each other completely. No crossing means no real answer. Two crossings need a positive discriminant."
+    ],
+    "Attachments/learn/quadratics-discriminant/disc-calc.mp4": [
+      "Why set them equal. A crossing point sits on both graphs, so its x makes both y formulas give the same number.",
+      "Move all to one side to get standard form. Minus four x and minus c from both sides gives x squared plus two c minus four times x plus four minus c equals zero.",
+      "Now read a, b, and small c. A is one, b is two c minus four, small c is four minus c. You must do this step before the discriminant.",
+      "The discriminant is b squared minus four a c. Put the pieces in, expand, and tidy to get four c times c minus three. Two points need this bigger than zero."
+    ],
+    "Attachments/learn/quadratics-discriminant/ineq-sketch.mp4": [
+      "You need four c times c minus three bigger than zero. This is a smile parabola in c, with roots where it hits zero.",
+      "The roots are c equals zero and c equals three. They split the line into three zones.",
+      "Test minus one gives plus sixteen, so left zone is good. One gives minus eight, so middle is bad. Four gives plus sixteen, so right is good.",
+      "Keep the good zones. The answer is c less than zero or c bigger than three. Strictly bigger, because distinct means not equal."
+    ],
+    "Attachments/learn/circle-derivatives/circle-why.mp4": [
+      "A circle is not one function. For most x values there are two y values, a top half and a bottom half.",
+      "Solving for y gives two formulas with plus minus square root. That is slow and you must track both halves.",
+      "Implicit way keeps one equation. You treat y as a function of x and differentiate both sides at once."
+    ],
+    "Attachments/learn/circle-derivatives/circle-chain.mp4": [
+      "Differentiate both sides with respect to x. The right side 85 is constant, so its derivative is zero.",
+      "The x part gives two times x plus one. The y part needs the chain rule, so you get two times y minus two times dy dx.",
+      "That is the key step. Every y block keeps a dy dx factor, because y depends on x."
+    ],
+    "Attachments/learn/circle-derivatives/circle-slope.mp4": [
+      "Solve for dy dx. Divide both sides by two times y minus two to get minus x plus one over y minus two.",
+      "This is the shortcut. For any circle x minus h squared plus y minus k squared, the slope is minus x minus h over y minus k.",
+      "When y equals two the bottom is zero. The tangent is vertical there, so the slope is undefined, not zero."
+    ],
+    "Attachments/learn/ai-engineer-prep-llm-mechanics/tok-embed.mp4": [
+      "You type a sentence. The model cannot read letters. It must cut your text into small known pieces first.",
+      "Rare words are split into subword units. A long word like untranslatable becomes three known pieces.",
+      "Each piece gets a number. That number points to a list of values. That list is called a vector.",
+      "So words become pieces, pieces become numbers, numbers become vectors. Vectors are what the model really reads."
+    ],
+    "Attachments/learn/ai-engineer-prep-llm-mechanics/attn-mask.mp4": [
+      "Each word asks a question. That question is called a query. It looks back at all past words.",
+      "The model scores each past word. Good matches get high scores. Future words are blocked by a mask.",
+      "Scores pick a mix of past meanings. That mix becomes the new meaning of the word.",
+      "Every word checks every past word. Ten words need one hundred checks. Cost grows as n squared.",
+      "Shortcuts carry the old meaning forward around attention. Those shortcuts are called residuals."
+    ],
+    "Attachments/learn/ai-engineer-prep-llm-mechanics/train-infer.mp4": [
+      "In training the model reads whole sentences at once. No cache is used. A cache here can cause errors.",
+      "In real use the model writes one piece at a time. Each new piece needs all past pieces.",
+      "Without a cache it re-reads everything each time. Cost per step grows with length.",
+      "With a cache it saves past keys and values. Each step only reads the new piece. Memory grows but work stays low."
+    ],
+    "Attachments/learn/wma12-p2-trigonometry/p1-derivation.mp4": [
+      "This is the real question from January twenty twenty four. Sine x times tan x equals five. Two different trig functions are mixed, so we cannot solve it yet.",
+      "First step. Replace tan x by sine x over cosine x. You must write this line, because it earns the first mark.",
+      "Multiply both sides by cosine x. Now the left side is just sine squared x.",
+      "Now swap sine squared x for one minus cosine squared x. This earns the second mark, and only cosine is left.",
+      "Move every term to one side. This is a quadratic in cosine x. Writing it correctly earns the third mark.",
+      "Solve it with your calculator. One root is about zero point one nine three. The other is minus five point two, but cosine can never go below minus one, so we reject it."
+    ],
+    "Attachments/learn/wma12-p2-trigonometry/p1-graph.mp4": [
+      "Here is the graph of cosine x, from zero to three hundred sixty degrees.",
+      "Draw a horizontal line at height zero point one nine three. It cuts the curve in two places, so there are two answers.",
+      "The first cut is at seventy eight point nine degrees. That is what inverse cosine on your calculator gives.",
+      "The second cut is the mirror image: three hundred sixty minus seventy eight point nine, which is two hundred eighty one point one degrees. Forgetting it loses the last mark.",
+      "Now the other root, minus five point two. It sits far below the curve, so the line never touches it. No angle exists, so we reject it."
+    ],
+    "Attachments/learn/wma12-p2-trigonometry/finish-line.mp4": [
+      "Read the interval before you touch the calculator. Here it runs from zero to pi, so the green bar is where answers are allowed, and the answer must be in radians.",
+      "We solve cosine x equals minus one third. In radian mode the calculator says one point nine one. In degree mode it says one hundred nine point five, the same angle in the wrong unit, so cross it out.",
+      "The second angle is two pi minus one point nine one, which is four point three seven. It lands outside the green bar, so we throw it away.",
+      "So there is exactly one answer, one point nine one. Interval first, unit second, and check every angle at the end."
+    ],
+    "Attachments/learn/wma12-p2-trigonometry/bracket-example.mp4": [
+      "Call the whole bracket u. If x runs from minus one hundred eighty to one hundred eighty, then u runs from minus three hundred thirty to three hundred ninety. That is a longer interval, shown by the green bar.",
+      "Now solve sine u equals zero point five on that longer interval. The yellow line cuts the curve at thirty degrees and one hundred fifty degrees.",
+      "Add or subtract three hundred sixty to find more. Minus two hundred ten is inside the bar, so we keep it. Minus three thirty and three ninety sit on the edge, and the question is strict, so we reject them.",
+      "Last step: turn each u back into x. Subtract thirty, then divide by two. That gives minus one hundred twenty, zero and sixty degrees."
+    ],
+    "Attachments/learn/wma12-p2-trigonometry/bracket-radians.mp4": [
+      "This is the syllabus example: sine of x plus pi over six equals one half, for x from minus pi to pi. Call the bracket u. Adding pi over six to both ends gives the green bar.",
+      "Sine u equals one half is a special angle. The first solution is pi over six. The second is pi minus pi over six, which is five pi over six. No calculator needed.",
+      "Adding or subtracting two pi gives minus eleven pi over six and minus seven pi over six. Both sit left of the green bar, so we reject them.",
+      "Now subtract pi over six from each u. That gives x equals zero and x equals two pi over three. They are in radians, because the interval has pi."
+    ],
+    "Attachments/learn/wma12-p2-trigonometry/integral-rules.mp4": [
+      "The blue area under two to the five minus root x, from five to seven, is the answer to part a. It is about eleven point seven nine.",
+      "Two to the six minus root x is two times two to the five minus root x. Every height doubles, so the whole area doubles: two times eleven point seven nine.",
+      "Now add three to every height. The curve lifts by three. The new area is the old blue area plus a yellow rectangle, three high and two wide.",
+      "That rectangle has area three times two, which is six. So the answer is eleven point seven nine plus six, seventeen point seven nine."
+    ],
+    "Attachments/learn/wma12-p2-trigonometry/circle-method.mp4": [
+      "Join P to Q and Q to R. The gradients are eleven over two and minus two over eleven. Multiply them to get minus one, so the angle at Q is ninety degrees.",
+      "A ninety degree angle in a circle sits on a diameter. So P R is a diameter, and the centre is its midpoint: eight, minus six.",
+      "The radius is the distance from the centre to any point. To P it is fifteen across and twenty up, so the radius is twenty five.",
+      "The point furthest from Q is the other end of the diameter through Q. Step from Q through the centre the same distance again, and S is one, eighteen.",
+      "A tangent is perpendicular to the radius, which has gradient minus twenty four over seven. So the tangent has gradient seven over twenty four. Its equation is seven x minus twenty four y plus four twenty five equals zero."
     ]
   }
 }

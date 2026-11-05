@@ -1,0 +1,146 @@
+<!doctype html>
+<!-- Non-computer test of the BX kit: the Silk Road (history / geography). -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="gsap.min.js"></script>
+    <script src="bx.js"></script>
+    <link rel="stylesheet" href="bx.css" />
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="LEARN_TOTAL" data-width="1920" data-height="1080">
+      <div id="stage" class="clip" data-start="0" data-duration="LEARN_TOTAL" data-track-index="0">
+        <script type="application/json" id="narration">[
+          "The Silk Road was not one road, but a web of trade routes that linked China with the Mediterranean world.",
+          "In the second century BC, the Han dynasty opened routes to the west, starting from its capital, Chang'an.",
+          "Caravans set out west, around the edges of the Taklamakan Desert and over the high Pamir mountains.",
+          "Then they reached oasis cities like Samarkand, where travellers could rest, trade, and take on fresh supplies.",
+          "Few merchants travelled the whole way. Goods passed from trader to trader and city to city, like a relay.",
+          "Silk and paper moved west, toward Persia and the Mediterranean. Horses, glass and silver moved east, toward China.",
+          "Ideas travelled too. Buddhism spread from India along the same routes and into China.",
+          "This overland trade kept going, on one route or another, for well over a thousand years.",
+          "By the fifteenth century, more and more of the trade went by sea, and the old overland routes declined."
+        ]</script>
+        <script type="application/json" id="pauses">{"4": 0.8, "6": 0.8}</script>
+      </div>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      BX.init(tl, { bg: "studio", section: "History: trade routes", basis: "Schematic map: coastlines, city positions and routes are simplified. Dates rounded." });
+      const C = BX.C;
+      {
+        // ---- the map (world px, west on the left) ----
+        const LAND = "#6e5b3e", SEA = "#173a56", DES = "#c9a35a", MTN = "#8d939a";
+        BX.S("rect", { x: -2000, y: -1200, width: 7600, height: 4000, fill: SEA });
+        BX.S("path", { fill: LAND, stroke: "rgba(255,255,255,0.18)", "stroke-width": 3, d: "M -2000 -1000 H 5600 V 1000 L 3600 1000 L 3350 1050 L 3150 1250 L 2700 1180 L 2400 1300 L 2150 1380 L 1950 1150 L 1600 1150 L 1300 1100 L 1150 1300 L 950 1250 L 900 950 L -2000 950 Z" });
+        const med = BX.shape("M -900 600 Q 0 520 300 590 Q 520 560 760 700 Q 700 820 420 800 Q 0 860 -900 820 Z", "#1f4f75", { rim: "rgba(255,255,255,0.18)" });
+        const desert = BX.shape("M 2460 700 C 2460 605 2880 605 2880 700 C 2880 790 2460 790 2460 700 Z", DES, { rim: "rgba(255,255,255,0.25)" });
+        const mtns = BX.S("g", {});
+        [[2110, 690, 70], [2170, 620, 90], [2240, 700, 80], [2300, 610, 85], [2200, 540, 70], [2340, 690, 60]].forEach(([x, y, h]) => {
+          BX.shape(`M ${x - h * 0.8} ${y} L ${x} ${y - h * 1.3} L ${x + h * 0.8} ${y} Z`, MTN, { parent: mtns, rim: "rgba(255,255,255,0.3)" });
+          BX.S("path", { d: `M ${x - h * 0.25} ${y - h * 0.9} L ${x} ${y - h * 1.3} L ${x + h * 0.25} ${y - h * 0.9} Z`, fill: "#eef2f5" }, mtns);
+        });
+        BX.obstacle([desert, mtns, med]);
+
+        // cities
+        const P = { changan: [3280, 720], dunhuang: [2980, 640], kashgar: [2400, 650], samarkand: [1900, 620], persia: [1450, 730], antioch: [790, 700], india: [2150, 1180] };
+        const dots = {};
+        for (const k of ["changan", "dunhuang", "kashgar", "samarkand", "persia", "antioch"]) {
+          const [x, y] = P[k]; dots[k] = BX.S("circle", { cx: x, cy: y, r: 18, fill: "#f2f5f7", stroke: "#1a1d20", "stroke-width": 5 });
+          BX.obstacle([[x - 24, y - 24, 48, 48]]); BX.hideNow(dots[k]);
+        }
+        // routes (orange = what moves). Long curved arrows: no bounding-box obstacle (it would cover the whole map)
+        const north = [P.changan, P.dunhuang, [2700, 560], P.kashgar, [2150, 590], P.samarkand, P.persia, [1100, 720], P.antioch];
+        const WIDE = [700, 250, 2700, 1400];
+
+        // ---- line 0: a web of routes ----
+        BX.cam.frame(null, WIDE, { pad: 0.08 });
+        const ttl = BX.title(T(0, 0), "The Silk Road", { y: 130 });
+        ttl.hide(T(0, 0.3));
+        const rN = BX.arrow(T(0, 0.35), north, { curve: true, w: 18, dur: 1.6, obstacle: false });
+        const rS = BX.arrow(T(0, 0.45), [P.dunhuang, [2700, 830], P.kashgar], { curve: true, w: 18, dur: 1.0, obstacle: false });
+        BX.show(T(0, 0.4), Object.values(dots), { stagger: 0.08 });
+        const kC = BX.callout(T(0, 0.7), 3350, 600, "China");
+        const kM = BX.callout(T(0, 0.88), 400, 700, "Mediterranean", { avoid: [med] });
+
+        // ---- line 1: Han dynasty, Chang'an ----
+        kC.hide(T(1, 0)); kM.hide(T(1, 0));
+        BX.cam.frame(T(1, 0), [2800, 460, 650, 380], { max: 1.8 });
+        const lHan = BX.label(T(1, 0.3), 3130, 520, "Han dynasty", { size: 60, color: C.text });
+        const lensC = BX.lens(T(1, 0.82), P.changan[0], P.changan[1], 60, "#f2c27a");
+        const kCh = BX.callout(T(1, 0.85), P.changan[0], P.changan[1], "Chang'an", { avoid: [[3050, 450, 330, 80]] });
+        BX.packet(T(1, 0.55), [P.changan, [3130, 700], P.dunhuang], C.move, 1.6, 16);
+
+        // ---- line 2: desert and mountains ----
+        lHan.hide(T(2, 0)); kCh.hide(T(2, 0)); BX.hide(T(2, 0), lensC);
+        BX.cam.frame(T(2, 0), [2050, 470, 1000, 420], { max: 1.6 });
+        BX.packet(T(2, 0.1), [P.dunhuang, [2700, 830], P.kashgar], C.move, 3.2, 16);
+        BX.packet(T(2, 0.2), [P.dunhuang, [2700, 560], P.kashgar], C.move, 3.0, 16);
+        const kT = BX.callout(T(2, 0.45), 2670, 700, "Taklamakan Desert", { avoid: [desert] });
+        const kP = BX.callout(T(2, 0.82), 2230, 600, "Pamir Mountains", { avoid: [mtns, desert] });
+
+        // ---- line 3: Samarkand ----
+        kT.hide(T(3, 0)); kP.hide(T(3, 0));
+        BX.cam.frame(T(3, 0), [1600, 470, 800, 360], { max: 1.6 });
+        BX.packet(T(3, 0.05), [P.kashgar, [2150, 590], P.samarkand], C.move, 2.0, 16);
+        const kS = BX.callout(T(3, 0.3), P.samarkand[0], P.samarkand[1], "Samarkand", { avoid: [mtns] });
+        tl.to(dots.samarkand, { attr: { fill: C.good, r: 26 }, duration: 0.3 }, T(3, 0.55));
+        const lRest = BX.label(T(3, 0.62), P.samarkand[0] - 140, P.samarkand[1] + 120, "Rest", { size: 52, color: C.good });
+        const lTrade = BX.label(T(3, 0.74), P.samarkand[0] - 20, P.samarkand[1] + 120, "Trade", { size: 52, color: C.good });
+        const lSup = BX.label(T(3, 0.88), P.samarkand[0] + 130, P.samarkand[1] + 120, "Supplies", { size: 52, color: C.good });
+
+        // ---- line 4: relay trade ----
+        kS.hide(T(4, 0)); [lRest, lTrade, lSup].forEach((l) => l.hide(T(4, 0)));
+        tl.to(dots.samarkand, { attr: { fill: "#f2f5f7", r: 18 }, duration: 0.3 }, T(4, 0));
+        BX.cam.frame(T(4, 0), WIDE, { pad: 0.08 });
+        const legs = [[P.changan, P.dunhuang], [P.dunhuang, [2700, 560], P.kashgar], [P.kashgar, [2150, 590], P.samarkand], [P.samarkand, P.persia], [P.persia, [1100, 720], P.antioch]];
+        const ends = ["dunhuang", "kashgar", "samarkand", "persia", "antioch"];
+        legs.forEach((pts, i) => {
+          const t0 = T(4, 0.35) + i * 0.95;
+          BX.packet(t0, pts, C.move, 0.9, 30);
+          tl.to(dots[ends[i]], { attr: { fill: C.good }, duration: 0.15 }, t0 + 0.85);
+          tl.to(dots[ends[i]], { attr: { fill: "#f2f5f7" }, duration: 0.3 }, t0 + 1.6);
+        });
+        const RG = "#e6dbc6";
+        [["China", 3150, 470], ["Central Asia", 1950, 450], ["Persia", 1300, 470]].forEach(([n, x, y], i) => BX.label(T(4, 0) + 2.1 + i * 0.25, x, y, n, { anchor: "center", size: 56, color: RG }));
+        const kR = BX.callout(T(4, 0.88), P.persia[0], P.persia[1], "Relay", { avoid: [[1100, 600, 900, 200]] });
+
+        // ---- line 5: goods both ways ----
+        kR.hide(T(5, 0));
+        const kSilk = BX.callout(T(5, 0.05), P.changan[0], P.changan[1], "Silk, paper");
+        BX.packet(T(5, 0.12), north, C.move, 3.6, 30);
+        BX.packet(T(5, 0.2), north, C.move, 3.6, 22);
+        kSilk.hide(T(5, 0.55));
+        const kH = BX.callout(T(5, 0.6), P.samarkand[0], P.samarkand[1], "Horses", { avoid: [mtns] });
+        const kG = BX.callout(T(5, 0.72), P.antioch[0], P.antioch[1], "Glass, silver", { avoid: [med] });
+        BX.packet(T(5, 0.65), [P.samarkand, [2150, 590], P.kashgar, [2700, 560], P.dunhuang, P.changan], C.move, 2.6, 26);
+        BX.packet(T(5, 0.75), north.slice().reverse(), C.move, 3.2, 26);
+
+        // ---- line 6: Buddhism from India ----
+        kH.hide(T(6, 0)); kG.hide(T(6, 0));
+        const kI = BX.callout(T(6, 0.6), P.india[0], P.india[1], 2330, 1290, "India");
+        const bud1 = BX.arrow(T(6, 0.3), [P.india, [2250, 900], [2380, 700]], { curve: true, color: C.good, w: 12, dur: 0.9, obstacle: false });
+        const bud2 = BX.arrow(T(6, 0.62), [[2440, 640], [2700, 540], [2980, 610], [3250, 700]], { curve: true, color: C.good, w: 12, dur: 1.2, obstacle: false });
+        const kB = BX.callout(T(6, 0.42), 2265, 880, 2000, 830, "Buddhism", { color: C.good });
+
+        // ---- line 7: a thousand years on a timeline ----
+        kI.hide(T(7, 0)); kB.hide(T(7, 0));
+        const ax = BX.axis(T(7, 0.05), 950, 1560, 2250, { from: -200, to: 1600, step: 300, fmt: (v) => (v < 0 ? -v + " BC" : v + " AD"), size: 44 });
+        const m1 = ax.mark(T(7, 0.3), -130, "Routes open", { color: C.good });
+        BX.bar(T(7, 0.55), ax.at(-130), 1548, ax.at(1450) - ax.at(-130), 24, C.move, { dur: 2.2 });
+
+        // ---- line 8: sea routes take over ----
+        const sea = BX.arrow(T(8, 0.3), [[3330, 1070], [3050, 1360], [2150, 1470], [1550, 1320], [1200, 1330]], { curve: true, w: 14, color: C.move, dur: 1.4, obstacle: false });
+        BX.packet(T(8, 0.45), [[3330, 1070], [3050, 1360], [2150, 1470], [1550, 1320], [1200, 1330]], C.move, 2.6, 30);
+        const kSea = BX.callout(T(8, 0.38), 2600, 1430, "Sea routes", { avoid: [[1900, 1380, 1300, 140]] });
+        m1.hide(T(8, 0.25));
+        ax.mark(T(8, 0.3), 1450, "Sea trade grows", { color: C.bad });
+        rN.color(T(8, 0.75), C.bad); rS.color(T(8, 0.75), C.bad);
+        BX.dim(T(8, 0.88), [rN.g, rS.g, bud1.g, bud2.g], 0.35);
+      }
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
