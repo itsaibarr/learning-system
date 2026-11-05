@@ -1,0 +1,167 @@
+<!doctype html>
+<!-- Non-DRAM test of the BX kit: how an AI agent works (the agent loop). -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="gsap.min.js"></script>
+    <script src="bx.js"></script>
+    <link rel="stylesheet" href="bx.css" />
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="LEARN_TOTAL" data-width="1920" data-height="1080">
+      <div id="stage" class="clip" data-start="0" data-duration="LEARN_TOTAL" data-track-index="0">
+        <script type="application/json" id="narration">[
+          "An AI agent is a language model running in a loop, with tools it can call and a memory of everything that has happened so far.",
+          "That memory is the context window. It holds the instructions, the user's request, and every step the agent has taken.",
+          "Each turn, the model reads the whole window and writes exactly one thing: either a final answer, or a request to use a tool.",
+          "Here it asks for a web search. The model cannot search by itself, so the framework runs the tool and waits for the result.",
+          "The result is pasted onto the end of the context window, so on the next turn the model can see what it found.",
+          "Then the loop repeats. The model reads everything again, decides to run some code, and the window grows by another step.",
+          "The loop stops when the model writes a final answer, or when the framework hits a limit, like a maximum number of steps.",
+          "So an agent framework is the loop, the tools and the rules wrapped around a model that, on its own, only predicts text."
+        ]</script>
+        <script type="application/json" id="pauses">{"1": 0.8, "4": 0.8}</script>
+      </div>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      BX.init(tl, { bg: "board", section: "How agents work", basis: "Illustrative: a generic agent loop, not one specific framework. Step limit of 10 is an example." });
+      const C = BX.C;
+      {
+        // ---- layout (world px) ----
+        const CHX = 640, CHY = 400, CH = 300;                // model chip centre and size
+        const TY = 800, TH = 70, X0 = 170, P = 54, CW = 44;  // context tape: y, height, first x, pitch, cell width
+        const cx = (i) => X0 + i * P;                        // left edge of cell i
+        const TOOLX = 1240, TW = 400, TOOLH = 130;
+        const tools = [["Web search", 170], ["Code runner", 375], ["Files", 580]];
+
+        // the model: a chip with pins and a die
+        const chip = BX.S("g", {});
+        for (let k = 0; k < 9; k++) {
+          const o = CHX - CH / 2 + 30 + k * 30;
+          BX.part(o - 6, CHY - CH / 2 - 22, 12, 22, "copper", { parent: chip, rx: 2 });
+          BX.part(o - 6, CHY + CH / 2, 12, 22, "copper", { parent: chip, rx: 2 });
+          BX.part(CHX - CH / 2 - 22, o - 6 + (CHY - CHX), 22, 12, "copper", { parent: chip, rx: 2 });
+          BX.part(CHX + CH / 2, o - 6 + (CHY - CHX), 22, 12, "copper", { parent: chip, rx: 2 });
+        }
+        BX.part(CHX - CH / 2, CHY - CH / 2, CH, CH, "steel", { parent: chip, rx: 18 });
+        const die = BX.S("rect", { x: CHX - 90, y: CHY - 90, width: 180, height: 180, rx: 10, fill: "#20262c", stroke: "#56616b", "stroke-width": 3 }, chip);
+        const dieGlow = BX.S("rect", { x: CHX - 90, y: CHY - 90, width: 180, height: 180, rx: 10, fill: C.green, opacity: 0 }, chip);
+
+        // the context window: a tape of token cells
+        const slots = [], cells = [];
+        for (let i = 0; i < 27; i++) {
+          slots.push(BX.S("rect", { x: cx(i), y: TY, width: CW, height: TH, rx: 6, fill: "none", stroke: "#4a535b", "stroke-width": 2 }));
+          cells.push(BX.S("rect", { x: cx(i), y: TY, width: CW, height: TH, rx: 6, fill: C.steel }));
+        }
+        const fill = (from, to, col, t, outline) => {
+          const els = cells.slice(from, to);
+          els.forEach((e) => { e.setAttribute("fill", outline ? "#2a2f34" : col); if (outline) { e.setAttribute("stroke", col); e.setAttribute("stroke-width", 5); } });
+          BX.hideNow(els); tl.to(els, { opacity: 1, duration: 0.25, stagger: 0.08 }, t); return els;
+        };
+        BX.hideNow([...slots, ...cells]);
+
+        // tools: grey functional blocks joined to the chip by orange buses
+        const plates = tools.map(([n, y]) => BX.plate(TOOLX, y, TW, TOOLH, n, { size: 48 }));
+        BX.hideNow(plates);
+        const busY = [[CHY - 70, 170 + 65], [CHY, 375 + 65], [CHY + 70, 580 + 65]];
+
+        // step counter (screen space, top right)
+        const step = BX.readout(1300, 72, 0, (v) => "Step " + Math.round(v) + " / 10", { size: 52, t: T(4, 0) });
+        BX.hideNow(step.el);
+
+        // ---- line 0: what an agent is ----
+        BX.cam.set(910, 520, 1.08);
+        const ttl = BX.title(T(0, 0), "The Agent Loop", { y: 120 });
+        ttl.hide(T(0, 0.3));
+        BX.hideNow(chip); BX.show(T(0, 0.2), chip, { pop: true });
+        const kM = BX.callout(T(0, 0.25), CHX - 60, CHY - 60, "Language model", { avoid: [[CHX - CH / 2 - 22, CHY - CH / 2 - 22, CH + 44, CH + 44]] });
+        // the loop: read up, write down
+        const up = BX.S("path", { d: `M${CHX - 70} ${TY - 20} V${CHY + CH / 2 + 40}`, stroke: C.orange, "stroke-width": 8, fill: "none", "marker-end": "" });
+        const dn = BX.S("path", { d: `M${CHX + 70} ${CHY + CH / 2 + 40} V${TY - 20}`, stroke: C.orange, "stroke-width": 8, fill: "none" });
+        BX.draw(T(0, 0.45), up, 0.6); BX.draw(T(0, 0.5), dn, 0.6);
+        const ah1 = BX.S("path", { d: `M${CHX - 92} ${CHY + CH / 2 + 66} L${CHX - 70} ${CHY + CH / 2 + 36} L${CHX - 48} ${CHY + CH / 2 + 66} Z`, fill: C.orange });
+        const ah2 = BX.S("path", { d: `M${CHX + 48} ${TY - 46} L${CHX + 70} ${TY - 16} L${CHX + 92} ${TY - 46} Z`, fill: C.orange });
+        BX.show(T(0, 0.55), [ah1, ah2]);
+        kM.hide(T(0, 0.6));
+        busY.forEach(([a, b], k) => BX.bus(T(0, 0.62 + k * 0.03), [[CHX + CH / 2 + 22, a], [1040, a], [1040, b], [TOOLX, b]], { n: 3 }));
+        BX.show(T(0, 0.65), plates, { pop: true });
+        tl.to(slots, { opacity: 1, duration: 0.3, stagger: 0.02 }, T(0, 0.85));
+
+        // ---- line 1: the context window ----
+        BX.cam.frame(T(1, 0), [X0 - 40, TY - 230, 1000, 360]);
+        const kW = BX.callout(T(1, 0.1), cx(0) + 22, TY, cx(1), TY - 120, "Context window", { size: 64 });
+        fill(0, 6, C.steel, T(1, 0.35));
+        const lI = BX.label(T(1, 0.38), cx(0), TY + TH + 70, "Instructions", { size: 48, color: C.text });
+        fill(6, 10, C.silver, T(1, 0.55));
+        const lR = BX.label(T(1, 0.58), cx(6) + 10, TY + TH + 70, "Request", { size: 48, color: C.text });
+        kW.hide(T(1, 0.8));
+        const kS = BX.callout(T(1, 0.82), cx(13), TY + TH / 2, "Steps so far", { avoid: [[X0, TY, 27 * P, TH]] });
+
+        // ---- line 2: read the whole window, write one thing ----
+        kS.hide(T(2, 0)); BX.hide(T(2, 0), [lI.el, lR.el]);
+        BX.cam.move(T(2, 0), 910, 520, 1.08, 1.8);
+        BX.particles(T(2, 0.1), [cx(5), TY + 10], [CHX - 70, CHY + 60], 3.2, { n: 50, spread: 120, color: C.cyan });
+        BX.box(T(2, 0.12), X0 - 12, TY - 12, 10 * P + 16, TH + 24, C.cyan);
+        tl.to(dieGlow, { opacity: 0.45, duration: 0.4, yoyo: true, repeat: 3 }, T(2, 0.4));
+        const oA = BX.label(T(2, 0.72), 150, 300, "Final answer", { size: 52, color: C.green });
+        const oT = BX.label(T(2, 0.88), 150, 420, "Tool call", { size: 52, color: C.orange });
+        const orT = BX.label(T(2, 0.8), 250, 360, "or", { size: 40, color: C.muted });
+
+        // ---- line 3: tool call, the framework runs it ----
+        BX.dim(T(3, 0.05), [oA.el, orT.el], 0.25);
+        const call1 = fill(10, 12, C.orange, T(3, 0.08), true);
+        BX.packet(T(3, 0.12), [[CHX + CH / 2 + 22, busY[0][0]], [1040, busY[0][0]], [1040, busY[0][1]], [TOOLX, busY[0][1]]], C.orange, 1.4, 14);
+        BX.color(T(3, 0.25), plates[0], C.orange, 0.3);
+        tl.to(plates[0], { borderColor: C.orange, boxShadow: "0 0 30px " + C.orange, duration: 0.3 }, T(3, 0.25));
+        BX.hide(T(3, 0.45), [oA.el, oT.el, orT.el]);
+        const fw = BX.box(T(3, 0.55), 110, 60, 1600, 900, C.cyan, { fill: 0.03, sw: 4 });
+        const kF = BX.callout(T(3, 0.6), 110, 360, "Framework", { avoid: [[CHX - CH / 2 - 22, CHY - CH / 2 - 22, CH + 44, CH + 44]] });
+        BX.flow(T(3, 0.75), `M${TOOLX + 30} ${170 + TOOLH + 12} H${TOOLX + TW - 30}`, C.orange, 2.5, { width: 6 });
+
+        // ---- line 4: the result goes onto the end of the window ----
+        kF.hide(T(4, 0));
+        BX.packet(T(4, 0.05), [[TOOLX + TW / 2, 170 + TOOLH], [TOOLX + TW / 2, 720], [cx(13) + 22, 720], [cx(13) + 22, TY]], C.orange, 1.6, 14);
+        tl.to(plates[0], { borderColor: "#5d646b", boxShadow: "0 10px 24px rgba(0,0,0,0.5)", color: C.text, duration: 0.3 }, T(4, 0.3));
+        fill(12, 16, C.orange, T(4, 0.3));
+        const kRes = BX.callout(T(4, 0.38), cx(14) + 22, TY + TH, cx(16), TY + TH + 80, "Tool result");
+        BX.show(T(4, 0.6), step.el); step.to(T(4, 0.6), 1, 0.4);
+        BX.particles(T(4, 0.7), [cx(9), TY + 10], [CHX - 70, CHY + 60], 2.6, { n: 40, spread: 160, color: C.cyan, seed: 3 });
+
+        // ---- line 5: the loop repeats with a second tool ----
+        kRes.hide(T(5, 0));
+        BX.particles(T(5, 0.25), [cx(10), TY + 10], [CHX - 70, CHY + 60], 2.4, { n: 40, spread: 200, color: C.cyan, seed: 5 });
+        tl.to(dieGlow, { opacity: 0.45, duration: 0.3, yoyo: true, repeat: 1 }, T(5, 0.35));
+        fill(16, 18, C.orange, T(5, 0.5), true);
+        BX.packet(T(5, 0.52), [[CHX + CH / 2 + 22, busY[1][0]], [TOOLX, busY[1][1]]], C.orange, 0.9, 14);
+        tl.to(plates[1], { borderColor: C.orange, boxShadow: "0 0 30px " + C.orange, color: C.orange, duration: 0.3 }, T(5, 0.6));
+        BX.packet(T(5, 0.72), [[TOOLX + TW / 2, 375 + TOOLH], [TOOLX + TW / 2, 720], [cx(19) + 22, 720], [cx(19) + 22, TY]], C.orange, 1.3, 14);
+        tl.to(plates[1], { borderColor: "#5d646b", boxShadow: "0 10px 24px rgba(0,0,0,0.5)", color: C.text, duration: 0.3 }, T(5, 0.9));
+        fill(18, 22, C.orange, T(5, 0.88));
+        step.to(T(5, 0.9), 2, 0.4);
+
+        // ---- line 6: two ways to stop ----
+        tl.to(dieGlow, { opacity: 0.5, duration: 0.3 }, T(6, 0.2));
+        fill(22, 26, C.green, T(6, 0.3));
+        const kA = BX.callout(T(6, 0.35), cx(24) + 22, TY + TH, cx(23), TY + TH + 80, "Final answer", { color: C.green });
+        tl.to(dieGlow, { opacity: 0, duration: 0.4 }, T(6, 0.6));
+        const lim = BX.box(T(6, 0.72), 1280, 72, 340, 76, C.red);
+        BX.color(T(6, 0.72), step.el, C.red, 0.3);
+        const kL = BX.callout(T(6, 0.78), 1280, 110, "Step limit", { color: C.red, avoid: [[1280, 72, 340, 76], [CHX - CH / 2 - 22, CHY - CH / 2 - 22, CH + 44, CH + 44]] });
+
+        // ---- line 7: what the framework is ----
+        kA.hide(T(7, 0)); kL.hide(T(7, 0)); BX.hide(T(7, 0), lim); BX.color(T(7, 0), step.el, C.green, 0.3);
+        const kLoop = BX.callout(T(7, 0.2), CHX + 70, 640, "Loop", { avoid: [[CHX - CH / 2 - 22, CHY - CH / 2 - 22, CH + 44, CH + 44], [X0, TY, 27 * P, TH]] });
+        tl.to(plates, { borderColor: C.orange, boxShadow: "0 0 26px " + C.orange, duration: 0.3, stagger: 0.1 }, T(7, 0.3));
+        tl.to(fw, { attr: { "stroke-width": 9 }, duration: 0.4 }, T(7, 0.42));
+        const kRules = BX.callout(T(7, 0.45), 1710, 960, "Rules", { avoid: [[TOOLX, 170, TW, 540]] });
+        kLoop.hide(T(7, 0.6)); kRules.hide(T(7, 0.62));
+        tl.to(plates, { borderColor: "#5d646b", boxShadow: "0 10px 24px rgba(0,0,0,0.5)", duration: 0.3 }, T(7, 0.62));
+        const kP = BX.callout(T(7, 0.75), CHX + 60, CHY - 60, "Predicts text", { avoid: [[CHX - CH / 2 - 22, CHY - CH / 2 - 22, CH + 44, CH + 44]] });
+      }
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

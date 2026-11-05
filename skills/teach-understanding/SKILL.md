@@ -38,8 +38,9 @@ profile NEXT names (`exams/<board>.md`).
    cites real past-paper questions.
 9. **Every segment gets a narrated animation drawn for its topic.** Maths with a formula: a Manim scene
    (`references/visuals.md`). Everything else, including every history, science-of-things, systems and
-   process topic: a HyperFrames HTML scene (`references/hyperframes.md`), one focus per beat and one caption
-   that says what happened. The engine rejects a Manim scene with no formula in it. Audio-first either way.
+   process topic, in any subject: a HyperFrames HTML scene built with the BX kit (`references/hyperframes.md`; draw the
+   real thing of that subject, circuits only for electronics): the voice
+   explains, short labels sit on the parts, every clause gets a visual event. The engine rejects a Manim scene with no formula in it. Audio-first either way.
 
 ## Papers
 

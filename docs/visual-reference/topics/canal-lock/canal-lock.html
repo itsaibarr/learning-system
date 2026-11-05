@@ -1,0 +1,164 @@
+<!doctype html>
+<!-- Non-computer test of the BX kit: how a canal lock raises a boat (side cutaway). -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="gsap.min.js"></script>
+    <script src="bx.js"></script>
+    <link rel="stylesheet" href="bx.css" />
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="LEARN_TOTAL" data-width="1920" data-height="1080">
+      <div id="stage" class="clip" data-start="0" data-duration="LEARN_TOTAL" data-track-index="0">
+        <script type="application/json" id="narration">[
+          "A canal lock lifts a boat from a lower stretch of water to a higher one, using nothing but gravity and two sets of gates.",
+          "Here the upper canal sits about four metres above the lower one. Between them is the lock chamber, closed at each end by heavy wooden gates.",
+          "The boat sails in from below, and the lower gates close behind it. The upper gates stay shut, pressed hard by the higher water.",
+          "Now the lock keeper opens the paddles, small sluices at the upper end, and water from the upper canal pours into the chamber.",
+          "No pump is needed. Gravity pulls the water down through the tunnel, and the chamber slowly begins to fill.",
+          "As the water rises, the boat floats up with it, metre by metre, until the chamber matches the upper canal.",
+          "Once the levels are equal, the water stops pressing on the upper gates, and they swing open with a gentle push.",
+          "The boat sails out at the higher level. To go back down, the keeper simply runs the same steps in reverse."
+        ]</script>
+        <script type="application/json" id="pauses">{"1": 0.8}</script>
+      </div>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      BX.init(tl, { bg: "studio", section: "Canal engineering", basis: "Illustrative cross-section: the 4 m rise, depths and sluice layout are examples, not one real lock." });
+      const C = BX.C;
+      {
+        // ---- layout (world px). 1 m = 55 px. Lower water y 700, upper water y 480 (4 m higher) ----
+        const LOW = 700, HIGH = 480, BED = 820, UBED = 600, G1 = 560, G2 = 1360, WATER = "#2f7fb8";
+        const STONE = "#8a7f72", BACK = "#3f3a34", WOOD = "#8a5a32";
+
+        // back walls (far side of the canal, seen through the water)
+        BX.S("rect", { x: -200, y: 640, width: G1 + 200, height: 200, fill: BACK });
+        BX.S("rect", { x: G1, y: 420, width: G2 - G1, height: 420, fill: BACK });
+        BX.S("rect", { x: G2, y: 420, width: 900, height: 200, fill: BACK });
+        // coping stones along the top of the walls
+        BX.part(-200, 628, G1 + 200, 16, STONE, { rx: 3 });
+        BX.part(G1, 408, G2 - G1 + 900, 16, STONE, { rx: 3 });
+
+        // the culvert: a tunnel in the stone from the upper canal bed down into the chamber
+        const CUL = `M1600 ${UBED - 4} V730 H${G2 - 2}`;
+
+        // water: lower canal, chamber (animated), upper canal. Drawn over the hull so the hull shows through.
+        const wLow = BX.S("rect", { x: -200, y: LOW, width: G1 + 200, height: BED - LOW, fill: WATER, opacity: 0.78 });
+        const wCh = BX.S("rect", { x: G1, y: LOW, width: G2 - G1, height: BED - LOW, fill: WATER, opacity: 0.78 });
+        const wUp = BX.S("rect", { x: G2, y: HIGH, width: 900, height: UBED - HIGH, fill: WATER, opacity: 0.78 });
+        const sCh = BX.S("rect", { x: G1, y: LOW - 3, width: G2 - G1, height: 6, fill: "#9fd6f2" });
+        BX.S("rect", { x: -200, y: LOW - 3, width: G1 + 200, height: 6, fill: "#9fd6f2" });
+        BX.S("rect", { x: G2, y: HIGH - 3, width: 900, height: 6, fill: "#9fd6f2" });
+
+        // the cut stone (section), with the step at the upper end, and the culvert inside it
+        const ground = BX.shape(`M-200 ${BED} H${G2} V${UBED} H2200 V960 H-200 Z`, STONE);
+        BX.S("rect", { x: -200, y: 960, width: 2400, height: 300, fill: "#1d1b18" });
+        BX.S("path", { d: CUL, stroke: "#141c22", "stroke-width": 46, fill: "none", "stroke-linejoin": "round" });
+        const culWater = BX.S("path", { d: CUL, stroke: WATER, "stroke-width": 34, fill: "none", "stroke-linejoin": "round", opacity: 0 });
+        const paddle = BX.part(1570, UBED - 30, 60, 30, WOOD, { rx: 4 });
+        BX.S("rect", { x: 1594, y: 300, width: 12, height: UBED - 330, fill: "#6b7178" });   // paddle rod
+
+        // gates: wooden, red rim = shut, green rim = open (an open gate swings toward us, so it is drawn narrow)
+        const g1 = BX.part(G1 - 14, 400, 28, BED - 400, WOOD, { rx: 4, rim: C.bad, sw: 6 });
+        const g2 = BX.part(G2 - 14, 400, 28, UBED - 400, WOOD, { rx: 4, rim: C.bad, sw: 6 });
+        gsap.set([g1, g2], { transformOrigin: "50% 50%" });
+        const openGate = (t, g) => { tl.to(g, { scaleX: 3.2, opacity: 0.35, duration: 0.8, ease: "power2.inOut" }, t); BX.color(t, g, C.good, 0.3, "stroke"); };
+        const shutGate = (t, g) => { tl.to(g, { scaleX: 1, opacity: 1, duration: 0.8, ease: "power2.inOut" }, t); BX.color(t, g, C.bad, 0.3, "stroke"); };
+        gsap.set(g1, { scaleX: 3.2, opacity: 0.35, attr: { stroke: C.good } });   // the lower gates start open
+
+        // the boat (drawn in front of water, gates and rod): hull and cabin, origin at the waterline, front to the right
+        const boat = BX.S("g", {});
+        BX.shape("M-20 -18 H330 Q360 -18 350 6 L320 46 H10 Q-20 46 -26 10 Z", "#a8462c", { parent: boat });
+        BX.part(70, -78, 170, 62, "#2f5d4a", { parent: boat, rx: 8 });
+        BX.part(95, -66, 34, 26, "#d8c98a", { parent: boat, rx: 4 });
+        BX.part(150, -66, 34, 26, "#d8c98a", { parent: boat, rx: 4 });
+        gsap.set(boat, { x: 190, y: LOW, scale: 1.35, transformOrigin: "0 0" });
+
+        // a thin film of water over the hull, so the boat sits IN the water (moves with the chamber level)
+        const fLow = BX.S("rect", { x: -200, y: LOW, width: G1 + 200, height: BED - LOW, fill: WATER, opacity: 0.45 });
+        const fCh = BX.S("rect", { x: G1, y: LOW, width: G2 - G1, height: BED - LOW, fill: WATER, opacity: 0.45 });
+        const fUp = BX.S("rect", { x: G2, y: HIGH, width: 900, height: UBED - HIGH, fill: WATER, opacity: 0.45 });
+        BX.obstacle([[-200, 620, 2400, 700]]);   // keep labels off the stone and water unless placed by hand
+
+        // ---- line 0: the whole lock ----
+        BX.cam.set(960, 640, 1.15);
+        const ttl = BX.title(T(0, 0), "Canal Lock", { y: 150 });
+        ttl.hide(T(0, 0.28));
+        const kB = BX.callout(T(0, 0.12), 300, LOW - 50, "Boat");
+        const up = BX.arrow(T(0, 0.42), [[420, 560], [900, 330], [1500, 360]], { curve: true, color: C.move, w: 9 });
+        kB.hide(T(0, 0.55)); up.hide(T(0, 0.62));
+        const kG = BX.callout(T(0, 0.82), G2, 420, 1200, 250, "Gates", { color: C.text });
+        tl.to([g1, g2], { attr: { "stroke-width": 12 }, duration: 0.25, yoyo: true, repeat: 1 }, T(0, 0.84));
+
+        // ---- line 1: name the three parts and the 4 m rise ----
+        kG.hide(T(1, 0));
+        const kU = BX.callout(T(1, 0.05), 1750, HIGH + 40, 1700, 300, "Upper canal");
+        const dim = BX.dimline(T(1, 0.18), 1760, HIGH, 1760, LOW, "4 m", { size: 52, side: -1 });
+        BX.S("path", { d: `M${G2} ${LOW} H1850`, stroke: "#9fd6f2", "stroke-width": 3, "stroke-dasharray": "14 12", fill: "none" });
+        const kL = BX.callout(T(1, 0.3), 200, LOW + 40, 260, 450, "Lower canal");
+        kU.hide(T(1, 0.5)); kL.hide(T(1, 0.5)); dim.hide(T(1, 0.55));
+        const kC = BX.callout(T(1, 0.55), 960, LOW + 50, 960, 280, "Lock chamber");
+        kC.hide(T(1, 0.85));
+        tl.to([g1, g2], { attr: { "stroke-width": 12 }, duration: 0.25, yoyo: true, repeat: 1 }, T(1, 0.85));
+
+        // ---- line 2: boat in, lower gates shut, upper gates pressed shut ----
+        tl.to(boat, { x: 780, duration: 4, ease: "power1.inOut" }, T(2, 0.02));
+        shutGate(T(2, 0.42), g1);
+        const kS = BX.callout(T(2, 0.45), G1, 470, 380, 300, "Shut", { color: C.bad });
+        kS.hide(T(2, 0.7));
+        const press = [0, 1, 2].map((i) => BX.arrow(T(2, 0.75 + i * 0.05), [[G2 + 130 + i * 60, 505 + i * 36], [G2 + 24, 505 + i * 36]], { color: C.bad, w: 10 }));
+        const kP = BX.callout(T(2, 0.85), G2 + 250, 577, 1560, 300, "Pressure", { color: C.bad });
+
+        // ---- line 3: close-up on the paddle and the culvert ----
+        kP.hide(T(3, 0)); press.forEach((a) => a.hide(T(3, 0)));
+        BX.cam.frame(T(3, 0), [1230, 330, 560, 470], { pad: 0.1 });
+        tl.to(paddle, { y: -90, duration: 1.2, ease: "power2.inOut" }, T(3, 0.12));
+        const kPd = BX.callout(T(3, 0.18), 1630, UBED - 80, 1720, 380, "Paddle", { color: C.text });
+        BX.color(T(3, 0.35), paddle, C.good, 0.3, "stroke");
+        kPd.hide(T(3, 0.55));
+        tl.to(culWater, { opacity: 0.9, duration: 0.5 }, T(3, 0.6));
+        BX.flow(T(3, 0.62), CUL, C.move, 9, { width: 10 });
+        const kS2 = BX.callout(T(3, 0.66), 1460, 730, 1250, 560, "Sluice");
+
+        // ---- line 4: gravity, chamber starts to fill ----
+        kS2.hide(T(4, 0.05));
+        const grav = BX.arrow(T(4, 0.2), [[1690, 560], [1690, 760]], { color: C.energy, w: 10 });
+        const kGr = BX.callout(T(4, 0.28), 1690, 680, 1760, 470, "Gravity", { color: C.energy });
+        BX.particles(T(4, 0.3), [G2 + 10, 730], [1100, 760], 4, { n: 50, spread: 40, color: "#9fd6f2", seed: 4 });
+        grav.hide(T(4, 0.6)); kGr.hide(T(4, 0.6));
+        BX.cam.move(T(4, 0.6), 960, 640, 1.15, 2.2);
+        const FILL0 = T(4, 0.6), FILL = T(5, 0.9) - FILL0;
+        tl.to([wCh, fCh], { attr: { y: HIGH, height: BED - HIGH }, duration: FILL, ease: "power1.inOut" }, FILL0);
+        tl.to(sCh, { attr: { y: HIGH - 3 }, duration: FILL, ease: "power1.inOut" }, FILL0);
+        tl.to(boat, { y: HIGH, duration: FILL, ease: "power1.inOut" }, FILL0);
+
+        // ---- line 5: the boat rises; a level readout and a growing dimension ----
+        const lv = BX.readout(300, 300, 0, (v) => "Chamber +" + v.toFixed(1) + " m", { size: 60, color: C.cyan, t: T(5, 0) });
+        BX.show(T(5, 0.05), lv.el);
+        lv.to(T(5, 0.08), 4, T(5, 0.9) - T(5, 0.08));
+        BX.particles(T(5, 0.0), [G2 + 10, 730], [1150, 640], 3, { n: 30, spread: 60, color: "#9fd6f2", seed: 9 });
+        const kR = BX.callout(T(5, 0.3), 1060, 560, 1180, 300, "Floats up");
+        kR.hide(T(5, 0.7));
+        BX.color(T(5, 0.92), lv.el, C.good, 0.3);
+        tl.to(culWater, { opacity: 0, duration: 0.6 }, T(5, 0.95));
+
+        // ---- line 6: levels equal, upper gates open ----
+        const eq = BX.callout(T(6, 0.08), G2 - 60, HIGH, 1100, 300, "Levels equal", { color: C.good });
+        BX.hide(T(6, 0.6), lv.el); eq.hide(T(6, 0.55));
+        openGate(T(6, 0.72), g2);
+        const kO = BX.callout(T(6, 0.8), G2, 440, 1560, 260, "Open", { color: C.good });
+
+        // ---- line 7: sail out; reverse to go down ----
+        kO.hide(T(7, 0.05));
+        tl.to(boat, { x: 1500, duration: 3.5, ease: "power1.inOut" }, T(7, 0.05));
+        BX.cam.move(T(7, 0.05), 1060, 600, 1.0, 3);
+        const dn = BX.arrow(T(7, 0.62), [[1500, 300], [960, 260], [420, 560]], { curve: true, color: C.move, w: 9 });
+        const kRv = BX.callout(T(7, 0.66), 960, 262, 1040, 170, "Reverse to go down");
+      }
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

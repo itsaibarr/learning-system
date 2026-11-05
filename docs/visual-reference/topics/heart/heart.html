@@ -1,0 +1,174 @@
+<!doctype html>
+<!-- Worked example (biology): how the heart pumps blood. Organic shapes with BX.shape, vessels with BX.pipe,
+     valves with BX.turn, beats with BX.pulse, colour = meaning (two blood colours chosen once, cyan kept for labels). -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="gsap.min.js"></script>
+    <script src="bx.js"></script>
+    <link rel="stylesheet" href="bx.css" />
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="LEARN_TOTAL" data-width="1920" data-height="1080">
+      <div id="stage" class="clip" data-start="0" data-duration="LEARN_TOTAL" data-track-index="0">
+        <script type="application/json" id="narration">[
+          "Your heart is a muscle about the size of a fist, and it works as two pumps sitting side by side.",
+          "Each side has two chambers: a thin-walled atrium on top that collects blood, and a thick ventricle below that pushes it out.",
+          "The right side takes in blood coming back from the body. This blood has already given up much of its oxygen.",
+          "The right ventricle squeezes it up the pulmonary artery to the lungs, where the blood picks up fresh oxygen.",
+          "That oxygen-rich blood returns to the left atrium, then drops into the left ventricle, the strongest chamber of all.",
+          "When the left ventricle contracts, it drives the blood up through the aorta and out to every part of the body.",
+          "Between each atrium and ventricle sits a valve. It opens to let blood through, then snaps shut so blood cannot flow backwards.",
+          "At rest, this whole cycle repeats about sixty to a hundred times a minute, for your entire life."
+        ]</script>
+        <script type="application/json" id="pauses">{"1": 0.8, "5": 0.8}</script>
+      </div>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      BX.init(tl, { bg: "studio", section: "How the heart pumps",
+        basis: "Simplified schematic, front view: the heart's right side is on your left. Oxygen levels are typical values." });
+      const C = BX.C;
+      {
+        // ---- colours by meaning: oxygen-poor blood (blue), oxygen-rich blood (crimson); cyan stays for labels ----
+        const POOR = "#4f74c4", RICH = "#c62a3a", POOR_A = "#7fa2ec", RICH_A = "#f0606b", EMPTY = "#3b2226", MUSCLE = "#a3424a";
+
+        // ---- lungs (above the heart, reached by a camera move) ----
+        const lungL = BX.shape("M 520 -170 C 470 -330, 560 -560, 700 -600 C 800 -620, 860 -520, 860 -380 L 860 -140 C 800 -110, 600 -100, 520 -170 Z", "#c98a8f");
+        const lungR = BX.shape("M 1400 -170 C 1450 -330, 1360 -560, 1220 -600 C 1120 -620, 1060 -520, 1060 -380 L 1060 -140 C 1120 -110, 1320 -100, 1400 -170 Z", "#c98a8f");
+        const R = BX.rand(11), beds = [];
+        for (const [x0, x1] of [[560, 840], [1080, 1360]]) for (let i = 0; i < 26; i++)
+          beds.push(BX.S("circle", { cx: x0 + R() * (x1 - x0), cy: -520 + R() * 360, r: 16 + R() * 10, fill: POOR, opacity: 0.85 }));
+        BX.obstacle([lungL, lungR]);
+
+        // ---- vessels (lit tubes behind the heart) ----
+        const svc = BX.pipe("M 770 400 V -320", { w: 64, color: POOR, hi: 0.3 });
+        const pa = BX.pipe("M 890 640 C 905 470, 885 300, 880 200 V -60 C 880 -120, 800 -150, 720 -190 M 880 -60 C 900 -120, 1000 -150, 1120 -190", { w: 58, color: POOR, hi: 0.3 });
+        const pv = BX.pipe("M 1200 -190 C 1190 -60, 1185 120, 1185 300 C 1185 360, 1200 390, 1220 410", { w: 50, color: RICH, hi: 0.3 });
+        const ao = BX.pipe("M 1090 640 C 1065 450, 1045 280, 1065 200 C 1085 100, 1200 70, 1320 110 C 1420 150, 1450 260, 1450 400 V 1180", { w: 66, color: RICH, hi: 0.3 });
+
+        // ---- the heart: muscle, four chambers (cavities fill with blood), two valves ----
+        const heart = BX.S("g", {});
+        BX.shape("M 650 420 C 640 330, 760 290, 860 320 C 940 290, 1060 290, 1130 320 C 1230 290, 1330 350, 1320 450 C 1340 620, 1200 820, 1040 960 C 1000 990, 960 990, 920 950 C 780 820, 640 640, 650 420 Z", MUSCLE, { parent: heart, finish: "matte" });
+        const cav = (d) => BX.S("path", { d, fill: EMPTY, stroke: "rgba(0,0,0,0.35)", "stroke-width": 4 }, heart);
+        const RA = cav("M 690 430 C 690 360, 770 340, 840 360 C 900 380, 910 450, 890 520 C 870 560, 760 570, 720 540 C 695 510, 690 470, 690 430 Z");
+        const RV = cav("M 730 615 C 790 605, 890 605, 930 625 C 950 700, 960 790, 950 860 C 880 830, 790 740, 730 615 Z");
+        const LA = cav("M 1030 380 C 1080 340, 1200 340, 1250 380 C 1280 430, 1260 500, 1220 520 C 1150 545, 1060 530, 1040 500 C 1020 470, 1015 410, 1030 380 Z");
+        const LV = cav("M 1015 615 C 1080 600, 1190 605, 1225 628 C 1220 720, 1140 830, 1045 895 C 1012 820, 1000 700, 1015 615 Z");
+        const chT = BX.S("rect", { x: 765, y: 545, width: 110, height: 76, fill: EMPTY }, heart);
+        const chM = BX.S("rect", { x: 1070, y: 525, width: 110, height: 86, fill: EMPTY }, heart);
+        // valve flaps hinged on the chamber walls; closed = they meet in the middle
+        const flap = (x, y, len, dir) => BX.S("path", { d: `M${x} ${y} H${x + dir * len}`, stroke: "#efd9c3", "stroke-width": 12, "stroke-linecap": "round" }, heart);
+        const valves = [[flap(765, 583, 55, 1), flap(875, 583, 55, -1), 765, 875, 583], [flap(1070, 570, 55, 1), flap(1180, 570, 55, -1), 1070, 1180, 570]];
+        // open = green, shut = red (colour = state)
+        const openV = (t, v) => { BX.turn(t, v[0], 65, [v[2], v[4]], 0.35); BX.turn(t, v[1], -65, [v[3], v[4]], 0.35); BX.color(t, [v[0], v[1]], C.good, 0.2, "stroke"); };
+        const shutV = (t, v) => { BX.turn(t, v[0], 0, [v[2], v[4]], 0.2); BX.turn(t, v[1], 0, [v[3], v[4]], 0.2); BX.color(t + 0.1, [v[0], v[1]], C.bad, 0.15, "stroke"); };
+        const fillC = (t, els, col) => BX.color(t, els, col, 0.8, "fill");
+        const squeeze = (t, el) => BX.pulse(t, el, 0.86, 0.6);
+        const beat = (t) => BX.pulse(t, heart, 1.035, 0.28);
+        BX.obstacle([[640, 290, 700, 700]]);
+        const H = [640, 290, 700, 700];
+
+        // oxygen gauge (screen space, right edge) with its name above
+        const g = BX.gauge(1640, 300, 400, { min: 0, max: 100, unit: "%", dp: 0, v: 75, label: "Oxygen" });
+        BX.hideNow(g.el);
+
+        // vessels and lungs come in after the title card
+        const vessels = [svc.g, pa.g, pv.g, ao.g];
+        BX.hideNow([...vessels, lungL, lungR, ...beds]);
+        BX.show(T(2, 0.0), [lungL, lungR, ...beds]);
+        // ---- line 0: one muscle, two pumps ----
+        BX.cam.set(900, 470, 0.85);
+        const ttl = BX.title(T(0, 0), "The Human Heart", { y: 110 });
+        ttl.hide(T(0, 0.3));
+        BX.hideNow(heart); BX.show(T(0, 0.08), heart, { pop: true });
+        beat(T(0, 0.3)); beat(T(0, 0.38));
+        BX.show(T(0, 0.3), vessels);
+        const kM = BX.callout(T(0, 0.32), 1290, 520, "Muscle", { avoid: [H] });
+        kM.hide(T(0, 0.62));
+        const bR = BX.box(T(0, 0.66), 650, 300, 320, 640, C.steel, { fill: 0.05, sw: 4, dash: "18 14" });
+        const bL = BX.box(T(0, 0.74), 990, 300, 340, 640, C.steel, { fill: 0.05, sw: 4, dash: "18 14" });
+        const lRp = BX.label(T(0, 0.68), 625, 700, "Right pump", { anchor: "right", size: 52, color: C.text });
+        const lLp = BX.label(T(0, 0.76), 1510, 700, "Left pump", { anchor: "left", size: 52, color: C.text });
+
+        // ---- line 1: atrium on top, ventricle below ----
+        BX.hide(T(1, 0), [bR, bL]); lRp.hide(T(1, 0)); lLp.hide(T(1, 0));
+        BX.cam.move(T(1, 0), 900, 600, 1.15, 1.6);
+        const lA = BX.lens(T(1, 0.3), 790, 455, 125, "#7fb6d6");
+        const kA = BX.callout(T(1, 0.3), 720, 420, "Atrium", { avoid: [H] });
+        const lV = BX.lens(T(1, 0.7), 860, 720, 130, "#d99a7a");
+        const kV = BX.callout(T(1, 0.7), 780, 700, "Ventricle", { avoid: [H] });
+
+        // ---- line 2: oxygen-poor blood arrives from the body ----
+        BX.hide(T(2, 0), [lA, lV]); kA.hide(T(2, 0)); kV.hide(T(2, 0));
+        BX.cam.move(T(2, 0), 760, 420, 1.2, 1.6);
+        const aIn = BX.arrow(T(2, 0.15), [[770, 0], [770, 330]], { color: C.move, w: 10, dur: 1.0 });
+        const kB = BX.callout(T(2, 0.2), 770, 90, 640, 160, "From the body");
+        fillC(T(2, 0.4), RA, POOR);
+        const kRA = BX.callout(T(2, 0.45), 720, 470, "Right atrium", { avoid: [H] });
+        BX.show(T(2, 0.68), g.el);
+        g.set(T(2, 0.72), 75, 0.6);
+        const lPoor = BX.label(T(2, 0.75), 600, 640, "Oxygen-poor", { anchor: "right", size: 56, color: POOR_A });
+
+        // ---- line 3: right ventricle to the lungs, where the blood takes up oxygen ----
+        aIn.hide(T(3, 0)); kB.hide(T(3, 0)); kRA.hide(T(3, 0)); lPoor.hide(T(3, 0));
+        openV(T(3, 0.0), valves[0]); fillC(T(3, 0.02), [chT, RV], POOR);
+        shutV(T(3, 0.14), valves[0]); squeeze(T(3, 0.16), RV);
+        const aPA = BX.arrow(T(3, 0.2), [[880, 320], [880, -40]], { color: C.move, w: 10, dur: 1.2 });
+        const kPA = BX.callout(T(3, 0.3), 880, 230, 760, 140, "Pulmonary artery");
+        BX.cam.move(T(3, 0.5), 960, -200, 0.95, 2.2);
+        kPA.hide(T(3, 0.55));
+        const kLu = BX.callout(T(3, 0.62), 600, -400, "Lungs", { avoid: [lungL, lungR] });
+        tl.to(beds, { attr: { fill: RICH }, duration: 0.5, stagger: 0.03 }, T(3, 0.78));
+        g.set(T(3, 0.8), 98, 1.6);
+        // a label far from the old view waits until the camera has arrived, whatever the voice speed
+        const lRich = BX.label(Math.max(T(3, 0.92), T(3, 0.5) + 2.3), 960, -625, "Oxygen-rich", { anchor: "center", size: 56, color: RICH_A });
+
+        // ---- line 4: back to the left atrium, down to the left ventricle ----
+        kLu.hide(T(4, 0)); lRich.hide(T(4, 0)); aPA.hide(T(4, 0));
+        BX.cam.move(T(4, 0), 1100, 560, 1.15, 2.0);
+        const aPV = BX.arrow(T(4, 0.08), [[1200, -150], [1188, 120], [1190, 330], [1180, 420]], { color: C.move, w: 10, curve: true, dur: 1.3 });
+        fillC(T(4, 0.25), LA, RICH);
+        const kLA = BX.callout(T(4, 0.28), 1240, 440, "Left atrium", { avoid: [H] });
+        openV(T(4, 0.55), valves[1]); fillC(T(4, 0.58), [chM, LV], RICH);
+        const aM = BX.arrow(T(4, 0.6), [[1125, 470], [1125, 690]], { color: C.move, w: 10, dur: 0.6 });
+        kLA.hide(T(4, 0.66));
+        const kLV = BX.callout(T(4, 0.7), 1200, 700, "Left ventricle", { avoid: [H] });
+        shutV(T(4, 0.88), valves[1]);
+        aM.hide(T(4, 0.9));
+        const kW = BX.callout(T(4, 0.9), 1290, 640, "Thickest wall", { avoid: [H, [1015, 600, 220, 300]] });
+
+        // ---- line 5: the left ventricle drives blood through the aorta to the body ----
+        kLV.hide(T(5, 0)); kW.hide(T(5, 0)); aPV.hide(T(5, 0));
+        BX.cam.move(T(5, 0), 1060, 470, 0.9, 1.8);
+        squeeze(T(5, 0.15), LV); beat(T(5, 0.15));
+        const aAo = BX.arrow(T(5, 0.25), [[1090, 600], [1055, 330], [1100, 120], [1320, 110], [1450, 260], [1450, 700]], { color: C.move, w: 10, curve: true, dur: 1.8 });
+        const kAo = BX.callout(T(5, 0.45), 1330, 115, "Aorta", { avoid: [H] });
+        BX.particles(T(5, 0.65), [1450, 450], [1450, 1150], 2.4, { n: 40, spread: 30, color: RICH_A, seed: 4 });
+        const kBo = BX.callout(T(5, 0.8), 1450, 900, "To the body", { avoid: [H] });
+
+        // ---- line 6: valves open, then snap shut ----
+        kAo.hide(T(6, 0)); kBo.hide(T(6, 0)); aAo.hide(T(6, 0)); BX.hide(T(6, 0), g.el);
+        BX.cam.frame(T(6, 0), [600, 360, 560, 440], { pad: 0.2 });
+        const kVa = BX.callout(T(6, 0.15), 790, 583, 660, 480, "Valve");
+        fillC(T(6, 0.1), [RA, chT, RV], POOR);
+        openV(T(6, 0.32), valves[0]);
+        BX.particles(T(6, 0.38), [820, 470], [820, 700], 2.0, { n: 30, spread: 60, color: POOR_A, seed: 9 });
+        shutV(T(6, 0.68), valves[0]);
+        const aBack = BX.arrow(T(6, 0.85), [[820, 690], [820, 605]], { color: C.bad, w: 10, dur: 0.4 });
+        const kNo = BX.callout(T(6, 0.88), 820, 650, 690, 760, "No backflow", { color: C.bad });
+
+        // ---- line 7: the cycle repeats ----
+        kVa.hide(T(7, 0)); kNo.hide(T(7, 0)); aBack.hide(T(7, 0));
+        BX.cam.move(T(7, 0), 1000, 520, 0.85, 1.8);
+        fillC(T(7, 0), [LA, chM, LV], RICH);
+        for (let t = T(7, 0.15); t < LEARN.total - 0.6; t += 0.85) beat(t);
+        const big = BX.label(T(7, 0.4), 120, 520, "60–100", { size: 110, cls: "bx-big", hud: true });
+        BX.label(T(7, 0.5), 120, 600, "beats per minute", { size: 52, color: C.text, hud: true });
+      }
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

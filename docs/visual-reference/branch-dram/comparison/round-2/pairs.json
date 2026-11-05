@@ -1,0 +1,16 @@
+[
+ {"id": "V1-labels-lens", "ref": "0904s-15-schematic-lens.jpg", "scene": "u2-cell-switch", "line": 0, "f": 0.97},
+ {"id": "V2a-read-gauge", "ref": "1088s-18-voltage-gauge.jpg", "scene": "u4-sense", "line": 3, "f": 0.75},
+ {"id": "V2b-sense-amp", "ref": "1104s-19-sense-amp-states.jpg", "scene": "u4-sense", "line": 4, "f": 0.9},
+ {"id": "V3a-active-row", "ref": "0932s-16-active-row.jpg", "scene": "u3-decoder-mux", "line": 2, "f": 0.95},
+ {"id": "V3b-decoder-zoom", "ref": "0972s-17-row-decoder-zoom.jpg", "scene": "u3-decoder-mux", "line": 1, "f": 0.8},
+ {"id": "V4a-row-miss-chain", "ref": "1584s-22-row-miss-chain.jpg", "scene": "u7-hit-miss", "line": 4, "f": 0.75},
+ {"id": "V4b-timing-bars", "ref": "1616s-23-timing-bars.jpg", "scene": "u7-timings", "line": 5, "f": 0.7},
+ {"id": "V5-die-banks", "ref": "0512s-09-die-32-banks.jpg", "scene": "u6-die-banks", "line": 2, "f": 0.22},
+ {"id": "V6a-prefetch", "ref": "0156s-04-data-prefetch-blocks.jpg", "scene": "u1-prefetch", "line": 0, "f": 0.6},
+ {"id": "V6b-data-flow", "ref": "0232s-05-particle-flow-cpu-ssd-dram.jpg", "scene": "u1-prefetch", "line": 3, "f": 0.7},
+ {"id": "V7a-block-diagram", "ref": "0560s-10-bank-block-diagram.jpg", "scene": "u6-address", "line": 3, "f": 0.9},
+ {"id": "V7b-address-fields", "ref": "0588s-11-address-bit-fields.jpg", "scene": "u6-address", "line": 4, "f": 0.3},
+ {"id": "V8a-cell-anatomy", "ref": "0744s-12-cell-dimensions.jpg", "scene": "u2-cell-anatomy", "line": 1, "f": 0.75},
+ {"id": "V8b-capacitor-charge", "ref": "0776s-13-capacitor-charge-1.jpg", "scene": "u2-cell-anatomy", "line": 2, "f": 0.95}
+]

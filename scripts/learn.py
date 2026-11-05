@@ -26,7 +26,7 @@ The rules live here, not in the prompt, so every model gets the same decisions.
   grade <Q> correct|wrong|idk [--kind slip|gap|misconception] [--what W]   typed answers
   next                             what to do now, and why
   pref <text...> [--topic]         save a learner preference (for every session, or only this topic)
-  voice [id]                       show or set the narrator voice (Kokoro preset, e.g. af_heart)
+  voice [id] [--speed 0.9]         show or set the narrator voice (Kokoro preset, e.g. af_heart) and pace
   end [--next-time T]              summary into the note, dashboard, commit
   status                           what the system believes the learner knows
 
@@ -1409,7 +1409,7 @@ def instruction(s, st):
         return (f"Make 1 visual of how '{title}' works, drawn for the topic (references/visuals.md): a formula, a curve or "
                 f"formula-driven motion = a Manim scene; anything else (history, people, places, causes, systems, "
                 f"processes, arguments, comparisons) = a HyperFrames HTML scene (references/hyperframes.md: copy its worked "
-                f"example, one focus and one caption per beat). Write its narration (Manim: one spoken line per visual event, each inside `with self.voice(i):`; HyperFrames: the JSON narration list), and run `learn figure <name>`; it comes back narrated. Then write the theory block from the research "
+                f"example: BX kit, labels on parts, one visual event per clause). Write its narration (Manim: one spoken line per visual event, each inside `with self.voice(i):`; HyperFrames: the JSON narration list), and run `learn figure <name>`; it comes back narrated. Then write the theory block from the research "
                 f"brief (cite sources as [S1]) with the visual embedded, using the block recipe in the skill, pipe it to "
                 f"`learn block {cid}`, then write 1 question at level 2 ({LEVELS[2]}) by references/questions.md and pipe "
                 f"it to `learn ask {cid}`." + band_note(s))
@@ -2190,8 +2190,35 @@ def voicebox_profile(voice):
         "preset_voice_id": voice, "default_engine": "kokoro"}).read())["id"]
 
 
-def tts_lines(lines, voice, outdir):
-    """Speak each line to a WAV. Returns [(path, seconds)]. Raises TTSError on any failure."""
+VOICE_SPEED = (0.75, 1.25)
+
+
+def voice_of(s):
+    """(voice, speed) from the learner profile."""
+    return s["profile"].get("voice", DEFAULT_VOICE), float(s["profile"].get("voice_speed", 1.0))
+
+
+def tts_lines(lines, voice, outdir, speed=1.0):
+    """Speak each line to a WAV. Returns [(path, seconds)]. Raises TTSError on any failure.
+    speed != 1 slows or speeds the voice without changing its pitch (ffmpeg atempo; Voicebox has no speed setting)."""
+    clips = _tts_lines(lines, voice, outdir)
+    if abs(speed - 1.0) < 1e-3:
+        return clips
+    out = []
+    for path, secs in clips:
+        slow = path.with_name(path.stem + "-tempo.wav")
+        if os.environ.get("LEARN_TTS", "voicebox") == "fake":
+            shutil.copy(path, slow)
+        else:
+            r = subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(path), "-filter:a", f"atempo={speed}", str(slow)],
+                               capture_output=True, text=True)
+            if r.returncode != 0:
+                raise TTSError(f"could not change the voice speed: {r.stderr.strip()[-200:]}")
+        out.append((slow, secs / speed))
+    return out
+
+
+def _tts_lines(lines, voice, outdir):
     backend = os.environ.get("LEARN_TTS", "voicebox")
     clips = []
     if backend == "none":
@@ -2236,10 +2263,10 @@ def tts_warning(e):
 
 def narrate(s, video, lines, marks, tmp, clips=None, audio_first=False):
     """Return (video_to_save, message). Never raises for TTS problems: the silent video is kept instead."""
-    voice = s["profile"].get("voice", DEFAULT_VOICE)
+    voice, speed = voice_of(s)
     if clips is None:
         try:
-            clips = tts_lines(lines, voice, tmp)
+            clips = tts_lines(lines, voice, tmp, speed)
         except TTSError as e:
             return video, tts_warning(e)
     video_len = probe_duration(video)
@@ -2401,6 +2428,9 @@ HF_VERSION = "0.8.161"
 HF_CMD = shlex.split(os.environ.get("LEARN_HF", f"npx --yes hyperframes@{HF_VERSION}"))
 HF_TIMEOUT = 900
 HF_GSAP = REPO / "scripts" / "vendor" / "gsap.min.js"
+HF_BX = REPO / "scripts" / "vendor" / "bx"            # BX kit (bx.js, bx.css, Saira fonts): copied when a scene links it
+HF_AUDIT = REPO / "scripts" / "vendor" / "learn-audit.js"   # in-page label-overlap error and hold-gap warning
+HF_BX_USE = re.compile(r'(?:src|href)=["\']bx\.(?:js|css)["\']')
 FONT_DIR = REPO / "scripts" / "vendor" / "fonts"      # Inter (SIL OFL): the same typeface as the HyperFrames scenes
 HF_CONFIG = {"$schema": "https://hyperframes.heygen.com/schema/hyperframes.json",
              "registry": "https://raw.githubusercontent.com/heygen-com/hyperframes/main/registry",
@@ -2430,12 +2460,33 @@ def hf_narration(html):
     return lines
 
 
-def hf_timing(durs):
+PAUSE_RANGE = (0.5, 4.0)
+
+
+def hf_pauses(html, n):
+    """Optional deliberate silences: {"<line index>": seconds} after that line (segmenting; Spanjers et al.)."""
+    m = re.search(r'<script[^>]*\bid=["\']pauses["\'][^>]*>(.*?)</script>', html, re.S)
+    if not m:
+        return {}
+    try:
+        raw = json.loads(m.group(1))
+        out = {int(k): float(v) for k, v in raw.items()}
+    except (ValueError, TypeError, AttributeError):
+        raise LearnError('The pauses script must be JSON like {"2": 1.5}: extra seconds of silence after line 2.')
+    for i, secs in out.items():
+        if not 0 <= i < n - 1:
+            raise LearnError(f"pause after line {i}: there is no next line (lines are numbered 0-{n - 1}; no pause after the last).")
+        if not PAUSE_RANGE[0] <= secs <= PAUSE_RANGE[1]:
+            raise LearnError(f"pause after line {i} is {secs}s; keep pauses {PAUSE_RANGE[0]}-{PAUSE_RANGE[1]}s.")
+    return out
+
+
+def hf_timing(durs, pauses=None):
     """Start time of each spoken line and the video length: lead-in, a gap between lines, a silent hold at the end."""
     starts, t = [], NARR_LEAD
-    for d in durs:
+    for i, d in enumerate(durs):
         starts.append(round(t, 2))
-        t += d + NARR_GAP
+        t += d + NARR_GAP + (pauses or {}).get(i, 0)
     return starts, round(t - NARR_GAP + NARR_TAIL, 2)
 
 
@@ -2466,12 +2517,15 @@ def hf_prepare(html, lines, durs, clips, proj):
     errs = hf_static_problems(html)
     if errs:
         raise LearnError("The scene breaks the HyperFrames rules:\n- " + "\n- ".join(errs))
-    starts, total = hf_timing(durs)
+    starts, total = hf_timing(durs, hf_pauses(html, len(durs)))
     html = re.sub(r"https://[^\"']*gsap[^\"']*", "gsap.min.js", html)
     inject = ("<script>window.LEARN=" + json.dumps({"start": starts, "dur": [round(d, 2) for d in durs], "total": total})
               + ";window.T=function(i,f){return LEARN.start[i]+(f||0)*LEARN.dur[i];};</script>")
     html = re.sub(r"(<head[^>]*>)", lambda m: m.group(1) + inject, html, count=1, flags=re.I)
     html = html.replace("LEARN_TOTAL", str(total))
+    audit = "<script>" + HF_AUDIT.read_text() + "</script>"
+    i = html.lower().rfind("</body>")
+    html = html[:i] + audit + html[i:] if i >= 0 else html + audit
     if clips:
         audio = "".join(f'<audio id="learn-line{i}" src="audio/line{i}.wav" data-start="{st}" data-duration="{round(d, 2)}" '
                         f'data-track-index="{10 + i}" data-volume="1"></audio>' for i, (st, d) in enumerate(zip(starts, durs)))
@@ -2480,6 +2534,8 @@ def hf_prepare(html, lines, durs, clips, proj):
     proj.mkdir(parents=True, exist_ok=True)
     (proj / "index.html").write_text(html)
     shutil.copy(HF_GSAP, proj / "gsap.min.js")
+    if HF_BX_USE.search(html):
+        shutil.copytree(HF_BX, proj, dirs_exist_ok=True)
     (proj / "hyperframes.json").write_text(json.dumps(HF_CONFIG, indent=2))
     if clips:
         (proj / "audio").mkdir(exist_ok=True)
@@ -2504,8 +2560,17 @@ def hf_check_problems(report):
             if f.get("severity") == "error":
                 where = f.get("selector") or ""
                 when = f" at {f['time']}s" if f.get("time") else ""
-                errs.append(f"{f.get('code')} {where}{when}: {f.get('message')} Fix: {f.get('fixHint') or '-'}")
+                text = f' text "{str(f["text"])[:40]}"' if f.get("text") else ""          # name the element, not just its DOM path
+                cols = f" (text {f['fg']} on {f['bg']})" if f.get("fg") and f.get("bg") else ""
+                fix = f" Fix: {f['fixHint']}" if f.get("fixHint") else ""
+                errs.append(f"{f.get('code')} {where}{text}{when}: {f.get('message')}{cols}{fix}")
     return errs
+
+
+def hf_check_notes(report):
+    """Warnings from the engine's in-page audit (learn-audit.js), e.g. a hold over 6 s."""
+    return sorted({f.get("message", "") for f in (report.get("runtime") or {}).get("findings", [])
+                   if f.get("code") == "console_warning" and str(f.get("message", "")).startswith("BX ")})
 
 
 def render_hyperframes(html, lines, clips, tmp):
@@ -2521,6 +2586,8 @@ def render_hyperframes(html, lines, clips, tmp):
     errs = hf_check_problems(report)
     if errs or report.get("ok") is False:
         raise LearnError("HyperFrames rejected the scene. Fix these and re-run:\n- " + "\n- ".join(errs or ["see `npx hyperframes check`"]))
+    for n in hf_check_notes(report):
+        print("WARNING: " + n)
     out = tmp / "out.mp4"
     r = hf_run(["render", "--quality", os.environ.get("LEARN_HF_QUALITY", "draft"), "--output", str(out)], proj)
     if r.returncode != 0 or not out.exists():
@@ -2544,12 +2611,13 @@ def figure_hyperframes(s, a, name, html):
         raise LearnError("--still is for Manim. A HyperFrames scene is always a video.")
     lines = hf_narration(html)
     validate_narration(lines)
+    hf_pauses(html, len(lines))           # fail on a bad pause before any voice is generated
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         clips, note = None, None
         if not a.silent:
             try:
-                clips = tts_lines(lines, s["profile"].get("voice", DEFAULT_VOICE), tmp)
+                clips = tts_lines(lines, voice_of(s)[0], tmp, voice_of(s)[1])
             except TTSError as e:
                 note = tts_warning(e)
         try:
@@ -2605,8 +2673,8 @@ def cmd_figure(s, a):
     if is_manim and not MATH_MANIM.search(script):
         raise LearnError("Manim is only for math here: a scene driven by a formula (MathTex, Axes, NumberPlane, "
                          "ValueTracker, plot...). This one only draws words and shapes, which teaches little. Redraw "
-                         "it as a HyperFrames scene (references/hyperframes.md): real things that move, one focus "
-                         "per beat, one caption that says what happened.")
+                         "it as a HyperFrames scene (references/hyperframes.md): real things that move, short labels "
+                         "on the parts, one visual event per spoken clause.")
     lines = None
     if is_manim and not a.still and not a.silent:
         lines = narration_of(script)
@@ -2619,7 +2687,7 @@ def cmd_figure(s, a):
         clips, tts_note = None, None
         if audio_first:   # speak first, then render the scene to the real line lengths
             try:
-                clips = tts_lines(lines, s["profile"].get("voice", DEFAULT_VOICE), tmp)
+                clips = tts_lines(lines, voice_of(s)[0], tmp, voice_of(s)[1])
             except TTSError as e:
                 tts_note = tts_warning(e)
         if is_manim:
@@ -3105,9 +3173,16 @@ def cmd_next(s, a):
 
 
 def cmd_voice(s, a):
-    cur = s["profile"].get("voice", DEFAULT_VOICE)
+    cur, speed = voice_of(s)
+    if a.speed is not None:
+        if not VOICE_SPEED[0] <= a.speed <= VOICE_SPEED[1]:
+            raise LearnError(f"Speed must be between {VOICE_SPEED[0]} and {VOICE_SPEED[1]} (1.0 = normal, 0.9 = 10% slower).")
+        s["profile"]["voice_speed"] = round(a.speed, 2)
+        print(f"Narration speed set to {a.speed:.2f}x. New animations use it; existing videos keep their pace.")
+        if not a.voice:
+            return
     if not a.voice:
-        print(f"Narrator voice: {cur}. English Kokoro voices: {', '.join(KOKORO_EN)}")
+        print(f"Narrator voice: {cur}, speed {speed:.2f}x. English Kokoro voices: {', '.join(KOKORO_EN)}")
         return
     v = a.voice.strip().lower()
     if v not in KOKORO_EN:
@@ -3246,7 +3321,7 @@ def main(argv=None):
     p = sub.add_parser("paper"); p.add_argument("url"); p.add_argument("--accept-abstract-only", action="store_true")
     p.add_argument("--title", help="paper title, for a file whose title cannot be read")
     p = sub.add_parser("report"); p.add_argument("--save", action="store_true")
-    p = sub.add_parser("voice"); p.add_argument("voice", nargs="?")
+    p = sub.add_parser("voice"); p.add_argument("voice", nargs="?"); p.add_argument("--speed", type=float)
     p = sub.add_parser("block"); p.add_argument("concept")
     p = sub.add_parser("ask"); p.add_argument("concept")
     sub.add_parser("check")

@@ -1086,6 +1086,7 @@ class TestChatAndTyped(Base):
 SKELETON = re.search(r"```html\n(.*?)```", (Path(__file__).resolve().parent.parent /
                      "skills/teach-understanding/references/hyperframes.md").read_text(), re.S).group(1)
 EXAMPLE = (Path(__file__).resolve().parent.parent / "skills/teach-understanding/references/hyperframes-example.html").read_text()
+HEART = (Path(__file__).resolve().parent.parent / "skills/teach-understanding/references/hyperframes-example-heart.html").read_text()
 
 FAKE_HF = r"""
 import json, re, subprocess, sys
@@ -1094,9 +1095,16 @@ cmd = sys.argv[1]
 html = Path("index.html").read_text()
 if cmd == "check":
     bad = "FAKE_FAIL" in html
-    f = [{"code": "text_occluded", "severity": "error", "selector": "#cap", "time": 3,
+    f = [{"code": "text_occluded", "severity": "error", "selector": "#cap", "time": 3, "text": "Ball",
           "message": "Text is hidden beneath an opaque element.", "fixHint": "raise its stacking order"}] if bad else []
-    print(json.dumps({"ok": not bad, "lint": {"findings": []}, "runtime": {"findings": []},
+    rt = []
+    if "FAKE_OVERLAP" in html:
+        bad = True
+        rt.append({"code": "console_error", "severity": "error", "selector": "[data-composition-id]",
+                   "message": 'BX label overlap at 2s "Wordline" overlaps "Bitline". Move one label.'})
+    if "FAKE_HOLD" in html:
+        rt.append({"code": "console_warning", "severity": "warning", "message": "BX hold: no new visual event from 2s to 11s (9s)."})
+    print(json.dumps({"ok": not bad, "lint": {"findings": []}, "runtime": {"findings": rt},
                       "layout": {"findings": f}, "motion": {"findings": []}, "contrast": {"findings": []}}))
 elif cmd == "render":
     out = sys.argv[sys.argv.index("--output") + 1]
@@ -1105,6 +1113,37 @@ elif cmd == "render":
                     "-f", "lavfi", "-i", "anullsrc=r=24000:cl=mono", "-t", total, "-shortest", "-c:v", "libx264",
                     "-pix_fmt", "yuv420p", "-c:a", "aac", out], check=True)
 """
+
+
+PLAIN = """<!doctype html>
+<html lang="en"><head><meta charset="UTF-8" /><script src="gsap.min.js"></script></head>
+<body><div id="root" data-composition-id="main" data-start="0" data-duration="LEARN_TOTAL" data-width="1920" data-height="1080">
+<div id="stage" class="clip" data-start="0" data-duration="LEARN_TOTAL" data-track-index="0">
+<script type="application/json" id="narration">["A plain scene without the kit still renders."]</script>
+<div id="ball" style="position:absolute;left:200px;top:500px;width:90px;height:90px;background:#ffd166"></div></div></div>
+<script>window.__timelines = window.__timelines || {}; const tl = gsap.timeline({ paused: true });
+tl.to("#ball", { x: 1400, duration: 2 }, T(0, 0)); window.__timelines["main"] = tl;</script></body></html>
+"""
+
+
+KIT_SCENE = """<!doctype html>
+<html lang="en"><head><meta charset="UTF-8" /><script src="gsap.min.js"></script><script src="bx.js"></script>
+<link rel="stylesheet" href="bx.css" /></head>
+<body><div id="root" data-composition-id="main" data-start="0" data-duration="LEARN_TOTAL" data-width="1920" data-height="1080">
+<div id="stage" class="clip" data-start="0" data-duration="LEARN_TOTAL" data-track-index="0">
+<script type="application/json" id="narration">NARRATION</script></div></div>
+<script>
+window.__timelines = window.__timelines || {};
+const tl = gsap.timeline({ paused: true });
+BX.init(tl, { bg: "board", section: "Test" });
+{ SCENE }
+window.__timelines["main"] = tl;
+</script></body></html>
+"""
+
+
+def kit_scene(lines, js):
+    return KIT_SCENE.replace("NARRATION", json.dumps(lines)).replace("SCENE", js)
 
 
 class TestHyperFrames(Base):
@@ -1130,7 +1169,7 @@ class TestHyperFrames(Base):
         self.assertTrue((learn.VAULT / "Attachments/learn/probability-basics/ball.mp4").exists())
         self.run_cmd("block", "total", stdin=f"{embed}\n\nThe ball keeps rolling [S1].")
         self.assertIn("Narration (what the voice says)", self.note())
-        self.assertIn("nothing pushes back", self.note())
+        self.assertIn("runs downhill", self.note())
 
     def test_engine_writes_timing_audio_and_total_into_the_page(self):
         proj = Path(self.tmp.name) / "proj"
@@ -1149,6 +1188,52 @@ class TestHyperFrames(Base):
         self.assertLess(html.index("<audio"), html.index('id="stage"'))   # audio is a direct child of the root
         self.assertTrue((proj / "gsap.min.js").exists() and (proj / "audio/line1.wav").exists())
 
+    def test_kit_scenes_get_the_kit_and_fonts_and_every_scene_gets_the_audit(self):
+        proj = Path(self.tmp.name) / "kit"
+        learn.hf_prepare(KIT_SCENE, ["a b c d"], [2.0], None, proj)
+        for f in ("bx.js", "bx.css", "fonts/saira-Regular.woff2", "fonts/saira-SemiBold.woff2", "fonts/OFL.txt"):
+            self.assertTrue((proj / f).exists(), f)
+        css = (proj / "bx.css").read_text()
+        for f in re.findall(r'url\("([^"]+)"\)', css):          # every @font-face source ships with the project
+            self.assertTrue((proj / f).exists(), f)
+        self.assertIn('font-family: "BX Saira"', css)
+        html = (proj / "index.html").read_text()
+        self.assertLess(html.index("BX label overlap"), html.lower().rindex("</body>"))
+        plain = Path(self.tmp.name) / "plain"
+        learn.hf_prepare(PLAIN, ["a b c d"], [2.0], None, plain)
+        self.assertFalse((plain / "bx.js").exists())
+        self.assertIn("BX label overlap", (plain / "index.html").read_text())
+        self.assertEqual(learn.hf_static_problems(KIT_SCENE), [])    # local src/href paths are allowed
+
+    def test_overlapping_labels_fail_and_long_holds_warn(self):
+        self.start_planned()
+        out = self.run_cmd("figure", "x", stdin=SKELETON.replace("</body>", "<!-- FAKE_OVERLAP --></body>"), ok=False)
+        self.assertIn('"Wordline" overlaps "Bitline"', out)
+        out = self.run_cmd("figure", "x", stdin=SKELETON.replace("</body>", "<!-- FAKE_HOLD --></body>"))
+        self.assertIn("WARNING: BX hold: no new visual event from 2s to 11s", out)
+
+    def test_pauses_add_silence_after_a_line_and_bad_pauses_are_rejected(self):
+        proj = Path(self.tmp.name) / "p"
+        page = SKELETON.replace("</body>", '<script type="application/json" id="pauses">{"0": 1.5}</script></body>')
+        total = learn.hf_prepare(page, ["a b c d", "e f g h"], [2.0, 3.0], None, proj)
+        self.assertEqual(total, 9.1)                              # 7.6 without the pause
+        self.assertIn('"start": [0.25, 4.1]', (proj / "index.html").read_text())
+        self.start_planned()
+        bad = SKELETON.replace("</body>", '<script type="application/json" id="pauses">{"0": 9}</script></body>')
+        self.assertIn("no pause after the last", self.run_cmd("figure", "x", stdin=bad, ok=False))
+        with self.assertRaises(learn.LearnError) as e:
+            learn.hf_pauses(bad, 3)
+        self.assertIn("keep pauses", str(e.exception))
+
+    def test_voice_speed_is_a_saved_preference_that_stretches_line_timing(self):
+        self.start_planned()
+        self.assertIn("0.90x", self.run_cmd("voice", "--speed", "0.9"))
+        self.assertEqual(self.state()["profile"]["voice_speed"], 0.9)
+        self.assertIn("between", self.run_cmd("voice", "--speed", "2", ok=False))
+        clips = learn.tts_lines(["one two three four five six seven eight nine ten eleven twelve thirteen"], "af_heart",
+                                Path(self.tmp.name), 0.9)
+        self.assertAlmostEqual(clips[0][1], 5.0 / 0.9, places=2)
+
     def test_scene_without_narration_is_rejected(self):
         self.start_planned()
         page = re.sub(r'<script type="application/json".*?</script>', "", SKELETON, flags=re.S)
@@ -1165,7 +1250,7 @@ class TestHyperFrames(Base):
     def test_check_errors_come_back_with_the_fix_and_count_as_a_failure(self):
         self.start_planned()
         out = self.run_cmd("figure", "x", stdin=SKELETON.replace("</body>", "<!-- FAKE_FAIL --></body>"), ok=False)
-        self.assertIn("text_occluded #cap at 3s", out)
+        self.assertIn('text_occluded #cap text "Ball" at 3s', out)
         self.assertIn("raise its stacking order", out)
         self.assertEqual(self.state()["session"]["manim_failures"], 1)
         self.run_cmd("figure", "x", stdin=SKELETON)
@@ -1201,6 +1286,20 @@ class TestHyperFrames(Base):
         self.assertIn("HyperFrames for everything else", out)
 
 
+class TestKitDocs(unittest.TestCase):
+    def test_every_public_kit_helper_is_documented(self):
+        root = Path(__file__).resolve().parent.parent
+        js = (root / "scripts/vendor/bx/bx.js").read_text()
+        names = re.findall(r"\w+", re.search(r"return \{ (C, init.*?) \};\n\}\)\(\);", js, re.S).group(1))
+        internal = {"C", "init", "H", "FS", "grad", "hatch", "hazard", "crawl", "beam", "counter", "hideNow", "cam"}
+        doc = (root / "skills/teach-understanding/references/hyperframes.md").read_text()
+        self.assertEqual([n for n in names if n not in internal and f"BX.{n}" not in doc], [])
+
+    def test_the_topic_neutral_example_uses_no_electronics(self):
+        for helper in ["wire(", "fetSym", "capSym", "bits(", "bus(", "badge(", '"board"']:
+            self.assertNotIn(helper, HEART)
+
+
 @unittest.skipUnless(shutil.which("npx") and os.environ.get("LEARN_TEST_HF", "1") != "0",
                      "needs Node and npx (LEARN_TEST_HF=0 skips the real render)")
 class TestRealHyperFrames(Base):
@@ -1209,12 +1308,29 @@ class TestRealHyperFrames(Base):
     def test_the_documented_scenes_pass_the_real_check_and_render(self):
         os.environ["LEARN_REQUIRE_MANIM"] = "1"
         self.start_planned()
-        for name, page in [("skeleton", SKELETON), ("example", EXAMPLE)]:
+        for name, page in [("skeleton", SKELETON), ("example", EXAMPLE), ("heart", HEART)]:
             out = self.run_cmd("figure", name, stdin=page)
             self.assertIn(f"{name}.mp4 (hyperframes)", out)
             mp4 = learn.VAULT / f"Attachments/learn/probability-basics/{name}.mp4"
             self.assertGreater(mp4.stat().st_size, 10_000)
             self.assertTrue(has_audio(mp4))
+
+
+    def test_the_audit_catches_real_label_overlap_and_long_holds(self):
+        tmp = Path(self.tmp.name)
+        lines = ["One two three four five six seven eight nine ten eleven twelve.",
+                 "One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen."]
+        both = kit_scene(lines, 'BX.callout(T(0, 0), 600, 600, 700, 400, "Overlap one");'
+                                'BX.callout(T(0, 0.3), 620, 610, 720, 410, "Overlap two");')
+        with self.assertRaises(learn.LearnError) as e:
+            learn.render_hyperframes(both, lines, None, tmp / "a")
+        self.assertIn('"Overlap one" overlaps "Overlap two"', str(e.exception))
+        apart = kit_scene(lines, 'BX.callout(T(0, 0), 600, 600, 700, 300, "Left one");'
+                                 'BX.callout(T(0, 0.3), 1300, 700, 1400, 800, "Right one");')
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            learn.render_hyperframes(apart, lines, None, tmp / "b")
+        self.assertIn("WARNING: BX hold", buf.getvalue())
 
 
 # ---------- paper mode: "Teach this paper to me" ----------
